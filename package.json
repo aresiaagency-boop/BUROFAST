@@ -1,0 +1,40 @@
+{
+  "name": "burofast",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BUROFAST: oficina de extranjería automatizada. Funnel multilingüe para el cliente y centro de mando para el equipo; HESTIA es su agente.",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "node scripts/migrate.mjs && next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "eval": "vitest run src/lib/diagnostico.eval.test.ts",
+    "migrate": "node scripts/migrate.mjs",
+    "hash-password": "node scripts/hash-password.mjs",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "screenshots": "node scripts/capturas.mjs"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "postgres": "3.4.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "16.3.4",
+    "typescript": "^5.9.3",
+    "vitest": "4.1.11"
+  }
+}

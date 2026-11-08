@@ -1,0 +1,43 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Icono, type NombreIcono } from "@/components/Iconos";
+import { SimboloBurofast } from "@/components/Marca";
+
+const MODULOS: { href: string; texto: string; icono: NombreIcono }[] = [
+  { href: "/mando", texto: "Mando", icono: "mando" },
+  { href: "/mando/citas", texto: "Citas", icono: "citas" },
+  { href: "/mando/leads", texto: "Solicitudes", icono: "personas" },
+  { href: "/mando/hestia", texto: "HESTIA y sistemas", icono: "agente" },
+];
+
+export function Navegacion() {
+  const ruta = usePathname();
+  const router = useRouter();
+  async function salir() {
+    await fetch("/api/v1/sesion", { method: "DELETE" });
+    router.push("/mando/acceso");
+  }
+  return (
+    <aside className="lateral">
+      <Link href="/mando" className="marca" style={{ padding: "4px 8px" }}>
+        <SimboloBurofast tamano={30} />
+        <span>
+          <span className="marca-nombre">BUROFAST</span>
+          <span className="marca-lema">Centro de mando</span>
+        </span>
+      </Link>
+      <nav aria-label="Módulos">
+        {MODULOS.map((m) => (
+          <Link key={m.href} href={m.href} aria-current={(m.href === "/mando" ? ruta === m.href : ruta.startsWith(m.href)) ? "page" : undefined}>
+            <Icono nombre={m.icono} tamano={18} /> {m.texto}
+          </Link>
+        ))}
+      </nav>
+      <button type="button" className="boton-texto" style={{ marginTop: "auto", display: "flex", gap: 8, alignItems: "center" }} onClick={salir}>
+        <Icono nombre="salir" tamano={16} /> Salir
+      </button>
+    </aside>
+  );
+}
