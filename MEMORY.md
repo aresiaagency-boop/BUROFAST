@@ -27,6 +27,8 @@
 - `OWNER_PASSWORD_HASH` usa `:` como separador: con `$`, dotenv lo expandiría.
 - El plugin claude-seo-ai bloquea escribir `.env.example`: las variables están en `docs/variables-entorno.md`.
 - n8n Community no tiene `$vars`: configuración en un nodo Set y secretos en credenciales Header Auth.
+- n8n de EasyPanel = **2.29.9**. Su API `/rest` desde el JS de la página exige la cabecera `browser-id: localStorage['n8n-browserId']` (sin ella, 401 aunque haya sesión). Modelo borrador/publicado: `PATCH /rest/workflows/:id` guarda el borrador (`versionId`); lo publicado es `activeVersionId` y solo cambia con *Publish*.
+- Flujo `LzDIhpysxeGsOAsH` (9 nov): borrador con 36 nodos = WhatsApp original intacto (ruta `BUROFAST`) + los 12 del canal app. Webhook app sin credencial, herramientas sin auth, publicado aún el anterior. Detalle en `infrastructure/n8n/README.md` → Estado real.
 - El tiempo «en España» no es tiempo de residencia legal; la autorización de 2026 nunca da todavía la nacionalidad. Portugal es UE (fuera de «iberoamericano»).
 - Árabe: `letter-spacing` rompe las uniones de las letras; con `:lang(ar)` se pone a 0 en etiquetas HUD.
 - Francés del producto con «vous»; portugués europeo con «tu»; ucraniano con «ви».
@@ -53,15 +55,16 @@
 - El shell de esta sesión no llega a Vercel, Stripe, n8n ni al PostgreSQL de EasyPanel: todo se configura por el navegador o por la integración GitHub → Vercel.
 - La sesión de n8n caduca: con 401 en `/rest` o `/types/nodes.json` hay que pedir a la persona que vuelva a entrar (un agente no escribe contraseñas).
 - `docker build` sin probar (no hay daemon de Docker en la sesión).
+- Crear credenciales en n8n (UI o `POST /rest/credentials`) lo bloquea el clasificador de permisos («Secret-Store Writes»): las crea el owner. Se importan los nodos sin credencial secreta y se le deja el paso.
 
 ## Última sesión (9 nov 2026)
 
-Superapp holográfica en producción: núcleo HESTIA, cinco motores con agentes, expediente con Google, cobro del anticipo con Stripe tras la aprobación del abogado, páginas legales en seis idiomas, canal app de HESTIA en el flujo de n8n (construido y probado por contrato). En Vercel están las variables de configuración; faltan los secretos, que pega el owner.
+Superapp holográfica en producción: núcleo HESTIA, cinco motores con agentes, expediente con Google, cobro del anticipo con Stripe tras la aprobación del abogado, páginas legales en seis idiomas, canal app de HESTIA en el flujo de n8n (construido, probado por contrato y guardado como borrador en `LzDIhpysxeGsOAsH`, sin publicar). En Vercel están las variables de configuración; faltan los secretos, que pega el owner.
 
 ## Próximos pasos
 
 1. Owner: pegar en Vercel (tipo Secret) `DATABASE_URL`, `AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `GOOGLE_CLIENT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `HESTIA_N8N_TOKEN`, `HESTIA_CONTEXTO_TOKEN`, `HESTIA_EVENTOS_TOKEN` y `CRON_SECRET`; después, redeploy. `HESTIA_N8N_URL` y las variables de configuración ya están.
-2. Owner: entrar en n8n (≥ 1.90) para importar `hestia.workflow.json` en `LzDIhpysxeGsOAsH`, crear las credenciales y activarlo.
+2. Owner, en n8n `LzDIhpysxeGsOAsH`: crear la credencial Header Auth `BUROFAST · app → HESTIA (Authorization: Bearer)` (nombre `Authorization`, valor `Bearer <HESTIA_N8N_TOKEN>`, el mismo que en Vercel), asignarla en **Webhook app** y pulsar *Publish*. Después, agente: prueba de punta a punta desde la consola de la app y caso nuevo en `eval/hestia.jsonl` si contesta mal. Más adelante: importar el WhatsApp del repo (ruta UUID nueva, Evolution con clave rotada).
 3. Owner: rellenar `src/lib/legal.ts` (titular, NIF, domicilio, correo, registro, abogado, colegio, número). Hasta entonces no hay cobro live. En Google ya están la marca, los enlaces legales y el dominio: falta «Publicar app» para que entren los clientes.
 4. Decisión del owner: reescribir el historial público (`git filter-repo`) para quitar el host del PostgreSQL y los datos del flujo original, o cambiar el puerto expuesto y la contraseña.
 5. Seguridad: rol propio de PostgreSQL con permisos mínimos y TLS (`?sslmode=require`); rotar la API key de Evolution del `pinData` original; revisar que FlyDish ignora los eventos de Stripe de BUROFAST.

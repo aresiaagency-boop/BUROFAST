@@ -63,4 +63,13 @@ Backend (/api/v1/hestia/conversar)
 
 ## Estado real
 
-Contrato verificado por pruebas (nodos, conexiones, credenciales, valores de los motores y el código que interpreta las marcas `[[AGENTE:…]] [[MOTOR:…]] [[ESCALAR]]`). Pendiente de importar y ejecutar en el n8n de EasyPanel. Requiere **n8n 1.90 o superior** (el nodo AI Agent 1.9 llega en 1.89 y `httpRequestTool` en 1.90): comprueba la versión en *Settings → About* antes de importar.
+Contrato verificado por pruebas (nodos, conexiones, credenciales, valores de los motores y el código que interpreta las marcas `[[AGENTE:…]] [[MOTOR:…]] [[ESCALAR]]`). Requiere **n8n 1.90 o superior** (el nodo AI Agent 1.9 llega en 1.89 y `httpRequestTool` en 1.90).
+
+En el n8n de EasyPanel (2.29.9, 9 nov 2026), flujo `LzDIhpysxeGsOAsH`:
+
+- **Borrador** con 36 nodos: los 12 del canal app añadidos debajo del WhatsApp **original**, que no se tocó (webhook con ruta `BUROFAST`, apikey de Evolution leída del cuerpo). No es un *Import from file* completo: el WhatsApp de este repo sigue sin importar.
+- *OpenAI · App* y *Memoria · App* usan las credenciales de OpenAI y PostgreSQL que ya tenía el flujo.
+- **Webhook app sin credencial** (triángulo rojo) y las cinco herramientas sin autenticación (cuota de 120 consultas cada 10 min por IP; con la credencial de contexto, 3 000).
+- La **versión publicada** sigue siendo la anterior: `/webhook/burofast-hestia-app` no responde hasta pulsar *Publish*.
+
+Para encenderlo: crear la credencial `BUROFAST · app → HESTIA (Authorization: Bearer)` (paso 4), asignarla en **Webhook app** y pulsar *Publish*. Opcional: la credencial de contexto en las cinco herramientas.
