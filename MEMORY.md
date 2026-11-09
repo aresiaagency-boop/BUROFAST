@@ -17,7 +17,7 @@
 - Next 16: `middleware.ts` es `proxy.ts` y corre en Node; `PageProps`, `LayoutProps` y `RouteContext` salen de `npx next typegen` (hay que relanzarlo al crear rutas).
 - Vercel: con `output: "standalone"` la build falla en `onBuildComplete` (`ENOENT .next/next-server.js.nft.json`). `next.config.ts` solo lo activa fuera de Vercel.
 - En Vercel, `x-forwarded-for` lo escribe Vercel con la IP real: `TRUSTED_PROXY_HOPS=1` toma la buena.
-- Un push a `main` puede no crear despliegue (le pasó a `b2126cb`, horas después del anterior). Remedio: Deployments → ⋯ → Create Deployment → `main` → Deploy to Production. El estado del commit en GitHub (`gh api …/commits/<sha>/status`) queda en `pending` sin contexto Vercel.
+- El despliegue de un push a `main` puede tardar mucho o no llegar (a `b2126cb` le llegó horas después). Si a los 2 minutos no aparece, remedio: Deployments → ⋯ → Create Deployment → `main` → Deploy to Production. El estado del commit en GitHub (`gh api …/commits/<sha>/status`) queda en `pending` sin contexto Vercel.
 - El formulario de variables de Vercel acepta un `.env` pegado en el campo Key: un `ClipboardEvent('paste')` con `DataTransfer` rellena todas las filas de golpe.
 - Google Auth Platform enseña el secreto del cliente una sola vez al crearlo; si se pierde, «Agregar secreto».
 - «Publicar app» en Google Auth Platform lo bloquea el clasificador de permisos de Claude: lo confirma el owner.

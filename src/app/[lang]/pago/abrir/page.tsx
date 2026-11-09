@@ -7,7 +7,7 @@ import { esLocale } from "@/lib/i18n/locales";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/pago/abrir">): Promise<Metadata> {
   const { lang } = await params;
-  return esLocale(lang) ? { title: DICCIONARIOS[lang].pago.abriendo } : {};
+  return esLocale(lang) ? { title: DICCIONARIOS[lang].pago.continuarPago } : {};
 }
 
 export default async function PagoAbrirPagina({ params }: PageProps<"/[lang]/pago/abrir">) {
