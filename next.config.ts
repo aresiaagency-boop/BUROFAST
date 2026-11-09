@@ -15,7 +15,10 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // «standalone» es para la imagen Docker. En Vercel su adaptador empaqueta la
+  // aplicación a su manera y el modo standalone rompe la build
+  // (.next/next-server.js.nft.json no existe).
+  output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
   turbopack: { root: process.cwd() },
