@@ -11,6 +11,8 @@ import { EVENTO_PREGUNTAR } from "@/lib/hestia/vivo";
 import { DICCIONARIOS } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/locales";
 import { direccion, LOCALES, NOMBRE_NATIVO } from "@/lib/i18n/locales";
+import type { DocumentoLegalId } from "@/lib/legal";
+import { DOCUMENTOS_LEGALES } from "@/lib/legal";
 import { ENTRADAS, entradaDeRuta, PESTANAS } from "@/lib/navegacion";
 
 const CLAVE_CONSOLA = "burofast.consola.abierta";
@@ -21,11 +23,13 @@ export function Superapp({
   locale,
   cliente,
   whatsapp,
+  legal,
   children,
 }: {
   locale: Locale;
   cliente: ClienteVisible;
   whatsapp: string | null;
+  legal: { menu: string; nombres: Record<DocumentoLegalId, string> };
   children: React.ReactNode;
 }) {
   const t = DICCIONARIOS[locale];
@@ -87,7 +91,7 @@ export function Superapp({
         </Link>
         <p className="barra-miga hud-etiqueta" aria-hidden="true">
           <span>{t.app.nucleo}</span>
-          {actual !== "nucleo" && <span>{nombreEntrada(actual)}</span>}
+          {actual && actual !== "nucleo" && <span>{nombreEntrada(actual)}</span>}
           <span className="oro">{t.agentes[entradaActual.agente].nombre}</span>
         </p>
         <div className="barra-acciones">
@@ -185,6 +189,11 @@ export function Superapp({
       <footer className="pie-app">
         <span>{t.app.idioma}: {NOMBRE_NATIVO[locale]}</span>
         <span>{t.nucleo.lecturas.datos}: {t.nucleo.lecturas.datosValor}</span>
+        <nav className="pie-legal" aria-label={legal.menu}>
+          {DOCUMENTOS_LEGALES.map((id) => (
+            <Link key={id} href={`/${locale}/legal/${id}`}>{legal.nombres[id]}</Link>
+          ))}
+        </nav>
         <span>{t.app.pie}</span>
       </footer>
     </div>

@@ -106,7 +106,10 @@ export async function aplicarResultado(
   `;
   const fila = filas[0];
   if (fila && r.estado === "pagado" && fila.tipo === "anticipo") {
-    await tx`update leads set estado = 'convertido' where id = ${fila.leadId} and estado in ('nuevo', 'contactado', 'revision_abogado')`;
+    // «aprobado» es el estado normal al pagar (la puerta del abogado); los
+    // anteriores cubren un enlace abierto antes de que el equipo moviera el
+    // expediente. Un expediente descartado no se reabre solo por un pago.
+    await tx`update leads set estado = 'convertido' where id = ${fila.leadId} and estado in ('nuevo', 'contactado', 'revision_abogado', 'aprobado')`;
   }
   return fila ?? null;
 }

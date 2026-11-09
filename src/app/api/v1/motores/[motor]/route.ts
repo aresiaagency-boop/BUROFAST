@@ -4,11 +4,13 @@ import { DOCUMENTOS, respuestasSchema } from "@/lib/diagnostico";
 import { correlationId, error, ipCliente, json } from "@/lib/http";
 import { DICCIONARIOS } from "@/lib/i18n";
 import { esFechaIso, motorAriadna, motorArgos, motorCronos, motorMnemosine, REGLAS_TEMIS } from "@/lib/motores";
+import { verifyMachineBearer } from "@/lib/security/hmac";
 import { limitar } from "@/lib/security/limites";
 
 // Los motores como herramientas: HESTIA (n8n) los consulta y la interfaz
 // también. Son cálculos de solo lectura, sin datos personales: no requieren
-// sesión, pero sí límite de peticiones.
+// sesión, pero sí límite de peticiones. HESTIA llega desde una sola IP para
+// todas las conversaciones: con su credencial de lectura tiene un cupo propio.
 
 const citaIds = Object.keys(CITAS) as [keyof typeof CITAS, ...(keyof typeof CITAS)[]];
 const docIds = [...DOCUMENTOS] as [(typeof DOCUMENTOS)[number], ...(typeof DOCUMENTOS)[number][]];
@@ -29,7 +31,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/m
   const correlation = correlationId(request);
   const { motor } = await params;
   if (!esMotor(motor)) return error("MOTOR_DESCONOCIDO", "Ese motor no existe.", { status: 404, correlation });
-  const limite = await limitar(`motor:${ipCliente(request)}`, { limite: 120, ventanaMs: 10 * 60_000 });
+  const secreto = process.env.HESTIA_CONTEXTO_TOKEN?.trim();
+  const deHestia = Boolean(secreto) && verifyMachineBearer(secreto ?? "", request.headers.get("authorization"));
+  const limite = await limitar(deHestia ? "motor:hestia" : `motor:${ipCliente(request)}`, {
+    limite: deHestia ? 3_000 : 120,
+    ventanaMs: 10 * 60_000,
+  });
   if (!limite.permitido) return error("DEMASIADAS_PETICIONES", "Demasiadas consultas seguidas.", { status: 429, correlation });
 
   const cuerpo = await request.json().catch(() => ({}));

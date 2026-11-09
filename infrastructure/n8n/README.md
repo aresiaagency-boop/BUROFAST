@@ -1,39 +1,66 @@
 # HESTIA en n8n
 
-`hestia-whatsapp.workflow.json` se genera desde el flujo original `AgenteWhatsapp.json`:
+Un solo flujo, `hestia.workflow.json`, con dos canales que comparten credenciales:
+
+| Canal | Entrada | Qué hace |
+| --- | --- | --- |
+| **WhatsApp** | Webhook de Evolution (`hestia-REEMPLAZAR-…`) | Agrupa mensajes, transcribe audios, lee el contexto vivo de BUROFAST, responde y registra eventos |
+| **App** | `POST /webhook/burofast-hestia-app` con `Authorization: Bearer <HESTIA_N8N_TOKEN>` | La consola de la superapp: HESTIA con memoria por sesión y los cinco motores como herramientas |
+
+Se genera desde el flujo original `AgenteWhatsapp.json`. Nunca se edita a mano:
 
 ```bash
 python3 scripts/n8n/construir-hestia.py /ruta/a/AgenteWhatsapp.json
-npx vitest run src/lib/hestia-flujo.test.ts   # contrato: sin secretos, conexiones válidas, firma compatible
+npx vitest run src/lib/hestia-flujo.test.ts   # contrato: sin secretos, conexiones válidas, motores al día
 ```
 
-## Qué cambia respecto al original
+## Canal app: HESTIA orquesta, los motores calculan
+
+```
+Backend (/api/v1/hestia/conversar)
+  └─ POST Webhook app  {canal, sesion, idioma, mensaje, motor, contexto}
+       └─ Entrada app → HESTIA · App (gpt-4o-mini, memoria Postgres por sesión)
+            ├─ ARIADNA_rutas        → POST /api/v1/motores/ariadna
+            ├─ CRONOS_citas         → POST /api/v1/motores/cronos
+            ├─ MNEMOSINE_documentos → POST /api/v1/motores/mnemosine
+            ├─ ARGOS_plazos         → POST /api/v1/motores/argos
+            └─ TEMIS_reglas         → POST /api/v1/motores/temis
+       └─ Salida app → {respuesta, agente, motor, escalar} → Responder a la app
+```
+
+- El navegador nunca llama a n8n: el backend es la puerta y pone el contexto (ruta, presupuesto y expedientes resumidos, sin nombre, teléfono ni correo).
+- Los valores válidos de cada herramienta se leen del código (`diagnostico.ts`, `catalogo.ts`). Si cambian y no se regenera el flujo, la prueba de contrato falla.
+- Las herramientas usan la credencial de contexto (solo lectura): con ella `/api/v1/motores/*` aplica a HESTIA un cupo propio (3 000 llamadas cada 10 min) en vez del de una IP.
+- Si la IA falla o tarda más de 28 s, el backend responde en **modo local** con los motores deterministas y lo dice en la consola.
+
+## Qué cambia en WhatsApp respecto al original
 
 | Original | HESTIA |
 | --- | --- |
 | `pinData` con API key y teléfono reales | Sin `pinData` |
 | URL e instancia de Evolution leídas del cuerpo del webhook | Fijas en el nodo **Configuración** (sin `$vars`, que n8n Community no tiene). El webhook se filtra por evento, instancia, mensajes propios y grupos |
-| Ruta del webhook publicada en el JSON | `hestia-REEMPLAZAR-por-un-uuid-propio`: cada despliegue pone la suya, imposible de adivinar |
+| Ruta del webhook publicada en el JSON | `hestia-REEMPLAZAR-por-un-uuid-propio`: cada despliegue pone la suya |
 | API key de Evolution enviada en el cuerpo | Credencial `httpHeaderAuth` de n8n |
 | Agrupación con `+3 horas` (zona horaria de Argentina) | Continúa cuando el último mensaje tiene 4 s de antigüedad |
-| Teléfono normalizado solo para Argentina (`549` → `54`) | Formato internacional `+` y dígitos |
+| Teléfono normalizado solo para Argentina | Formato internacional `+` y dígitos |
 | Imágenes descartadas | Aviso a HESTIA: pide no enviar documentos por WhatsApp y escala a una persona |
-| Prompt genérico de atención al cliente | Prompt de HESTIA (`prompts/hestia-system.md`) más contexto vivo de BUROFAST |
-| Sin rastro | Eventos con credencial propia (Bearer) y marca de tiempo: entrante, respuesta enviada y escalado a una persona |
+| Prompt genérico | `prompts/hestia-system.md` más contexto vivo de BUROFAST |
+| Sin rastro | Eventos con credencial propia: entrante, respuesta enviada y escalado |
 
-## Importar
+## Importar en el flujo de producción
 
-1. En n8n: *Import from file* → `hestia-whatsapp.workflow.json`.
-2. En el nodo **Configuración**, rellena `EVOLUTION_BASE_URL`, `EVOLUTION_INSTANCE` y `BUROFAST_API_URL`.
-3. En el nodo **Webhook**, cambia la ruta por un UUID nuevo: `node -e "console.log(crypto.randomUUID())"`.
-4. Credenciales que hay que crear o asignar (todas de tipo Header Auth):
+1. En el flujo de HESTIA: *Import from file* → `hestia.workflow.json` (sustituye el contenido).
+2. Nodo **Configuración** (WhatsApp): `EVOLUTION_BASE_URL` y `EVOLUTION_INSTANCE`. `BUROFAST_API_URL` ya viene con `https://burofast.vercel.app`.
+3. Nodo **Webhook** (WhatsApp): cambia la ruta por un UUID nuevo (`node -e "console.log(crypto.randomUUID())"`).
+4. Credenciales, todas de tipo Header Auth salvo las de modelo y memoria:
+   - `BUROFAST · app → HESTIA (Authorization: Bearer)`: nombre `Authorization`; valor `Bearer <HESTIA_N8N_TOKEN>`. Va en **Webhook app**.
+   - `BUROFAST · HESTIA contexto (Authorization: Bearer)`: `Bearer <HESTIA_CONTEXTO_TOKEN>`. Va en **Contexto BUROFAST** y en las cinco herramientas.
+   - `BUROFAST · HESTIA eventos (Authorization: Bearer)`: `Bearer <HESTIA_EVENTOS_TOKEN>`.
    - `Evolution API · BUROFAST (cabecera apikey)`: nombre `apikey`; valor, la clave **nueva** de Evolution.
-   - `BUROFAST · HESTIA contexto (Authorization: Bearer)`: nombre `Authorization`; valor, `Bearer <HESTIA_CONTEXTO_TOKEN>`.
-   - `BUROFAST · HESTIA eventos (Authorization: Bearer)`: nombre `Authorization`; valor, `Bearer <HESTIA_EVENTOS_TOKEN>`.
-   - OpenAI, Redis y PostgreSQL (memoria): las que ya usa tu n8n.
-5. En Evolution, apunta el webhook de `messages.upsert` a la URL de producción del nodo Webhook.
-6. Prueba con un número de test antes de activar el flujo. Comprueba en `/mando/hestia` que llegan los eventos.
+   - OpenAI (en *OpenAI Chat Model* y *OpenAI · App*) y PostgreSQL (en *Postgres Chat Memory* y *Memoria · App*); Redis para el búfer de WhatsApp.
+5. Activa el flujo y copia la URL de producción de **Webhook app** en Vercel como `HESTIA_N8N_URL`.
+6. Prueba: escribe en la consola de la app y comprueba en `/mando/hestia` que los turnos salen «con IA». En WhatsApp, prueba con un número de test antes de apuntar Evolution al webhook.
 
 ## Estado real
 
-El flujo se ha verificado por contrato. **No se ha importado ni ejecutado en un n8n real.** Antes de activarlo, revisa que tu versión de n8n acepta los nodos `if` v2.2, `set` v3.4 con `includeOtherFields` y `httpRequest` v4.2 con `contentType: raw`.
+Contrato verificado por pruebas (nodos, conexiones, credenciales, valores de los motores y el código que interpreta las marcas `[[AGENTE:…]] [[MOTOR:…]] [[ESCALAR]]`). Pendiente de importar y ejecutar en el n8n de EasyPanel: el canal app necesita `httpRequestTool` v4.2 y `$fromAI` (n8n ≥ 1.80).

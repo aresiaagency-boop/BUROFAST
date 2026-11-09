@@ -4,12 +4,13 @@ import { n8nHestiaConfigurado } from "@/lib/hestia/orquestador";
 import { modoStripe, stripe, stripeConfigurado, webhookStripeConfigurado } from "@/lib/pagos/stripe";
 import { cifradoConfigurado } from "@/lib/security/cifrado";
 import { autenticacionConfigurada } from "@/lib/security/sesion";
+import { datosLegalesPendientes } from "@/lib/legal";
 
 // Estado REAL de cada pieza. Nunca se pinta «operativo» sin una comprobación
 // reciente: si no se puede comprobar, se dice «no configurado» o «desconectado».
 export type EstadoPieza = "operativo" | "desconectado" | "no_configurado" | "error";
 export type Comprobacion = {
-  id: "postgres" | "cifrado" | "autenticacion" | "google" | "n8n" | "hestia_ia" | "whatsapp" | "hestia_webhook" | "stripe" | "stripe_webhook";
+  id: "postgres" | "cifrado" | "autenticacion" | "google" | "n8n" | "hestia_ia" | "whatsapp" | "hestia_webhook" | "stripe" | "stripe_webhook" | "legal";
   estado: EstadoPieza;
   detalle: string;
   latenciaMs: number | null;
@@ -144,5 +145,6 @@ export async function comprobarTodo() {
       Boolean(process.env.HESTIA_CONTEXTO_TOKEN?.trim() && (process.env.HESTIA_EVENTOS_TOKEN?.trim() || process.env.HESTIA_WEBHOOK_SECRET?.trim())),
       "HESTIA_CONTEXTO_TOKEN y HESTIA_EVENTOS_TOKEN (o HESTIA_WEBHOOK_SECRET)",
     ),
+    deEntorno("legal", datosLegalesPendientes().length === 0, `rellenar en src/lib/legal.ts: ${datosLegalesPendientes().join(", ")}`),
   ];
 }

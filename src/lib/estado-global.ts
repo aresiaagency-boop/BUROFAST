@@ -17,4 +17,5 @@ export const NOMBRE_PIEZA: Record<Comprobacion["id"], string> = {
   hestia_webhook: "Credenciales de HESTIA por WhatsApp",
   stripe: "Stripe (cobros)",
   stripe_webhook: "Webhook de Stripe",
+  legal: "Datos legales (titular y abogado)",
 };

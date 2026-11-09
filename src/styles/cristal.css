@@ -216,6 +216,9 @@ button.cristal:hover::before { animation-play-state: running; }
 .hud-etiqueta > * + *::before { content: ">>>"; margin-inline-end: 8px; color: var(--texto-tenue); letter-spacing: 0.04em; }
 .hud-etiqueta .oro { color: var(--oro); }
 [dir="rtl"] .hud-etiqueta > * + *::before { content: "<<<"; }
+/* El árabe es cursivo: el espaciado entre letras rompe las uniones. */
+:lang(ar) :is(.hud-etiqueta, .lectura-nombre, .legal-meta, .capitulo, .sendero-leyenda, .pie-camino) { letter-spacing: 0; }
+:lang(ar) .legal-meta { font-family: inherit; }
 
 .lecturas { display: flex; flex-wrap: wrap; gap: 10px 22px; }
 .lectura { display: grid; gap: 2px; min-width: 0; }

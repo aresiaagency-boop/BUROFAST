@@ -3,7 +3,7 @@ import { correlationId, error, json, log } from "@/lib/http";
 import { registrarEventoStripe } from "@/lib/pagos/repositorio";
 import type { Stripe } from "@/lib/pagos/stripe";
 import { construirEventoStripe, stripeConfigurado, webhookStripeConfigurado } from "@/lib/pagos/stripe";
-import { procesarEventoStripe } from "@/lib/pagos/webhook";
+import { esEventoAjeno, procesarEventoStripe } from "@/lib/pagos/webhook";
 import { auditar } from "@/lib/repositorio";
 
 // Webhook de Stripe. La firma (Stripe-Signature, HMAC con marca de tiempo) se
@@ -23,13 +23,17 @@ export async function POST(request: Request) {
     return error("FIRMA_INVALIDA", "Firma de Stripe no válida.", { status: 400, correlation });
   }
 
+  // De otra app de la misma cuenta: 200 para que Stripe no reintente, y nada
+  // en nuestra base.
+  if (esEventoAjeno(evento)) return json({ recibido: true, accion: "ajeno" }, { correlation });
+
   try {
     const resultado = await db().begin(async (tx) => {
       const nuevo = await registrarEventoStripe(tx, evento.id, evento.type);
       if (!nuevo) return { accion: "duplicado" as const, leadId: undefined };
       return procesarEventoStripe(tx, evento);
     });
-    if (resultado.accion !== "duplicado" && resultado.accion !== "ignorado") {
+    if (!["duplicado", "ignorado", "sin_cambios"].includes(resultado.accion)) {
       await auditar({
         actorId: "stripe",
         accion: `pago.${resultado.accion}`,

@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "eval": "vitest run src/lib/diagnostico.eval.test.ts",
+    "eval": "vitest run src/lib/diagnostico.eval.test.ts src/lib/hestia/hestia.eval.test.ts",
     "migrate": "node scripts/migrate.mjs",
     "hash-password": "node scripts/hash-password.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",

@@ -2,6 +2,17 @@ import type { TransactionSql } from "postgres";
 import { aplicarResultado, marcarReembolsado } from "@/lib/pagos/repositorio";
 import type { Stripe } from "@/lib/pagos/stripe";
 
+// La cuenta de Stripe de ARES la comparten varias apps (FlyDish, BUROFAST…) y
+// cada webhook recibe los eventos de todas. Solo se procesan las sesiones que
+// creó BUROFAST; un reembolso se cruza por el pago, que solo existe si es nuestro.
+export const APP_STRIPE = "burofast";
+
+export function esEventoAjeno(evento: Stripe.Event) {
+  if (!evento.type.startsWith("checkout.session.")) return false;
+  const sesion = evento.data.object as Stripe.Checkout.Session;
+  return sesion.metadata?.app !== APP_STRIPE;
+}
+
 export function idPaymentIntent(valor: string | { id: string } | null | undefined) {
   if (!valor) return null;
   return typeof valor === "string" ? valor : valor.id;

@@ -1,25 +1,41 @@
-# Arquitectura · BUROFAST fase 1
+# Arquitectura · BUROFAST
 
-Es un monolito modular en Next.js 16. No hay microservicios. HESTIA vive en n8n y habla con la aplicación solo por dos endpoints, los dos autenticados.
+Monolito modular en Next.js 16 desplegado en Vercel (`lhr1`). No hay microservicios. HESTIA vive en n8n; el navegador nunca habla con n8n: el backend es la puerta.
 
 ```
-Cliente (móvil)                Equipo
-   │ funnel /{idioma}/camino       │ /mando (sesión HMAC, rol)
-   ▼                               ▼
+Cliente (móvil, 6 idiomas)                         Equipo
+   │ superapp /{idioma}: núcleo + 5 motores           │ /mando (Google o contraseña, rol)
+   ▼                                                  ▼
 Next.js 16 · App Router · proxy.ts (sesión + idioma)
-   ├── lib/diagnostico     reglas de ruta (sin IA) + eval
-   ├── lib/catalogo        precios, citas, niveles Urgente / Puedo esperar
-   ├── lib/citas           ciclo de vida + semáforo de plazo
-   ├── lib/repositorio     SQL a mano (postgres) + cifrado de PII
-   └── api/v1/*            Zod en cada entrada, correlation_id en cada salida
+   ├── lib/motores        ARIADNA rutas · CRONOS citas · MNEMÓSINE documentos · ARGOS plazos · TEMIS reglas
+   ├── lib/diagnostico    reglas de ruta (sin IA) + eval/diagnostico.jsonl
+   ├── lib/catalogo       precios, citas, niveles Urgente / Puedo esperar
+   ├── lib/hestia         orquestador (backend ↔ n8n) + modo local + eval/hestia.jsonl
+   ├── lib/pagos          Stripe Checkout + webhook idempotente
+   ├── lib/auth           Google OIDC (PKCE, state, nonce) + sesión de cliente
+   ├── lib/repositorio    SQL a mano (postgres) + cifrado de PII
+   └── api/v1/*           Zod en cada entrada, correlation_id en cada salida
    │
-   ├── PostgreSQL 16  leads · citas · cita_eventos · hestia_eventos · audit_logs
-   │
-   └── n8n (HESTIA) ──GET  /api/v1/hestia/contexto (Bearer de lectura)
-                    └─POST /api/v1/hestia/eventos  (Bearer de eventos + ventana de 5 min)
-       ▲
-   Evolution API (WhatsApp) → webhook n8n
+   ├── PostgreSQL (EasyPanel)  leads · citas · pagos · stripe_eventos · hestia_turnos · limites · audit_logs
+   ├── Stripe ──POST /api/v1/pagos/stripe/webhook (firma; ignora lo que no es metadata.app=burofast)
+   ├── Google ──GET  /api/v1/auth/google/callback
+   └── n8n (HESTIA)
+         ├─ canal app:      backend ──POST webhook «burofast-hestia-app» (Bearer HESTIA_N8N_TOKEN)
+         │                  HESTIA · App ──POST /api/v1/motores/{ariadna|cronos|mnemosine|argos|temis} (Bearer de lectura)
+         └─ canal WhatsApp: Evolution → webhook n8n
+                            ──GET  /api/v1/hestia/contexto (Bearer de lectura)
+                            └─POST /api/v1/hestia/eventos  (Bearer de eventos + ventana de 5 min)
 ```
+
+## Cobro con puerta humana
+
+```
+nuevo → (contactado) → revision_abogado ─(el abogado aprueba)→ aprobado ─(paga el anticipo, webhook)→ convertido
+```
+
+- El botón de pago y el enlace firmado (7 días) solo existen con el expediente `aprobado`.
+- El importe es el 50 % del presupuesto guardado en el servidor; el navegador no manda cifras.
+- Cada evento de Stripe se registra una sola vez (`stripe_eventos`) en la misma transacción que el cambio de estado.
 
 ## Ciclo de una cita
 
@@ -52,6 +68,15 @@ Plazo de la primera acción: **24 h** en Urgente y **120 h** en Puedo esperar. L
 | `GET /api/v1/mando/estado` | viewer | Comprobación real de cada pieza |
 | `GET /api/v1/hestia/contexto` | Bearer `HESTIA_CONTEXTO_TOKEN` | Contexto para el prompt de HESTIA |
 | `POST /api/v1/hestia/eventos` | Bearer `HESTIA_EVENTOS_TOKEN` + marca de tiempo, o firma HMAC | Eventos del agente, sin texto de mensajes |
+| `POST /api/v1/hestia/conversar` | Público, con límite y Origin | La consola habla con HESTIA (n8n o modo local) |
+| `POST /api/v1/motores/:motor` | Público con límite por IP; cupo propio con Bearer de lectura | ARIADNA, CRONOS, MNEMÓSINE, ARGOS y TEMIS como herramientas |
+| `GET /api/v1/auth/google` · `/callback` | Público, con límite | Acceso con Google (equipo o cliente) |
+| `POST /api/v1/auth/salir` | Sesión de cliente | Cierra la sesión del cliente |
+| `POST /api/v1/pagos/checkout` | Sesión de cliente o enlace firmado; expediente `aprobado` | Abre el Checkout del anticipo |
+| `GET /api/v1/pagos/estado` | Público (id de sesión) | Sincroniza la vuelta de Stripe |
+| `POST /api/v1/pagos/stripe/webhook` | Firma de Stripe | Cambia el estado del pago, una sola vez por evento |
+| `POST /api/v1/mando/leads/:id/estado` | operator | Mueve una solicitud por su ciclo (solo el abogado aprueba) |
+| `POST /api/v1/mando/leads/:id/enlace-pago` | operator | Enlace de pago firmado para un expediente aprobado |
 
 Formato de error: `{ error: { codigo, mensaje, correlationId, detalle? } }`.
 
@@ -59,5 +84,6 @@ Formato de error: `{ error: { codigo, mensaje, correlationId, detalle? } }`.
 
 - **Diagnóstico sin IA.** La ruta y el precio tienen que ser reproducibles y auditables. La IA conversa (HESTIA); las reglas deciden.
 - **Sin ORM.** Es la misma convención que BUROINSTANT, y las consultas son pocas y explícitas.
-- **Sesión propia en fase 1.** Se puede probar sin proveedores externos. En fase 2 se pasa a Google con NextAuth, compartido con BUROINSTANT.
+- **Google sin librería.** OIDC con PKCE, `state` y `nonce` hecho a mano (unas 100 líneas auditables) en vez de NextAuth: una sola dependencia menos que vigilar, y la misma sesión firmada sirve para equipo y clientes.
+- **HESTIA orquesta, los motores deciden.** Un solo LLM con los cinco motores deterministas como herramientas, en vez de cinco LLM: cada cifra sale de código probado, y si la IA cae responde el modo local.
 - **Seis idiomas tipados.** El tipo `Diccionario` obliga a que cada texto exista en los seis.

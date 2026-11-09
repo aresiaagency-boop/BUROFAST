@@ -2,7 +2,9 @@ import Link from "next/link";
 import { NucleoHestia } from "@/components/holo/NucleoHestia";
 import { SimboloBurofast } from "@/components/Marca";
 import { DICCIONARIOS } from "@/lib/i18n";
+import { LEGALES } from "@/lib/i18n/legal";
 import { direccion, LOCALES, NOMBRE_NATIVO } from "@/lib/i18n/locales";
+import { DOCUMENTOS_LEGALES } from "@/lib/legal";
 
 // Paso 0: el idioma se elige antes que nada. Cada puerta se presenta en su
 // propio idioma, para que cualquiera encuentre la suya.
@@ -49,6 +51,11 @@ export default function Puerta() {
 
       <footer className="puerta-pie">
         <span>{es.comun.avisoIa}</span>
+        <nav className="pie-legal" aria-label={LEGALES.es.menu}>
+          {DOCUMENTOS_LEGALES.map((id) => (
+            <Link key={id} href={`/es/legal/${id}`}>{LEGALES.es.nombres[id]}</Link>
+          ))}
+        </nav>
         <span className="mono">v0.2 · fase 2</span>
       </footer>
     </div>

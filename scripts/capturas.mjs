@@ -115,6 +115,16 @@ await uk.fill("#caducidad", new Date(Date.now() + 20 * 86_400_000).toISOString()
 await uk.waitForTimeout(300);
 await foto(uk, "17-uk-movil-guardian", true);
 
+// Páginas legales: escritorio y móvil RTL, con los datos pendientes a la vista
+await es.goto(`${BASE}/es/legal/privacidad`);
+await es.waitForTimeout(400);
+await foto(es, "18-legal-privacidad", true);
+// Contexto nuevo: sin la consola que quedó abierta en la captura 16.
+const arLegal = await pagina({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+await arLegal.goto(`${BASE}/ar/legal/condiciones`);
+await arLegal.waitForTimeout(400);
+await foto(arLegal, "19-ar-movil-condiciones");
+
 // 3. Centro de mando (acceso de respaldo con contraseña)
 if (process.env.CAPTURAS_EMAIL && process.env.CAPTURAS_PASSWORD) {
   const mando = await pagina({ viewport: { width: 1440, height: 900 } });

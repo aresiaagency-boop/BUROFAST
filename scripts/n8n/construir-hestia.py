@@ -1,17 +1,28 @@
-"""Construye infrastructure/n8n/hestia-whatsapp.workflow.json a partir del flujo
-original AgenteWhatsapp.json. Cambios: sin pinData ni claves del cuerpo del
-webhook, URL de Evolution fija (no la que diga el cuerpo), agrupación de mensajes
-sin el desfase de 3 h, teléfonos de cualquier país, imágenes, contexto vivo de
-BUROFAST en el prompt y eventos autenticados con credencial hacia /api/v1/hestia/eventos.
+"""Construye infrastructure/n8n/hestia.workflow.json: HESTIA con dos canales.
+
+1. WhatsApp, a partir del flujo original AgenteWhatsapp.json. Cambios: sin
+   pinData ni claves del cuerpo del webhook, URL de Evolution fija (no la que
+   diga el cuerpo), agrupación de mensajes sin el desfase de 3 h, teléfonos de
+   cualquier país, imágenes, contexto vivo de BUROFAST en el prompt y eventos
+   autenticados con credencial hacia /api/v1/hestia/eventos.
+2. App: la consola de la superapp. Webhook con credencial, HESTIA con memoria
+   por sesión y los cinco motores como herramientas (ARIADNA, CRONOS,
+   MNEMÓSINE, ARGOS, TEMIS), y respuesta JSON con agente, motor y escalado.
+
+Los valores válidos de cada herramienta se leen del código TypeScript (una
+regla vive en un sitio); src/lib/hestia-flujo.test.ts comprueba que siguen al día.
 
 Uso: python3 scripts/n8n/construir-hestia.py <ruta a AgenteWhatsapp.json>
 """
-import copy, json, sys, uuid
+import copy, json, re, sys, uuid
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
 origen = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 prompt = (RAIZ / "infrastructure/n8n/prompts/hestia-system.md").read_text(encoding="utf-8")
+prompt_app = (RAIZ / "infrastructure/n8n/prompts/hestia-app.md").read_text(encoding="utf-8")
+# Producción. Si cambia el dominio, se cambia aquí y se regenera.
+API_BUROFAST = "https://burofast.vercel.app"
 
 nodos = {n["name"]: copy.deepcopy(n) for n in origen["nodes"]}
 def nid(nombre):  # ids estables para que reimportar no duplique nodos
@@ -36,7 +47,7 @@ configuracion = {
     "parameters": {"assignments": {"assignments": [
         {"id": nid("cfg-evo"), "name": "EVOLUTION_BASE_URL", "value": "https://REEMPLAZAR-evolution-api", "type": "string"},
         {"id": nid("cfg-inst"), "name": "EVOLUTION_INSTANCE", "value": "REEMPLAZAR-instancia", "type": "string"},
-        {"id": nid("cfg-api"), "name": "BUROFAST_API_URL", "value": "https://REEMPLAZAR-burofast", "type": "string"},
+        {"id": nid("cfg-api"), "name": "BUROFAST_API_URL", "value": API_BUROFAST, "type": "string"},
     ]}, "includeOtherFields": True, "options": {}},
     "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [-176, 320], "id": nid("Configuración"), "name": "Configuración",
 }
@@ -235,8 +246,175 @@ conexiones = {
     "Eventos para BUROFAST": {"main": [[{"node": "Registrar en BUROFAST", "type": "main", "index": 0}]]},
 }
 
+# ─── Canal 2 · App ──────────────────────────────────────────────────────────
+# La consola de la superapp habla con HESTIA a través del backend (el navegador
+# nunca llama a n8n). Contrato: src/lib/hestia/orquestador.ts.
+
+def lista_ts(ruta, nombre):
+    texto = (RAIZ / ruta).read_text(encoding="utf-8")
+    bloque = re.search(r"export const " + nombre + r" = \[(.*?)\] as const;", texto, re.S)
+    return re.findall(r'"([^"]+)"', bloque.group(1))
+
+def claves_ts(ruta, nombre):
+    texto = (RAIZ / ruta).read_text(encoding="utf-8")
+    bloque = re.search(r"export const " + nombre + r" = \{\n(.*?)\n\} as const;", texto, re.S)
+    return re.findall(r"^  ([a-z_]+): \{", bloque.group(1), re.M)
+
+DIAG = "src/lib/diagnostico.ts"
+uno_de = lambda valores: "Uno de: " + ", ".join(valores) + "."
+valores = lambda lista: "Valores posibles: " + ", ".join(lista) + "."
+CITAS_IDS = claves_ts("src/lib/catalogo.ts", "CITAS")
+DOCUMENTOS_IDS = lista_ts(DIAG, "DOCUMENTOS")
+
+CRED_APP = {"httpHeaderAuth": {"id": "REEMPLAZAR_AL_IMPORTAR", "name": "BUROFAST · app → HESTIA (Authorization: Bearer)"}}
+# Las herramientas usan la credencial de contexto (solo lectura): con ella el
+# servidor aplica el límite de peticiones de HESTIA, no el de una IP cualquiera.
+
+webhook_app = {
+    "parameters": {"httpMethod": "POST", "path": "burofast-hestia-app", "authentication": "headerAuth", "responseMode": "responseNode", "options": {}},
+    "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [-176, 1200],
+    "id": nid("Webhook app"), "name": "Webhook app", "webhookId": nid("webhook-app"), "credentials": CRED_APP,
+}
+entrada_app = {
+    "parameters": {"assignments": {"assignments": [
+        {"id": nid("app-sesion"), "name": "sesion", "value": "={{ String($json.body.sesion || '').slice(0, 80) }}", "type": "string"},
+        {"id": nid("app-mensaje"), "name": "mensaje", "value": "={{ String($json.body.mensaje || '').slice(0, 2000) }}", "type": "string"},
+        {"id": nid("app-idioma"), "name": "idioma", "value": "={{ ['es','en','fr','pt','ar','uk'].includes($json.body.idioma) ? $json.body.idioma : 'es' }}", "type": "string"},
+        {"id": nid("app-motor"), "name": "motor", "value": "={{ $json.body.motor || '' }}", "type": "string"},
+        {"id": nid("app-contexto"), "name": "contexto", "value": "={{ $json.body.contexto || {} }}", "type": "object"},
+    ]}, "options": {}},
+    "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [48, 1200], "id": nid("Entrada app"), "name": "Entrada app",
+}
+hestia_app = {
+    "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje }}",
+        "options": {
+            "systemMessage": (
+                "=" + prompt_app
+                + "\n--- CONTEXTO DE ESTA PERSONA (sin nombre, teléfono ni correo) ---\n"
+                + "{{ JSON.stringify($json.contexto) }}\n\n"
+                + "Idioma: {{ $json.idioma }}\nMotor abierto: {{ $json.motor || 'ninguno' }}\n"
+                + "Fecha: {{ $now.setZone('Europe/Madrid').toISODate() }}"
+            ),
+            "maxIterations": 6,
+        },
+    },
+    "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 1.9, "position": [304, 1200],
+    "id": nid("HESTIA · App"), "name": "HESTIA · App",
+    # Si la IA falla, la salida vacía hace que el backend responda en modo local.
+    "onError": "continueRegularOutput",
+}
+modelo_app = {
+    "parameters": {"model": {"__rl": True, "mode": "list", "value": "gpt-4o-mini"}, "options": {"temperature": 0.3}},
+    "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi", "typeVersion": 1.2, "position": [176, 1440],
+    "id": nid("OpenAI · App"), "name": "OpenAI · App",
+}
+memoria_app = {
+    "parameters": {"sessionIdType": "customKey", "sessionKey": "={{ $('Entrada app').item.json.sesion }}", "contextWindowLength": 10},
+    "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat", "typeVersion": 1.3, "position": [336, 1440],
+    "id": nid("Memoria · App"), "name": "Memoria · App",
+}
+
+def herramienta(nombre, motor, descripcion, cuerpo, x):
+    return {
+        "parameters": {
+            "toolDescription": descripcion,
+            "method": "POST",
+            "url": f"{API_BUROFAST}/api/v1/motores/{motor}",
+            "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth",
+            "sendBody": True, "specifyBody": "json", "jsonBody": cuerpo,
+            "options": {"timeout": 8000},
+        },
+        "type": "n8n-nodes-base.httpRequestTool", "typeVersion": 4.2, "position": [x, 1440],
+        "id": nid(nombre), "name": nombre, "credentials": CRED_CONTEXTO,
+    }
+
+def de_ia(clave, descripcion):
+    # Llamada $fromAI con comillas simples: n8n la lee para construir el
+    # esquema de la herramienta.
+    return "$fromAI('" + clave + "', '" + descripcion.replace("'", "’") + "', 'string')"
+
+def desde_ia(clave, descripcion, vacio_es_null=False):
+    # JSON.stringify deja comillas y escapes bien puestos dentro del cuerpo.
+    valor = de_ia(clave, descripcion) + (" || null" if vacio_es_null else "")
+    return "{{ JSON.stringify(" + valor + ") }}"
+
+def lista_desde_ia(clave, descripcion):
+    return "{{ JSON.stringify(String(" + de_ia(clave, descripcion) + " || '').split(',').map((v) => v.trim()).filter(Boolean)) }}"
+
+herramientas = [
+    herramienta(
+        "ARIADNA_rutas", "ariadna",
+        "ARIADNA. Calcula la ruta de extranjería de la persona y su presupuesto por nivel de gestión de citas, a partir de cinco respuestas. Úsala si cambia su situación o pregunta por otra ruta.",
+        "={ \"respuestas\": { "
+        + "\"sueno\": " + desde_ia("sueno", "Qué quiere. " + uno_de(lista_ts(DIAG, "SUENOS"))) + ", "
+        + "\"ubicacion\": " + desde_ia("ubicacion", "Dónde está ahora. " + uno_de(lista_ts(DIAG, "UBICACIONES"))) + ", "
+        + "\"situacion\": " + desde_ia("situacion", "Su situación en España; vacío si está fuera. " + uno_de(lista_ts(DIAG, "SITUACIONES")), vacio_es_null=True) + ", "
+        + "\"tiempo\": " + desde_ia("tiempo", "Tiempo en España (residencia legal si tiene autorización); vacío si está fuera. " + uno_de(lista_ts(DIAG, "TIEMPOS")), vacio_es_null=True) + ", "
+        + "\"pasaporte\": " + desde_ia("pasaporte", "Su pasaporte. " + uno_de(lista_ts(DIAG, "PASAPORTES")))
+        + " } }",
+        560,
+    ),
+    herramienta(
+        "CRONOS_citas", "cronos",
+        "CRONOS. Para una lista de citas oficiales devuelve quién las da, cuándo se piden, cuáles gestiona BUROFAST y cuánto cuesta gestionarlas por nivel (la cita oficial es gratis).",
+        "={ \"citas\": " + lista_desde_ia("citas", "Ids de cita separados por comas. " + valores(CITAS_IDS)) + " }",
+        720,
+    ),
+    herramienta(
+        "MNEMOSINE_documentos", "mnemosine",
+        "MNEMÓSINE. Para una lista de documentos dice cuáles necesitan legalización o apostilla y traducción jurada, y cuáles deben ser recientes.",
+        "={ \"documentos\": " + lista_desde_ia("documentos", "Ids de documento separados por comas. " + valores(DOCUMENTOS_IDS)) + " }",
+        880,
+    ),
+    herramienta(
+        "ARGOS_plazos", "argos",
+        "ARGOS. Con la fecha de caducidad de una tarjeta de residencia calcula cuándo se abre y se cierra el plazo de renovación y en qué punto está hoy.",
+        "={ \"caducidad\": " + desde_ia("caducidad", "Fecha de caducidad de la tarjeta, formato AAAA-MM-DD.") + " }",
+        1040,
+    ),
+    herramienta(
+        "TEMIS_reglas", "temis",
+        "TEMIS. Devuelve las garantías y límites de BUROFAST: qué prometemos, qué no y qué decide siempre una persona.",
+        "={}",
+        1200,
+    ),
+]
+
+salida_app = {
+    "parameters": {"jsCode": (
+        "const bruto = String($input.first().json.output || '');\n"
+        "const agente = ((bruto.match(/\\[\\[AGENTE:([^\\]]+)\\]\\]/i) || [])[1] || 'HESTIA')\n"
+        "  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toUpperCase();\n"
+        "const motor = ((bruto.match(/\\[\\[MOTOR:([^\\]]+)\\]\\]/i) || [])[1] || '').trim().toLowerCase() || null;\n"
+        "const escalar = bruto.includes('[[ESCALAR]]');\n"
+        "const respuesta = bruto.replace(/\\[\\[(AGENTE|MOTOR):[^\\]]*\\]\\]/gi, '').replace(/\\[\\[ESCALAR\\]\\]/g, '').trim();\n"
+        "// Sin texto, el backend no lo acepta y responde en modo local.\n"
+        "return [{ json: { respuesta: respuesta || null, agente, motor, escalar } }];"
+    )},
+    "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [624, 1200], "id": nid("Salida app"), "name": "Salida app",
+}
+responder_app = {
+    "parameters": {"respondWith": "firstIncomingItem", "options": {}},
+    "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [848, 1200],
+    "id": nid("Responder a la app"), "name": "Responder a la app",
+}
+
+for nuevo in (webhook_app, entrada_app, hestia_app, modelo_app, memoria_app, *herramientas, salida_app, responder_app):
+    nodos[nuevo["name"]] = nuevo
+conexiones.update({
+    "Webhook app": {"main": [[{"node": "Entrada app", "type": "main", "index": 0}]]},
+    "Entrada app": {"main": [[{"node": "HESTIA · App", "type": "main", "index": 0}]]},
+    "OpenAI · App": {"ai_languageModel": [[{"node": "HESTIA · App", "type": "ai_languageModel", "index": 0}]]},
+    "Memoria · App": {"ai_memory": [[{"node": "HESTIA · App", "type": "ai_memory", "index": 0}]]},
+    **{h["name"]: {"ai_tool": [[{"node": "HESTIA · App", "type": "ai_tool", "index": 0}]]} for h in herramientas},
+    "HESTIA · App": {"main": [[{"node": "Salida app", "type": "main", "index": 0}]]},
+    "Salida app": {"main": [[{"node": "Responder a la app", "type": "main", "index": 0}]]},
+})
+
 flujo = {
-    "name": "HESTIA · BUROFAST · WhatsApp",
+    "name": "HESTIA · BUROFAST",
     "nodes": list(nodos.values()),
     "pinData": {},
     "connections": conexiones,
@@ -245,6 +423,6 @@ flujo = {
     "meta": {"templateCredsSetupCompleted": False},
     "tags": [],
 }
-destino = RAIZ / "infrastructure/n8n/hestia-whatsapp.workflow.json"
+destino = RAIZ / "infrastructure/n8n/hestia.workflow.json"
 destino.write_text(json.dumps(flujo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(f"{destino} · {len(flujo['nodes'])} nodos")

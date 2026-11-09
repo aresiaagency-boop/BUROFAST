@@ -92,7 +92,7 @@ function recorridoPrevisto(r: Partial<Respuestas>, ruta: Ruta | null): PasoId[] 
   return pasos;
 }
 
-export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string | null }) {
+export function Funnel({ locale, whatsapp, enlacePrivacidad }: { locale: Locale; whatsapp: string | null; enlacePrivacidad: string }) {
   const t = DICCIONARIOS[locale];
   const rtl = direccion(locale) === "rtl";
   const [estado, despachar] = useReducer(reducir, INICIAL);
@@ -215,7 +215,7 @@ export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string 
 
         {paso === "contacto" && ruta && respuestasCompletas(estado.respuestas) && (
           <PasoContacto locale={locale} respuestas={estado.respuestas} nivelCita={estado.nivelCita ?? null} conGuardian={estado.conGuardian}
-            whatsapp={whatsapp} onTerminado={(referencia) => despachar({ tipo: "terminar", referencia })} />
+            whatsapp={whatsapp} enlacePrivacidad={enlacePrivacidad} onTerminado={(referencia) => despachar({ tipo: "terminar", referencia })} />
         )}
 
         {paso === "listo" && estado.referencia && (
@@ -390,7 +390,7 @@ function PasoPlan({ locale, ruta, nivelCita, conGuardian, onGuardian, onSeguir }
   );
 }
 
-function PasoContacto({ locale, respuestas, nivelCita, conGuardian, whatsapp, onTerminado }: { locale: Locale; respuestas: Respuestas; nivelCita: NivelCita | null; conGuardian: boolean; whatsapp: string | null; onTerminado: (referencia: string) => void }) {
+function PasoContacto({ locale, respuestas, nivelCita, conGuardian, whatsapp, enlacePrivacidad, onTerminado }: { locale: Locale; respuestas: Respuestas; nivelCita: NivelCita | null; conGuardian: boolean; whatsapp: string | null; enlacePrivacidad: string; onTerminado: (referencia: string) => void }) {
   const t = DICCIONARIOS[locale];
   const [enviando, setEnviando] = useState(false);
   const [fallo, setFallo] = useState<string | null>(null);
@@ -471,7 +471,10 @@ function PasoContacto({ locale, respuestas, nivelCita, conGuardian, whatsapp, on
       <input className="trampa" name="web" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       <label className="interruptor">
         <input type="checkbox" name="privacidad" required aria-invalid={mal("consentimientoPrivacidad")} />
-        <span>{t.contacto.privacidad}</span>
+        <span>
+          {t.contacto.privacidad}{" "}
+          <a href={`/${locale}/legal/privacidad`} target="_blank" rel="noopener">{enlacePrivacidad}</a>
+        </span>
       </label>
       <label className="interruptor">
         <input type="checkbox" name="marketing" />

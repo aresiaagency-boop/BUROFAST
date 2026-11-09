@@ -24,7 +24,8 @@ const CLAVES: Record<(typeof INTENCIONES)[number], string[]> = {
   // «persona» suelta no basta («¿cuánto cuesta por persona?»): solo frases.
   humano: ["con una persona", "persona real", "hablar con alguien", "humano", "abogad", "real person", "talk to someone", "speak to someone", "human", "lawyer", "une personne", "humain", "avocat", "uma pessoa", "advogad", "محام", "شخص حقيقي", "إنسان", "з людиною", "жива людина", "юрист", "адвокат"],
   expediente: ["expediente", "mi caso", "como va", "status", "my case", "my file", "dossier", "processo", "meu caso", "ملف", "حالتي", "справ", "статус"],
-  pago: ["pagar", "pago", "tarjeta", "factura", "pay", "payment", "card", "invoice", "payer", "paiement", "carte", "pagamento", "cartao", "دفع", "بطاقة", "оплат", "картк", "сплат"],
+  // Sin «tarjeta/card/carte»: en extranjería casi siempre es la TIE, no un medio de pago.
+  pago: ["pagar", "pago", "factura", "pay", "payment", "invoice", "payer", "paiement", "pagamento", "دفع", "оплат", "сплат"],
   precio: ["precio", "cuanto", "cuesta", "coste", "costo", "tarifa", "honorario", "price", "cost", "how much", "fee", "prix", "combien", "tarif", "preco", "quanto", "custa", "سعر", "تكلفة", "كم", "ціна", "скільки", "вартіст"],
   documentos: ["documento", "papeles", "certificado", "antecedentes", "pasaporte", "document", "papers", "papiers", "certificat", "certidao", "وثيق", "مستند", "أوراق", "شهادة", "документ", "довідк", "паспорт"],
   citas: ["cita", "turno", "huella", "appointment", "rendez", "rdv", "marcacao", "agendamento", "موعد", "مواعيد", "запис", "візит"],
@@ -45,12 +46,18 @@ export function normalizar(texto: string) {
     .trim();
 }
 
+// En árabe el artículo y algunas preposiciones van pegados a la palabra
+// («اللجوء» = «el asilo»): se prueba también sin ellos.
+const PREFIJO_ARABE = /^(?:[وفبكل]?ال|لل)/u;
+
 function coincide(normalizado: string, palabras: Set<string>, clave: string) {
   const k = normalizar(clave);
   if (k.includes(" ")) return normalizado.includes(k);
   // Las claves cortas («hi», «كم») exigen palabra exacta: «hijo» no es «hi».
   if (k.length <= 3) return palabras.has(k);
-  for (const palabra of palabras) if (palabra.startsWith(k)) return true;
+  for (const palabra of palabras) {
+    if (palabra.startsWith(k) || palabra.replace(PREFIJO_ARABE, "").startsWith(k)) return true;
+  }
   return false;
 }
 

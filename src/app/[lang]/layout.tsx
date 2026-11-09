@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Superapp } from "@/components/superapp/Superapp";
 import { sesionClienteActual } from "@/lib/auth/cliente";
+import { LEGALES } from "@/lib/i18n/legal";
 import { esLocale } from "@/lib/i18n/locales";
 
 export default async function LayoutSuperapp({ children, params }: LayoutProps<"/[lang]">) {
@@ -10,7 +11,7 @@ export default async function LayoutSuperapp({ children, params }: LayoutProps<"
   // Solo dígitos: wa.me no acepta «+» ni espacios.
   const whatsapp = process.env.HESTIA_WHATSAPP_NUMERO?.replace(/\D/g, "") || null;
   return (
-    <Superapp locale={lang} cliente={cliente ? { email: cliente.email } : null} whatsapp={whatsapp}>
+    <Superapp locale={lang} cliente={cliente ? { email: cliente.email } : null} whatsapp={whatsapp} legal={{ menu: LEGALES[lang].menu, nombres: LEGALES[lang].nombres }}>
       {children}
     </Superapp>
   );

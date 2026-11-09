@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PagarAnticipo, SalirCliente } from "@/components/superapp/AccionesExpediente";
+import { AceptarCondiciones } from "@/components/legal/TextoLegal";
 import { CabeceraMotor } from "@/components/superapp/CabeceraMotor";
 import { sesionClienteActual } from "@/lib/auth/cliente";
 import { googleConfigurado } from "@/lib/auth/google";
@@ -94,7 +95,12 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
                 <div className="lectura"><span className="lectura-nombre">{t.expediente.citas}</span><span className="lectura-valor">{e.citas.length}</span></div>
               </div>
               {puedePagar && (pagosActivos
-                ? <PagarAnticipo locale={lang} referencia={e.referencia} importe={formatearEuros(importeDe("anticipo", e.totalCentimos), intl)} />
+                ? (
+                  <>
+                    <PagarAnticipo locale={lang} referencia={e.referencia} importe={formatearEuros(importeDe("anticipo", e.totalCentimos), intl)} />
+                    <AceptarCondiciones locale={lang} />
+                  </>
+                )
                 : <p className="alerta-holo info">{t.pago.noDisponible}</p>)}
               {e.pagos.length > 0 && (
                 <>

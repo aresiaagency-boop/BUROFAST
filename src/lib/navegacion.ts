@@ -17,10 +17,11 @@ export type EntradaId = (typeof ENTRADAS)[number]["id"];
 // En móvil caben cinco pestañas: Guardián se abre desde el Núcleo.
 export const PESTANAS: EntradaId[] = ["nucleo", "camino", "citas", "documentos", "expediente"];
 
-export function entradaDeRuta(pathname: string): EntradaId {
+// null fuera de los motores (páginas legales, pago): ninguna pestaña se marca.
+export function entradaDeRuta(pathname: string): EntradaId | null {
   const segmento = pathname.split("/")[2] ?? "";
-  const encontrada = ENTRADAS.find((e) => e.ruta === `/${segmento}`);
-  return encontrada ? encontrada.id : "nucleo";
+  if (segmento === "") return "nucleo";
+  return ENTRADAS.find((e) => e.ruta === `/${segmento}`)?.id ?? null;
 }
 
 export function motorDeRuta(pathname: string): MotorId | null {

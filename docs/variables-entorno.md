@@ -1,23 +1,58 @@
 # Variables de entorno
 
-Crea tu `.env.local` (o las variables del servicio en EasyPanel) con esta lista. En el repositorio solo debe haber placeholders.
+En producción viven en Vercel (proyecto `aresiaagency/burofast` → Settings → Environment Variables, entorno Production). En local, en tu `.env.local`. En el repositorio nunca hay valores reales.
 
-| Variable | Obligatoria | Para qué | Cómo generarla |
+Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelve a ver; guárdalo también en tu gestor de contraseñas.
+
+## Base
+
+| Variable | Tipo | Para qué | Valor / cómo generarla |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Sí | PostgreSQL (red privada en EasyPanel) | `postgres://usuario:clave@host:5432/burofast` |
-| `DATA_ENCRYPTION_KEY` | Sí | Cifrado de nombre, teléfono y correo | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-| `AUTH_SECRET` | Sí | Firma de la sesión del centro de mando (≥ 32 caracteres) | `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` |
-| `OWNER_EMAIL` | Sí | Correo del owner del centro de mando | — |
-| `OWNER_PASSWORD_HASH` | Sí | Hash scrypt de la contraseña | `printf '%s' 'tu-frase-larga' \| npm run -s hash-password` |
-| `HESTIA_CONTEXTO_TOKEN` | Para HESTIA | Bearer de `/api/v1/hestia/contexto` (solo lectura) | `node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"` |
-| `HESTIA_EVENTOS_TOKEN` | Para HESTIA | Bearer de `/api/v1/hestia/eventos`; es distinto del de contexto | Igual que el anterior |
-| `HESTIA_WEBHOOK_SECRET` | No | Firma HMAC de eventos, alternativa al token, para emisores que pueden firmar | Igual que el anterior |
-| `TRUSTED_PROXY_HOPS` | Recomendada | Cuántos proxys propios hay delante (Traefik de EasyPanel = 1). Con 0 se ignora `x-forwarded-for` | `1` |
-| `HESTIA_WHATSAPP_NUMERO` | Para HESTIA | Número de WhatsApp de HESTIA en el botón final del funnel | `34600000000` (solo dígitos) |
-| `N8N_BASE_URL` | Para el estado | Comprobación `/healthz` de n8n en el centro de mando | URL del n8n |
-| `APP_BASE_URL` | Recomendada | Enlaces al funnel que HESTIA envía | `https://burofast.tu-dominio` |
-| `BUROFAST_ENTORNO` | Recomendada | `local`, `staging` o `produccion`; en `produccion` el seed DEMO no se ejecuta | — |
-| `LOG_LEVEL` | No | `info` o `warn` | — |
+| `DATABASE_URL` | Secret | PostgreSQL de EasyPanel | `postgres://USUARIO:CLAVE@72.61.18.243:47432/burofast` |
+| `DATA_ENCRYPTION_KEY` | Secret | Cifrado de nombre, teléfono y correo. **Si se pierde, los datos cifrados no se recuperan** | `openssl rand -hex 32` |
+| `AUTH_SECRET` | Secret | Firma de sesiones, del estado de OAuth y de los enlaces de pago (≥ 32 caracteres) | `openssl rand -hex 32` |
+| `APP_BASE_URL` | Config | URL pública: vuelta de Google, de Stripe y enlaces de HESTIA | `https://burofast.vercel.app` |
+| `BUROFAST_ENTORNO` | Config | `local`, `staging` o `produccion`; en `produccion` el seed DEMO no se ejecuta | `produccion` |
+| `TRUSTED_PROXY_HOPS` | Config | Cuántos proxys propios hay delante (Vercel = 1, Traefik de EasyPanel = 1) | `1` |
+| `LOG_LEVEL` | Config | `info` o `warn` | — |
+
+## Acceso
+
+| Variable | Tipo | Para qué | Valor / cómo generarla |
+| --- | --- | --- | --- |
+| `OWNER_EMAIL` | Config | Correo del owner del centro de mando | — |
+| `STAFF_EMAILS` | Config | Resto del equipo: `correo:rol, correo:rol` (rol `operator` o `viewer`) | — |
+| `GOOGLE_CLIENT_ID` | Config | Cliente OAuth «BUROFAST web» (Google Cloud, proyecto `burofast-514123`) | `…apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Secret | Secreto de ese cliente | Google Auth Platform → Clientes → BUROFAST web |
+| `OWNER_PASSWORD_HASH` | Secret | Respaldo si Google falla | `printf '%s' 'tu-frase-larga' \| npm run -s hash-password` |
+
+## Cobros (Stripe)
+
+| Variable | Tipo | Para qué | Valor / cómo generarla |
+| --- | --- | --- | --- |
+| `STRIPE_SECRET_KEY` | Secret | Crear y leer sesiones de Checkout | Clave **restringida** `rk_live_…` con solo *Checkout Sessions: Escritura* |
+| `STRIPE_WEBHOOK_SECRET` | Secret | Verificar la firma del webhook | Workbench → Webhooks → `burofast` → Secreto de firma (`whsec_…`) |
+
+## HESTIA
+
+| Variable | Tipo | Para qué | Valor / cómo generarla |
+| --- | --- | --- | --- |
+| `HESTIA_N8N_URL` | Config | URL de producción del nodo **Webhook app** del flujo | `https://burofast-n8n.7dklrk.easypanel.host/webhook/burofast-hestia-app` |
+| `HESTIA_N8N_TOKEN` | Secret | Bearer que el backend manda a n8n (el mismo valor va en la credencial `BUROFAST · app → HESTIA`) | `openssl rand -hex 32` |
+| `HESTIA_CONTEXTO_TOKEN` | Secret | Bearer de n8n hacia `/api/v1/hestia/contexto` y `/api/v1/motores/*` (solo lectura) | `openssl rand -hex 24` |
+| `HESTIA_EVENTOS_TOKEN` | Secret | Bearer de n8n hacia `/api/v1/hestia/eventos`; distinto del de contexto | `openssl rand -hex 24` |
+| `HESTIA_WEBHOOK_SECRET` | Secret | Firma HMAC de eventos, alternativa al token | `openssl rand -hex 24` |
+| `HESTIA_WHATSAPP_NUMERO` | Config | Número de WhatsApp de HESTIA (solo dígitos) | `34600000000` |
+| `N8N_BASE_URL` | Config | Comprobación `/healthz` de n8n en el centro de mando | `https://burofast-n8n.7dklrk.easypanel.host` |
+
+## Solo para pruebas y capturas
+
+| Variable | Para qué |
+| --- | --- |
+| `CAPTURAS_EMAIL`, `CAPTURAS_PASSWORD` | `npm run screenshots` entra al mando con la contraseña de respaldo |
+| `BASE_URL` | Servidor contra el que se hacen las capturas (por defecto `http://localhost:3000`) |
+
+Sin `openssl`: en la consola de cualquier navegador, `[...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, "0")).join("")`.
 
 ## En n8n
 
