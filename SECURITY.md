@@ -17,6 +17,10 @@ El flujo nuevo tampoco toma la URL de Evolution del cuerpo del webhook. Si lo hi
 - **Precio**: el navegador envía respuestas, no rutas ni importes. El servidor recalcula la ruta y el presupuesto.
 - **Google**: OIDC con PKCE (S256), `state` contra CSRF y `nonce` contra repetición; se validan emisor, audiencia, caducidad y correo verificado. No se guarda ningún token de Google. Un correo fuera de `OWNER_EMAIL`/`STAFF_EMAILS` nunca entra al mando.
 - **Pagos**: solo se cobra con el expediente `aprobado` por el abogado, y el importe sale del presupuesto guardado en el servidor. El webhook verifica la firma de Stripe sobre el cuerpo crudo, registra cada evento una sola vez en la misma transacción que el cambio de estado e ignora los eventos de otras apps de la cuenta (`metadata.app`). La clave de Stripe es restringida (solo Checkout Sessions).
+- **Puerta del abogado**: solo un correo de `ABOGADOS_EMAILS` (o el owner, si la lista está vacía) confirma una ruta. Si la aprobación se retira, se cierran en Stripe los Checkout abiertos; cada Checkout caduca en una hora, y un pago que llega sin aprobación no convierte el expediente: el mando lo marca para revisar o devolver.
+- **Cobro solo con datos legales**: en modo live no se abre Checkout ni se crean enlaces de pago mientras falte algún dato del titular o del abogado.
+- **Expediente del cliente**: el correo que se teclea en el formulario no prueba nada. El expediente solo aparece en una cuenta de Google cuando se vincula con su código de camino (`email_verificado_en`).
+- **Redirecciones**: el destino tras el acceso solo puede ser una ruta interna; se rechazan caracteres de control y rutas que, normalizadas, salgan del origen.
 - **Fichas firmadas**: el enlace de pago y la sesión de cliente van firmados con una clave derivada por propósito: una ficha de pago no sirve como sesión.
 - **Sesión**: cookie HttpOnly, SameSite=Lax y Secure en producción, firmada con HMAC y válida 8 horas. Se comprueba en `proxy.ts` y otra vez en cada página y cada handler. La contraseña usa scrypt y la comparación es en tiempo constante.
 - **CSRF**: toda petición que cambia estado comprueba que la cabecera `Origin` sea la nuestra.
@@ -40,12 +44,16 @@ El flujo nuevo tampoco toma la URL de Evolution del cuerpo del webhook. Si lo hi
 - La protección internacional la atiende siempre una persona.
 - HESTIA se identifica como IA, conforme al artículo 50 del Reglamento de IA, en vigor desde el 2 de agosto de 2026.
 
+## Retención
+
+Cada noche (Vercel Cron → `/api/v1/mantenimiento/purgar`, con `CRON_SECRET`) se borran las solicitudes no convertidas de más de 12 meses sin pagos, y se recortan los registros técnicos. Lo que tiene pagos se conserva como documentación contable.
+
 ## Pendiente antes de producción
 
 - Rellenar los datos legales del titular y del abogado (`src/lib/legal.ts`); hasta entonces las páginas legales muestran «pendiente» y el mando avisa.
 - PostgreSQL: rol propio con permisos mínimos en lugar de `postgres`, y TLS en el puerto público (ahora va sin cifrar por internet).
 - Rotar la API key de Evolution del `pinData` del flujo original.
+- El commit `7745194` publicó el host y el puerto del PostgreSQL, y los commits anteriores a este, un teléfono y un nombre del flujo original dentro de una prueba. Ya no están en el árbol; para borrarlos también del historial hace falta reescribirlo (`git filter-repo`) y forzar el push, con el acuerdo del owner.
 - Evaluación de impacto (EIPD) por tratar antecedentes penales, que son datos del artículo 10 del RGPD.
-- Política de retención y borrado: purga programada de solicitudes no convertidas.
 - Roles operator y viewer con usuarios reales; ahora solo existe el owner.
 - Retención de la memoria de chat de n8n (`Postgres Chat Memory`).

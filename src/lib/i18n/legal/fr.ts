@@ -57,9 +57,9 @@ export const fr: TextosLegales = {
         {
           titulo: "Combien de temps nous les gardons",
           parrafos: [
-            "Si vous demandez une étude sans contracter : jusqu’à 12 mois après le dernier contact, ou moins si vous nous demandez de les effacer.",
+            "Si vous demandez une étude sans contracter : nous les effaçons 12 mois après leur envoi, ou avant si vous le demandez.",
             "Si vous contractez : pendant toute la durée du service puis pendant les délais fixés par la loi, par exemple six ans pour les documents comptables.",
-            "La mémoire de vos conversations avec HESTIA est conservée pour assurer la continuité de la conversation et effacée quand vous le demandez.",
+            "La mémoire de votre conversation avec HESTIA dans l’app est liée à un identifiant de cet onglet, pas à votre identité. Sur WhatsApp, elle est liée à votre numéro, et nous l’effaçons quand vous le demandez.",
           ],
         },
         {

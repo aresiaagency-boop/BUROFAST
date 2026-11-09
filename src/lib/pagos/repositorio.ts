@@ -47,7 +47,7 @@ export async function leadPagablePorId(id: string) {
 export async function leadPagablePorReferencia(referencia: string, emailHash: string) {
   const [fila] = await db()<FilaLead[]>`
     select id, referencia, locale, producto_id, ruta_id, nivel, total_estimado_centimos, email_cifrado, email_hash, estado
-    from leads where referencia = ${referencia} and email_hash = ${emailHash}
+    from leads where referencia = ${referencia} and email_hash = ${emailHash} and email_verificado_en is not null
   `;
   return fila ? aLeadPagable(fila) : null;
 }
@@ -79,13 +79,33 @@ export async function sesionAbierta(leadId: string, tipo: TipoPago) {
 }
 
 export async function registrarPendiente(p: {
-  leadId: string; tipo: TipoPago; importe: number; modo: "live" | "test"; sessionId: string; url: string; expiraEn: Date;
+  leadId: string; tipo: TipoPago; importe: number; modo: "live" | "test"; sessionId: string; url: string; expiraEn: Date; condicionesVersion: string;
 }) {
   await db()`
-    insert into pagos (lead_id, tipo, importe_centimos, modo, stripe_session_id, checkout_url, expira_en)
-    values (${p.leadId}, ${p.tipo}, ${p.importe}, ${p.modo}, ${p.sessionId}, ${p.url}, ${p.expiraEn})
+    insert into pagos (lead_id, tipo, importe_centimos, modo, stripe_session_id, checkout_url, expira_en, condiciones_version)
+    values (${p.leadId}, ${p.tipo}, ${p.importe}, ${p.modo}, ${p.sessionId}, ${p.url}, ${p.expiraEn}, ${p.condicionesVersion})
     on conflict (stripe_session_id) do nothing
   `;
+}
+
+// Pagos con Checkout abierto de un expediente: hay que cerrarlos si el
+// expediente deja de estar aprobado.
+export async function sesionesPendientes(leadId: string) {
+  return db()<{ sessionId: string }[]>`
+    select stripe_session_id as "sessionId" from pagos
+    where lead_id = ${leadId} and estado = 'pendiente' and stripe_session_id is not null
+  `;
+}
+
+export async function marcarExpirado(sessionId: string) {
+  await db()`update pagos set estado = 'expirado', actualizado_en = now() where stripe_session_id = ${sessionId} and estado = 'pendiente'`;
+}
+
+// ¿Este payment_intent es de un cobro nuestro? Los reembolsos de otras apps
+// de la cuenta no deben dejar rastro aquí.
+export async function existePagoConIntento(paymentIntent: string) {
+  const [fila] = await db()<{ existe: boolean }[]>`select exists(select 1 from pagos where stripe_payment_intent = ${paymentIntent}) as existe`;
+  return Boolean(fila?.existe);
 }
 
 // Aplica lo que dice Stripe. Nunca rebaja un pago ya «pagado» (un evento
@@ -106,10 +126,10 @@ export async function aplicarResultado(
   `;
   const fila = filas[0];
   if (fila && r.estado === "pagado" && fila.tipo === "anticipo") {
-    // «aprobado» es el estado normal al pagar (la puerta del abogado); los
-    // anteriores cubren un enlace abierto antes de que el equipo moviera el
-    // expediente. Un expediente descartado no se reabre solo por un pago.
-    await tx`update leads set estado = 'convertido' where id = ${fila.leadId} and estado in ('nuevo', 'contactado', 'revision_abogado', 'aprobado')`;
+    // Solo un expediente aprobado por el abogado pasa a «convertido». Un pago
+    // que llega en otro estado (un Checkout que no se pudo cerrar a tiempo) se
+    // queda pagado y el centro de mando lo marca para revisar o devolver.
+    await tx`update leads set estado = 'convertido' where id = ${fila.leadId} and estado = 'aprobado'`;
   }
   return fila ?? null;
 }
@@ -139,14 +159,15 @@ export async function pagoPorSesion(sessionId: string) {
 
 export type FilaPago = {
   id: string; referencia: string; tipo: TipoPago; importe: number; estado: EstadoPago; modo: string;
-  sessionId: string | null; creadoEn: Date; pagadoEn: Date | null; duplicado: boolean;
+  sessionId: string | null; creadoEn: Date; pagadoEn: Date | null; duplicado: boolean; sinAprobacion: boolean;
 };
 
 export async function listarPagos(): Promise<FilaPago[]> {
   return db()<FilaPago[]>`
     select p.id, l.referencia, p.tipo, p.importe_centimos as importe, p.estado, p.modo,
            p.stripe_session_id as "sessionId", p.creado_en as "creadoEn", p.pagado_en as "pagadoEn",
-           (p.estado = 'pagado' and (select count(*) from pagos q where q.lead_id = p.lead_id and q.tipo = p.tipo and q.estado = 'pagado') > 1) as duplicado
+           (p.estado = 'pagado' and (select count(*) from pagos q where q.lead_id = p.lead_id and q.tipo = p.tipo and q.estado = 'pagado') > 1) as duplicado,
+           (p.estado = 'pagado' and p.tipo = 'anticipo' and l.estado <> 'convertido') as "sinAprobacion"
     from pagos p join leads l on l.id = p.lead_id
     order by p.creado_en desc limit 200
   `;

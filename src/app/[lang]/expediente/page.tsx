@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PagarAnticipo, SalirCliente } from "@/components/superapp/AccionesExpediente";
+import { PagarAnticipo, SalirCliente, VincularExpediente } from "@/components/superapp/AccionesExpediente";
 import { AceptarCondiciones } from "@/components/legal/TextoLegal";
 import { CabeceraMotor } from "@/components/superapp/CabeceraMotor";
 import { sesionClienteActual } from "@/lib/auth/cliente";
@@ -12,7 +12,8 @@ import { expedientesDeCliente } from "@/lib/expediente";
 import { DICCIONARIOS } from "@/lib/i18n";
 import { esLocale, ETIQUETA_INTL } from "@/lib/i18n/locales";
 import { importeDe } from "@/lib/pagos/repositorio";
-import { stripeConfigurado } from "@/lib/pagos/stripe";
+import { datosLegalesPendientes } from "@/lib/legal";
+import { modoStripe, stripeConfigurado } from "@/lib/pagos/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,8 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
       fallo = true;
     }
   }
-  const pagosActivos = stripeConfigurado();
+  // Sin datos legales completos no se cobra en live: no se ofrece el botón.
+  const pagosActivos = stripeConfigurado() && !(modoStripe() === "live" && datosLegalesPendientes().length > 0);
   const fecha = new Intl.DateTimeFormat(intl, { dateStyle: "medium" });
 
   return (
@@ -130,6 +132,7 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
           );
         })}
       </div>
+      {!fallo && isDatabaseConfigured() && <VincularExpediente locale={lang} />}
     </>
   );
 }

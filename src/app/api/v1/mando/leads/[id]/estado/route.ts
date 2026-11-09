@@ -1,9 +1,12 @@
 import { z } from "zod";
+import { puedeConfirmarRuta } from "@/lib/auth/equipo";
 import { exigirRol } from "@/lib/autorizacion";
 import { isDatabaseConfigured } from "@/lib/db";
 import { ESTADOS_LEAD } from "@/lib/expediente";
 import { correlationId, error, json, origenPermitido } from "@/lib/http";
 import { cambiarEstadoLead } from "@/lib/leads";
+import { cerrarCheckoutsAbiertos } from "@/lib/pagos/checkout";
+import { stripeConfigurado } from "@/lib/pagos/stripe";
 import { auditar } from "@/lib/repositorio";
 
 // «convertido» no está: a ese estado solo se llega pagando.
@@ -21,6 +24,10 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/le
   const cambio = cambioSchema.safeParse(await request.json().catch(() => null));
   if (!cambio.success) return error("CAMBIO_INVALIDO", "Estado no válido.", { status: 400, correlation });
   const estado = cambio.data.estado as (typeof ESTADOS_LEAD)[number];
+  if (estado === "aprobado" && !puedeConfirmarRuta(sesion.sub, sesion.rol)) {
+    await auditar({ actorId: sesion.sub, accion: "lead.confirmar_ruta", objetivoId: id, resultado: "rechazado", correlationId: correlation });
+    return error("SOLO_ABOGADO", "Solo un abogado de ABOGADOS_EMAILS (o el owner, si la lista está vacía) puede confirmar la ruta.", { status: 403, correlation });
+  }
 
   const resultado = await cambiarEstadoLead({ leadId: id, estado });
   await auditar({
@@ -36,5 +43,18 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/le
     const status = resultado.motivo === "LEAD_NO_EXISTE" ? 404 : 409;
     return error(resultado.motivo, status === 404 ? "La solicitud no existe." : "Ese cambio no está permitido desde el estado actual.", { status, correlation });
   }
-  return json({ ok: true, estado }, { correlation });
+  // Si el abogado retira la aprobación, ningún Checkout abierto puede seguir cobrando.
+  let checkouts = null;
+  if (resultado.desde === "aprobado" && stripeConfigurado()) {
+    checkouts = await cerrarCheckoutsAbiertos(id);
+    await auditar({
+      actorId: sesion.sub,
+      accion: "pago.cerrar_checkouts",
+      objetivoId: id,
+      parametros: checkouts,
+      resultado: checkouts.fallidas > 0 ? "error" : "ok",
+      correlationId: correlation,
+    });
+  }
+  return json({ ok: true, estado, checkouts }, { correlation });
 }

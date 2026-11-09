@@ -20,9 +20,12 @@ export const INTENCIONES = [
 export type Intencion = (typeof INTENCIONES)[number] | "desconocida";
 
 const CLAVES: Record<(typeof INTENCIONES)[number], string[]> = {
-  asilo: ["asilo", "refugi", "proteccion internacional", "asylum", "asile", "لجوء", "لاجئ", "حماية دولية", "притулок", "біжен", "міжнародний захист"],
-  // «persona» suelta no basta («¿cuánto cuesta por persona?»): solo frases.
-  humano: ["con una persona", "persona real", "hablar con alguien", "humano", "abogad", "real person", "talk to someone", "speak to someone", "human", "lawyer", "une personne", "humain", "avocat", "uma pessoa", "advogad", "محام", "شخص حقيقي", "إنسان", "з людиною", "жива людина", "юрист", "адвокат"],
+  // Raíces, no palabras: «refugee», «réfugié», «притулку», «захисту»… Ante la
+  // duda se escala: un falso positivo es el lado seguro.
+  asilo: ["asilo", "refugi", "refuge", "proteccion internacional", "protecao internacional", "asylum", "international protection", "asile", "protection internationale", "لجوء", "لاجئ", "حماية دولية", "притул", "біжен", "захист"],
+  // «persona» suelta no basta («¿cuánto cuesta por persona?»): solo frases y
+  // palabras que piden a alguien.
+  humano: ["una persona", "persona real", "alguien", "humano", "abogad", "a person", "real person", "someone", "somebody", "human", "lawyer", "une personne", "quelqu", "humain", "avocat", "uma pessoa", "alguem", "advogad", "محام", "شخص", "إنسان", "людин", "юрист", "адвокат"],
   expediente: ["expediente", "mi caso", "como va", "status", "my case", "my file", "dossier", "processo", "meu caso", "ملف", "حالتي", "справ", "статус"],
   // Sin «tarjeta/card/carte»: en extranjería casi siempre es la TIE, no un medio de pago.
   pago: ["pagar", "pago", "factura", "pay", "payment", "invoice", "payer", "paiement", "pagamento", "دفع", "оплат", "сплат"],
@@ -50,9 +53,13 @@ export function normalizar(texto: string) {
 // («اللجوء» = «el asilo»): se prueba también sin ellos.
 const PREFIJO_ARABE = /^(?:[وفبكل]?ال|لل)/u;
 
+function sinPrefijosArabes(texto: string) {
+  return texto.split(" ").map((palabra) => palabra.replace(PREFIJO_ARABE, "")).join(" ");
+}
+
 function coincide(normalizado: string, palabras: Set<string>, clave: string) {
   const k = normalizar(clave);
-  if (k.includes(" ")) return normalizado.includes(k);
+  if (k.includes(" ")) return normalizado.includes(k) || sinPrefijosArabes(normalizado).includes(sinPrefijosArabes(k));
   // Las claves cortas («hi», «كم») exigen palabra exacta: «hijo» no es «hi».
   if (k.length <= 3) return palabras.has(k);
   for (const palabra of palabras) {

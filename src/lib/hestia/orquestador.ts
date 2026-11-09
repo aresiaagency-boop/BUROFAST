@@ -7,6 +7,7 @@ import { db, isDatabaseConfigured } from "@/lib/db";
 import type { Ruta } from "@/lib/diagnostico";
 import type { Expediente } from "@/lib/expediente";
 import type { RespuestaHestia } from "@/lib/hestia/local";
+import { detectarIntencion } from "@/lib/hestia/intenciones";
 import { responderLocal } from "@/lib/hestia/local";
 import { DICCIONARIOS } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/locales";
@@ -37,16 +38,29 @@ export function n8nHestiaConfigurado() {
 }
 
 // Lo que n8n puede devolver. Se acepta también la salida por defecto del nodo
-// AI Agent ({ output }) para que un flujo recién importado funcione.
-const respuestaN8nSchema = z
+// AI Agent ({ output }) para que un flujo recién importado funcione. El nodo
+// «Salida app» manda null en lo que no aplica (sin motor, sin agente): null
+// es válido; solo la falta de texto hace caer al modo local.
+export const respuestaN8nSchema = z
   .object({
-    respuesta: z.string().trim().min(1).max(6000).optional(),
-    output: z.string().trim().min(1).max(6000).optional(),
-    agente: z.string().trim().toUpperCase().optional(),
-    motor: z.string().trim().toLowerCase().optional(),
-    escalar: z.boolean().optional(),
+    respuesta: z.string().trim().min(1).max(6000).nullish(),
+    output: z.string().trim().min(1).max(6000).nullish(),
+    agente: z.string().trim().toUpperCase().nullish(),
+    motor: z.string().trim().toLowerCase().nullish(),
+    escalar: z.boolean().nullish(),
   })
   .refine((r) => Boolean(r.respuesta ?? r.output), { message: "SIN_TEXTO" });
+
+// Traduce el cuerpo que devuelve n8n a una respuesta de HESTIA. Lanza si no
+// trae texto: entonces responde el modo local.
+export function interpretarRespuestaN8n(cuerpo: unknown): RespuestaHestia {
+  // n8n a veces envuelve la respuesta en un array.
+  const datos = respuestaN8nSchema.parse(Array.isArray(cuerpo) ? cuerpo[0] : cuerpo);
+  const textoBruto = datos.respuesta ?? datos.output ?? "";
+  const agente = (AGENTES as readonly string[]).includes(datos.agente ?? "") ? (datos.agente as RespuestaHestia["agente"]) : "HESTIA";
+  const motor = (MOTORES as readonly string[]).includes(datos.motor ?? "") ? (datos.motor as MotorId) : null;
+  return { texto: limpiar(textoBruto), agente, motor, escalar: Boolean(datos.escalar) || textoBruto.includes("[[ESCALAR]]") };
+}
 
 function limpiar(texto: string) {
   // La respuesta se pinta como texto, nunca como HTML; aun así se quitan
@@ -122,13 +136,7 @@ async function preguntarN8n(entrada: EntradaConversacion): Promise<RespuestaHest
     cache: "no-store",
   });
   if (!respuesta.ok) throw new Error(`N8N_HTTP_${respuesta.status}`);
-  const cuerpo = await respuesta.json();
-  // n8n a veces envuelve la respuesta en un array.
-  const datos = respuestaN8nSchema.parse(Array.isArray(cuerpo) ? cuerpo[0] : cuerpo);
-  const textoBruto = datos.respuesta ?? datos.output ?? "";
-  const agente = (AGENTES as readonly string[]).includes(datos.agente ?? "") ? (datos.agente as RespuestaHestia["agente"]) : "HESTIA";
-  const motor = (MOTORES as readonly string[]).includes(datos.motor ?? "") ? (datos.motor as MotorId) : null;
-  return { texto: limpiar(textoBruto), agente, motor, escalar: Boolean(datos.escalar) || textoBruto.includes("[[ESCALAR]]") };
+  return interpretarRespuestaN8n(await respuesta.json());
 }
 
 async function registrarTurno(turno: { conversacion: string; agente: string; motor: string | null; modo: "ia" | "local"; ok: boolean; escalado: boolean; latenciaMs: number; locale: string }) {
@@ -159,6 +167,10 @@ export async function conversar(entrada: EntradaConversacion): Promise<SalidaCon
   } else {
     salida = { ...responderLocal(entrada), modo: "local" };
   }
+  // Red de seguridad determinista, con IA o sin ella: asilo y «quiero una
+  // persona» siempre pasan a una persona, diga lo que diga el modelo.
+  const intencion = detectarIntencion(entrada.mensaje);
+  if (intencion === "asilo" || intencion === "humano") salida = { ...salida, escalar: true };
   await registrarTurno({
     conversacion: entrada.conversacion,
     agente: salida.agente,

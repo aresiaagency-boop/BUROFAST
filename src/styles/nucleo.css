@@ -114,6 +114,14 @@
   .portada-nucleo { order: -1; }
   .portada-nucleo .nucleo { width: min(78vw, 300px); }
 }
+/* Móvil: el botón de empezar tiene que verse sin desplazar, por encima de las pestañas. */
+@media (max-width: 600px) {
+  .nucleo-portada { gap: 10px; padding-top: 2px; }
+  .portada-nucleo .nucleo { width: min(50vw, 190px); }
+  .portada-nucleo .lecturas { display: none; }
+  .portada-titulo { font-size: clamp(1.75rem, 8vw, 2.2rem); margin-bottom: 10px; }
+  .portada-narrativa { font-size: 1rem; margin-bottom: 16px; }
+}
 
 /* ---------- Puerta de idiomas ---------- */
 .puerta { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; max-width: 1180px; margin: 0 auto; padding: 18px 22px 22px; }

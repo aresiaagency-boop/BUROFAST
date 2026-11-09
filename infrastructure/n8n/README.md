@@ -63,4 +63,4 @@ Backend (/api/v1/hestia/conversar)
 
 ## Estado real
 
-Contrato verificado por pruebas (nodos, conexiones, credenciales, valores de los motores y el código que interpreta las marcas `[[AGENTE:…]] [[MOTOR:…]] [[ESCALAR]]`). Pendiente de importar y ejecutar en el n8n de EasyPanel: el canal app necesita `httpRequestTool` v4.2 y `$fromAI` (n8n ≥ 1.80).
+Contrato verificado por pruebas (nodos, conexiones, credenciales, valores de los motores y el código que interpreta las marcas `[[AGENTE:…]] [[MOTOR:…]] [[ESCALAR]]`). Pendiente de importar y ejecutar en el n8n de EasyPanel. Requiere **n8n 1.90 o superior** (el nodo AI Agent 1.9 llega en 1.89 y `httpRequestTool` en 1.90): comprueba la versión en *Settings → About* antes de importar.

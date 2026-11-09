@@ -247,6 +247,12 @@ export type Diccionario = {
     sinCitas: string;
     sesionComo: (email: string) => string;
     errorAcceso: string;
+    vincularTitulo: string;
+    vincularTexto: string;
+    vincularCampo: string;
+    vincularBoton: string;
+    vincularNoCoincide: string;
+    vincularError: string;
   };
   pago: {
     concepto: (tipo: TipoPago, referencia: string) => string;

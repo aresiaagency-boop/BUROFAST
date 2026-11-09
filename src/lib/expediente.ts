@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 import type { RutaId } from "@/lib/diagnostico";
 import type { EstadoPago, TipoPago } from "@/lib/pagos/repositorio";
 
-// «Mi expediente»: lo que el cliente ve de lo suyo. Se busca SOLO por el hash
-// del correo verificado por Google; nunca por referencia suelta.
+// «Mi expediente»: lo que el cliente ve de lo suyo. Se busca por el hash del
+// correo verificado por Google, y solo entre los expedientes que esa cuenta ya
+// vinculó con su código de camino (prueba de que el expediente es suyo).
 
 export const ESTADOS_LEAD = ["nuevo", "contactado", "revision_abogado", "aprobado", "convertido", "descartado"] as const;
 export type EstadoLead = (typeof ESTADOS_LEAD)[number];
@@ -33,7 +34,7 @@ export async function expedientesDeCliente(emailHash: string): Promise<Expedient
   const leads = await db()<Omit<Expediente, "citas" | "pagos" | "pagadoCentimos">[]>`
     select id, referencia, locale, ruta_id as "rutaId", producto_id as "productoId", nivel, nivel_cita as "nivelCita",
            con_guardian as "conGuardian", total_estimado_centimos as "totalCentimos", estado, creado_en as "creadoEn"
-    from leads where email_hash = ${emailHash} order by creado_en desc limit 10
+    from leads where email_hash = ${emailHash} and email_verificado_en is not null order by creado_en desc limit 10
   `;
   if (leads.length === 0) return [];
   const ids = leads.map((l) => l.id);
@@ -54,4 +55,15 @@ export async function expedientesDeCliente(emailHash: string): Promise<Expedient
       pagadoCentimos: susPagos.filter((p) => p.estado === "pagado").reduce((suma, p) => suma + p.importe, 0),
     };
   });
+}
+
+// Vincula un expediente a la cuenta de Google del cliente si el código de
+// camino coincide con el correo que se dio al enviarlo. Repetirlo no hace daño.
+export async function vincularExpediente(referencia: string, emailHash: string) {
+  const [fila] = await db()<{ id: string }[]>`
+    update leads set email_verificado_en = coalesce(email_verificado_en, now())
+    where referencia = ${referencia} and email_hash = ${emailHash}
+    returning id
+  `;
+  return fila ? { ok: true as const, leadId: fila.id } : { ok: false as const };
 }

@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { CITAS } from "@/lib/catalogo";
 import { DOCUMENTOS, PASAPORTES, SITUACIONES, SUENOS, TIEMPOS, UBICACIONES } from "@/lib/diagnostico";
+import { interpretarRespuestaN8n } from "@/lib/hestia/orquestador";
 
 // Contrato del flujo de n8n de HESTIA (canales WhatsApp y app). No ejecuta n8n:
 // comprueba que el JSON importable no lleva secretos, que funciona en n8n
@@ -18,7 +20,13 @@ const porNombre = new Map(flujo.nodes.map((n) => [n.name, n]));
 describe("flujo n8n de HESTIA", () => {
   it("no versiona pinData ni restos del flujo original con datos reales", () => {
     expect(flujo.pinData).toEqual({});
-    expect(texto).not.toMatch(/jdirlx|5492314517600|Lautaro/i);
+    // Restos del flujo original (instancia, teléfono y nombre reales) por su
+    // huella: el repo es público y no debe contener esos datos ni para buscarlos.
+    const prohibidos = new Set(["1fbb565d208538eb", "2985a021378c2e00", "239a64eeb1339768"]);
+    const huellas = (texto.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).map((t) => createHash("sha256").update(t).digest("hex").slice(0, 16));
+    expect(huellas.filter((h) => prohibidos.has(h))).toEqual([]);
+    // Ningún número de teléfono (11 cifras o más seguidas), sin contar los UUID de los nodos.
+    expect(texto.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")).not.toMatch(/\d{11,}/);
     // Las API keys de Evolution tienen forma de UUID en mayúsculas.
     expect(texto).not.toMatch(/[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}/);
     expect(texto).not.toMatch(/body\.apikey|calendarId|locationId/);
@@ -127,6 +135,21 @@ describe("flujo n8n de HESTIA", () => {
       expect(ejecutar("Te atiende una persona, sin coste.\n[[AGENTE:HESTIA]] [[ESCALAR]]")).toMatchObject({ escalar: true, motor: null });
       // Sin texto, el backend rechaza la respuesta y contesta en modo local.
       expect(ejecutar("")).toMatchObject({ respuesta: null, agente: "HESTIA" });
+    });
+
+    it("el backend acepta lo que devuelve el nodo, también sin motor y al escalar", () => {
+      const codigo = String(porNombre.get("Salida app")?.parameters.jsCode);
+      const ejecutar = (output: string) =>
+        (new Function("$input", codigo) as (i: unknown) => { json: Record<string, unknown> }[])({ first: () => ({ json: { output } }) })[0].json;
+      expect(interpretarRespuestaN8n(ejecutar("Hola, soy HESTIA, una inteligencia artificial.\n[[AGENTE:HESTIA]]"))).toEqual({
+        texto: "Hola, soy HESTIA, una inteligencia artificial.",
+        agente: "HESTIA",
+        motor: null,
+        escalar: false,
+      });
+      expect(interpretarRespuestaN8n(ejecutar("Una persona te atenderá sin coste.\n[[AGENTE:TEMIS]] [[ESCALAR]]"))).toMatchObject({ agente: "TEMIS", motor: null, escalar: true });
+      expect(interpretarRespuestaN8n([ejecutar("Mira tus documentos.\n[[AGENTE:MNEMOSINE]] [[MOTOR:documentos]]")])).toMatchObject({ motor: "documentos" });
+      expect(() => interpretarRespuestaN8n(ejecutar(""))).toThrow();
     });
   });
 });

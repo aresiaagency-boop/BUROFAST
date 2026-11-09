@@ -96,7 +96,9 @@ async function comprobarWebhookStripe(): Promise<Comprobacion> {
   return {
     id: "stripe_webhook",
     estado: "operativo",
-    detalle: fecha ? `Último evento firmado: ${fecha.toISOString()}.` : "Configurado; todavía no ha llegado ningún evento.",
+    // Solo se registran eventos propios con firma válida: sin ninguno, la firma
+    // aún no se ha podido comprobar.
+    detalle: fecha ? `Último evento propio con firma válida: ${fecha.toISOString()}.` : "Secreto puesto; la firma se confirmará con el primer cobro (aún no ha llegado ningún evento propio).",
     latenciaMs: null,
     fuente: "stripe_eventos",
     comprobadoEn,

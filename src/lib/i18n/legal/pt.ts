@@ -57,9 +57,9 @@ export const pt: TextosLegales = {
         {
           titulo: "Durante quanto tempo os guardamos",
           parrafos: [
-            "Se pedires uma análise e não contratares: até 12 meses desde o último contacto, ou menos se nos pedires para os apagar.",
+            "Se pedires uma análise e não contratares: apagamo-los 12 meses depois de os enviares, ou antes se o pedires.",
             "Se contratares: enquanto durar o serviço e, depois, durante os prazos fixados pela lei, por exemplo seis anos para a documentação contabilística.",
-            "A memória das conversas com a HESTIA é guardada para dar continuidade à conversa e apagada quando o pedires.",
+            "A memória da conversa com a HESTIA na app está ligada a um identificador deste separador, não à tua identidade. No WhatsApp está ligada ao teu número, e apagamo-la quando o pedires.",
           ],
         },
         {

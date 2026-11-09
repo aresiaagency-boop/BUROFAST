@@ -57,9 +57,9 @@ export const es: TextosLegales = {
         {
           titulo: "Cuánto tiempo los guardamos",
           parrafos: [
-            "Si pides revisión y no llegas a contratar: hasta 12 meses desde el último contacto, o menos si nos pides que los borremos.",
+            "Si pides revisión y no llegas a contratar: los borramos a los 12 meses de enviarlos, o antes si nos lo pides.",
             "Si contratas: mientras dure el servicio y, después, durante los plazos que fija la ley, por ejemplo seis años para la documentación contable.",
-            "La memoria de las conversaciones con HESTIA se guarda para dar continuidad a la conversación y se borra cuando lo pides.",
+            "La memoria de la conversación con HESTIA en la app va ligada a un identificador de esta pestaña, no a tu identidad. Por WhatsApp va ligada a tu número, y la borramos cuando lo pides.",
           ],
         },
         {

@@ -2,7 +2,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { cambiarEstadoLead } from "@/lib/leads";
 import type { Stripe } from "@/lib/pagos/stripe";
-import { aplicarResultado, importeDe, leadPagablePorId, marcarReembolsado, registrarEventoStripe, registrarPendiente, sesionAbierta, yaPagado } from "@/lib/pagos/repositorio";
+import { hashEstable } from "@/lib/security/cifrado";
+import { vincularExpediente } from "@/lib/expediente";
+import { aplicarResultado, existePagoConIntento, importeDe, leadPagablePorId, leadPagablePorReferencia, listarPagos, marcarReembolsado, registrarEventoStripe, registrarPendiente, sesionAbierta, yaPagado } from "@/lib/pagos/repositorio";
 import { procesarEventoStripe } from "@/lib/pagos/webhook";
 import { crearLead } from "@/lib/repositorio";
 import { solicitudLeadSchema } from "@/lib/schemas";
@@ -51,7 +53,7 @@ describe.skipIf(!conBase)("cobros y límites en PostgreSQL", () => {
     const importe = importeDe("anticipo", pagable?.totalCentimos ?? 0);
     expect(importe).toBe(Math.floor((pagable?.totalCentimos ?? 0) / 2));
 
-    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe, modo: "test", sessionId: sesionId, url: "https://checkout.stripe.test/x", expiraEn: new Date(Date.now() + 60 * 60_000) });
+    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe, modo: "test", sessionId: sesionId, url: "https://checkout.stripe.test/x", expiraEn: new Date(Date.now() + 60 * 60_000), condicionesVersion: "2026-11-09" });
     expect(await sesionAbierta(lead.id, "anticipo")).toMatchObject({ sessionId: sesionId });
 
     const completado = { id: `evt_integracion_${sufijo}_1`, type: "checkout.session.completed", data: { object: { id: sesionId, mode: "payment", payment_status: "paid", payment_intent: intento, metadata: { app: "burofast" } } } } as unknown as Stripe.Event;
@@ -62,6 +64,8 @@ describe.skipIf(!conBase)("cobros y límites en PostgreSQL", () => {
     expect(repetido).toEqual({ accion: "duplicado" });
 
     expect(await yaPagado(lead.id, "anticipo")).toBe(true);
+    expect(await existePagoConIntento(intento)).toBe(true);
+    expect(await existePagoConIntento("pi_de_otra_app")).toBe(false);
     expect(await sesionAbierta(lead.id, "anticipo")).toBeNull();
     const [estado] = await db()<{ estado: string }[]>`select estado from leads where id = ${lead.id}`;
     expect(estado.estado).toBe("convertido");
@@ -70,6 +74,53 @@ describe.skipIf(!conBase)("cobros y límites en PostgreSQL", () => {
     expect(await db().begin((tx) => aplicarResultado(tx, { sessionId: sesionId, estado: "expirado", paymentIntent: null }))).toBeNull();
     expect(await db().begin((tx) => marcarReembolsado(tx, intento))).toEqual({ leadId: lead.id });
     expect(await yaPagado(lead.id, "anticipo")).toBe(false);
+  });
+
+  it("el expediente solo se ve y se paga desde la cuenta que lo vinculó con su código", async () => {
+    const lead = await crearLead(solicitudLeadSchema.parse({
+      locale: "es",
+      respuestas: { sueno: "renovar", ubicacion: "espana", situacion: "autorizacion_vigente", tiempo: "1a_2a", pasaporte: "otro" },
+      nivelCita: null,
+      conGuardian: false,
+      nombre: "Vínculo Integración",
+      telefono: "+34 600 000 002",
+      email: "vinculo@ejemplo.test",
+      consentimientoPrivacidad: true,
+      consentimientoMarketing: false,
+    }));
+    leads.push(lead.id);
+    const hash = hashEstable("vinculo@ejemplo.test");
+    // Sin vínculo, ni el dueño del correo lo ve: el correo tecleado no prueba nada.
+    expect(await leadPagablePorReferencia(lead.referencia, hash)).toBeNull();
+    // Otro correo con el código no vincula; el correo correcto con el código, sí.
+    expect(await vincularExpediente(lead.referencia, hashEstable("otra@ejemplo.test"))).toEqual({ ok: false });
+    expect(await vincularExpediente(lead.referencia, hash)).toEqual({ ok: true, leadId: lead.id });
+    expect((await leadPagablePorReferencia(lead.referencia, hash))?.id).toBe(lead.id);
+  });
+
+  it("un pago que llega sin aprobación no convierte el expediente y se señala", async () => {
+    const lead = await crearLead(solicitudLeadSchema.parse({
+      locale: "es",
+      respuestas: { sueno: "renovar", ubicacion: "espana", situacion: "autorizacion_vigente", tiempo: "1a_2a", pasaporte: "otro" },
+      nivelCita: null,
+      conGuardian: false,
+      nombre: "Sin Aprobación",
+      telefono: "+34 600 000 003",
+      email: "",
+      consentimientoPrivacidad: true,
+      consentimientoMarketing: false,
+    }));
+    leads.push(lead.id);
+    await cambiarEstadoLead({ leadId: lead.id, estado: "revision_abogado" });
+    await cambiarEstadoLead({ leadId: lead.id, estado: "aprobado" });
+    const sesion = `${sesionId}_b`;
+    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe: 1_000, modo: "test", sessionId: sesion, url: "https://checkout.stripe.test/y", expiraEn: new Date(Date.now() + 60 * 60_000), condicionesVersion: "2026-11-09" });
+    // El abogado retira la aprobación y el cliente paga en una pestaña vieja.
+    await cambiarEstadoLead({ leadId: lead.id, estado: "revision_abogado" });
+    expect(await db().begin((tx) => aplicarResultado(tx, { sessionId: sesion, estado: "pagado", paymentIntent: `${intento}_b` }))).toMatchObject({ leadId: lead.id });
+    const [estado] = await db()<{ estado: string }[]>`select estado from leads where id = ${lead.id}`;
+    expect(estado.estado).toBe("revision_abogado");
+    expect((await listarPagos()).find((p) => p.sessionId === sesion)?.sinAprobacion).toBe(true);
   });
 
   it("el límite de peticiones es uno para todas las instancias", async () => {

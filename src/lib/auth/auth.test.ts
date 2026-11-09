@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { destinoSeguro } from "@/lib/auth/base";
-import { rolDeEquipo } from "@/lib/auth/equipo";
+import { puedeConfirmarRuta, rolDeEquipo } from "@/lib/auth/equipo";
 import { validarClaims } from "@/lib/auth/google";
 
 const AHORA = Date.UTC(2026, 10, 9, 12, 0, 0);
@@ -38,8 +38,15 @@ describe("destino tras el acceso", () => {
     expect(destinoSeguro(destino, "/es/expediente")).toBe(destino);
   });
 
-  it.each(["https://evil.example", "//evil.example", "/\\evil.example", "", null])("bloquea %s", (destino) => {
+  it.each(["https://evil.example", "//evil.example", "/\\evil.example", "/\t/evil.example/robar", "/\n/evil.example", "", null])("bloquea %j", (destino) => {
     expect(destinoSeguro(destino, "/es/expediente")).toBe("/es/expediente");
+  });
+});
+
+describe("destino tras el acceso: cualquier cosa que deje pasar se queda en casa", () => {
+  it.each(["/%09/evil.example", "/es/../..//evil.example", "/./%2F%2Fevil.example", "/mando?x=//evil.example"])("%s", (destino) => {
+    const resultado = destinoSeguro(destino, "/es/expediente");
+    expect(new URL(resultado, "https://burofast.vercel.app").origin).toBe("https://burofast.vercel.app");
   });
 });
 
@@ -58,5 +65,24 @@ describe("rol de equipo", () => {
     expect(rolDeEquipo("mirona@ares.es")).toBe("viewer");
     expect(rolDeEquipo("raro@ares.es")).toBeNull();
     expect(rolDeEquipo("cliente@gmail.com")).toBeNull();
+  });
+});
+
+describe("quién confirma una ruta (abre el cobro)", () => {
+  const anterior = process.env.ABOGADOS_EMAILS;
+  afterEach(() => {
+    process.env.ABOGADOS_EMAILS = anterior;
+  });
+
+  it("sin lista de abogados, solo el owner", () => {
+    delete process.env.ABOGADOS_EMAILS;
+    expect(puedeConfirmarRuta("dueno@ares.es", "owner")).toBe(true);
+    expect(puedeConfirmarRuta("operadora@ares.es", "operator")).toBe(false);
+  });
+
+  it("con lista, solo los abogados de la lista, sea cual sea su rol", () => {
+    process.env.ABOGADOS_EMAILS = "Abogada@Ares.es, otro@ares.es";
+    expect(puedeConfirmarRuta("abogada@ares.es", "operator")).toBe(true);
+    expect(puedeConfirmarRuta("dueno@ares.es", "owner")).toBe(false);
   });
 });

@@ -57,9 +57,9 @@ export const en: TextosLegales = {
         {
           titulo: "How long we keep it",
           parrafos: [
-            "If you ask for a review and do not hire us: up to 12 months from the last contact, or less if you ask us to delete it.",
+            "If you ask for a review and do not hire us: we delete it 12 months after you send it, or sooner if you ask.",
             "If you hire us: for as long as the service lasts and, afterwards, for the periods set by law, for example six years for accounting records.",
-            "The memory of your conversations with HESTIA is kept to give the conversation continuity and is deleted when you ask.",
+            "The memory of your conversation with HESTIA in the app is tied to an identifier of this tab, not to your identity. On WhatsApp it is tied to your number, and we delete it when you ask.",
           ],
         },
         {

@@ -4,7 +4,8 @@ import { exigirRol } from "@/lib/autorizacion";
 import { isDatabaseConfigured } from "@/lib/db";
 import { correlationId, error, json, origenPermitido } from "@/lib/http";
 import { leadPagablePorId } from "@/lib/pagos/repositorio";
-import { stripeConfigurado } from "@/lib/pagos/stripe";
+import { datosLegalesPendientes } from "@/lib/legal";
+import { modoStripe, stripeConfigurado } from "@/lib/pagos/stripe";
 import { auditar } from "@/lib/repositorio";
 import { sellar } from "@/lib/security/sello";
 
@@ -19,6 +20,10 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/le
   if (!sesion) return error("SIN_PERMISO", "Crear un enlace de pago requiere rol operator u owner.", { status: 403, correlation });
   const base = urlBase();
   if (!isDatabaseConfigured() || !stripeConfigurado() || !base) return error("PAGOS_NO_CONFIGURADOS", "Faltan Stripe, la base de datos o APP_BASE_URL.", { status: 503, correlation });
+  const pendientes = datosLegalesPendientes();
+  if (modoStripe() === "live" && pendientes.length > 0) {
+    return error("LEGAL_PENDIENTE", `Antes de cobrar, rellena los datos legales (src/lib/legal.ts): ${pendientes.join(", ")}.`, { status: 503, correlation });
+  }
 
   const { id } = await ctx.params;
   if (!z.uuid().safeParse(id).success) return error("ID_INVALIDO", "Identificador no válido.", { status: 400, correlation });

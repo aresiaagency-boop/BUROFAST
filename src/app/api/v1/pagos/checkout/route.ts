@@ -52,7 +52,8 @@ export async function POST(request: Request) {
     const resultado = await abrirCheckout(lead, "anticipo", entrada.data.locale);
     if (!resultado.ok) {
       const estado = resultado.motivo === "YA_PAGADO" ? 409 : resultado.motivo === "SIN_IMPORTE" ? 422 : 503;
-      return error(resultado.motivo, "No se puede abrir el pago de este expediente.", { status: estado, correlation });
+      const mensaje = resultado.motivo === "LEGAL_PENDIENTE" ? "Los cobros se activan cuando BUROFAST publique sus datos legales completos." : "No se puede abrir el pago de este expediente.";
+      return error(resultado.motivo, mensaje, { status: estado, correlation });
     }
     await auditar({
       actorId: entrada.data.ficha ? "enlace_pago" : "cliente",

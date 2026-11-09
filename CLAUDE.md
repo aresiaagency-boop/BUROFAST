@@ -25,7 +25,7 @@ Producción: https://burofast.vercel.app · repo público aresiaagency-boop/BURO
 | Pagos | Stripe Checkout (stripe@23, API 2026-10-28.endive), cuenta de ARES compartida con otras apps: solo se procesan sesiones con `metadata.app = "burofast"` |
 | HESTIA | n8n (EasyPanel) + OpenAI gpt-4o-mini; canal WhatsApp (Evolution) y canal app; sin n8n, modo local |
 | Despliegue | Vercel (`lhr1`, sin `output: standalone`); Docker standalone como alternativa |
-| PostgreSQL | EasyPanel, puerto público 47432 (Reino Unido) |
+| PostgreSQL | EasyPanel con puerto público (Reino Unido). Host y puerto no se versionan |
 
 ## Comandos
 

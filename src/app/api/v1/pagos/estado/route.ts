@@ -3,6 +3,7 @@ import { correlationId, error, ipCliente, json } from "@/lib/http";
 import { aplicarResultado, pagoPorSesion } from "@/lib/pagos/repositorio";
 import { stripe, stripeConfigurado } from "@/lib/pagos/stripe";
 import { idPaymentIntent } from "@/lib/pagos/webhook";
+import { auditar } from "@/lib/repositorio";
 import { limitar } from "@/lib/security/limites";
 
 // Estado de un pago para la página de vuelta de Stripe. Si el webhook aún no
@@ -24,7 +25,12 @@ export async function GET(request: Request) {
       const remota = await stripe().checkout.sessions.retrieve(sesion);
       const nuevo = remota.payment_status === "paid" ? "pagado" : remota.status === "expired" ? "expirado" : null;
       if (nuevo) {
-        await db().begin((tx) => aplicarResultado(tx, { sessionId: sesion, estado: nuevo, paymentIntent: idPaymentIntent(remota.payment_intent) }));
+        const cambio = await db().begin((tx) => aplicarResultado(tx, { sessionId: sesion, estado: nuevo, paymentIntent: idPaymentIntent(remota.payment_intent) }));
+        // Si la vuelta llega antes que el webhook, el cambio se audita aquí:
+        // el webhook lo verá ya hecho y no dejará rastro.
+        if (cambio) {
+          await auditar({ actorId: "stripe", accion: `pago.${nuevo}`, objetivoId: cambio.leadId, parametros: { via: "vuelta", tipo: cambio.tipo }, resultado: "ok", correlationId: correlation });
+        }
         fila = (await pagoPorSesion(sesion)) ?? fila;
       }
     } catch {

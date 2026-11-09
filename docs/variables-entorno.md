@@ -8,7 +8,7 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 
 | Variable | Tipo | Para qué | Valor / cómo generarla |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Secret | PostgreSQL de EasyPanel | `postgres://USUARIO:CLAVE@72.61.18.243:47432/burofast` |
+| `DATABASE_URL` | Secret | PostgreSQL de EasyPanel | `postgres://USUARIO:CLAVE@HOST:PUERTO/burofast` (EasyPanel → postgres → Expose). Con TLS activado en el servidor, añade `?sslmode=require`. Si la clave lleva `@`, `:` o `/`, codifícala (`encodeURIComponent`) |
 | `DATA_ENCRYPTION_KEY` | Secret | Cifrado de nombre, teléfono y correo. **Si se pierde, los datos cifrados no se recuperan** | `openssl rand -hex 32` |
 | `AUTH_SECRET` | Secret | Firma de sesiones, del estado de OAuth y de los enlaces de pago (≥ 32 caracteres) | `openssl rand -hex 32` |
 | `APP_BASE_URL` | Config | URL pública: vuelta de Google, de Stripe y enlaces de HESTIA | `https://burofast.vercel.app` |
@@ -25,6 +25,7 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 | `GOOGLE_CLIENT_ID` | Config | Cliente OAuth «BUROFAST web» (Google Cloud, proyecto `burofast-514123`) | `…apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Secret | Secreto de ese cliente | Google Auth Platform → Clientes → BUROFAST web |
 | `OWNER_PASSWORD_HASH` | Secret | Respaldo si Google falla | `printf '%s' 'tu-frase-larga' \| npm run -s hash-password` |
+| `ABOGADOS_EMAILS` | Config | Quién puede confirmar una ruta (y abrir el cobro): `correo, correo`. Vacío: solo el owner | — |
 
 ## Cobros (Stripe)
 
@@ -44,6 +45,12 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 | `HESTIA_WEBHOOK_SECRET` | Secret | Firma HMAC de eventos, alternativa al token | `openssl rand -hex 24` |
 | `HESTIA_WHATSAPP_NUMERO` | Config | Número de WhatsApp de HESTIA (solo dígitos) | `34600000000` |
 | `N8N_BASE_URL` | Config | Comprobación `/healthz` de n8n en el centro de mando | `https://burofast-n8n.7dklrk.easypanel.host` |
+
+## Mantenimiento
+
+| Variable | Tipo | Para qué | Valor / cómo generarla |
+| --- | --- | --- | --- |
+| `CRON_SECRET` | Secret | Vercel Cron la manda como `Authorization: Bearer` a `/api/v1/mantenimiento/purgar` (cada noche borra las solicitudes no convertidas de más de 12 meses) | `openssl rand -hex 32` |
 
 ## Solo para pruebas y capturas
 

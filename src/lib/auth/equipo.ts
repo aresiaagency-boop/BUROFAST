@@ -13,3 +13,11 @@ export function rolDeEquipo(email: string): Rol | null {
   }
   return null;
 }
+
+// Confirmar una ruta abre el cobro: lo hace un abogado colegiado. Quién lo es
+// lo dice ABOGADOS_EMAILS («correo, correo»); sin esa lista, solo el owner.
+export function puedeConfirmarRuta(email: string, rol: Rol) {
+  const abogados = (process.env.ABOGADOS_EMAILS ?? "").split(",").map((v) => v.trim().toLowerCase()).filter(Boolean);
+  if (abogados.length === 0) return rol === "owner";
+  return abogados.includes(email.trim().toLowerCase());
+}

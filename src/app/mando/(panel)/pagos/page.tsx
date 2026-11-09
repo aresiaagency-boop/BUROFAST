@@ -49,7 +49,7 @@ export default async function Pagos() {
                         <td className="mono">{p.referencia}</td>
                         <td>{p.tipo === "anticipo" ? "Anticipo 50 %" : "Pago final"}</td>
                         <td className="mono">{formatearEuros(p.importe, "es-ES")}</td>
-                        <td><EstadoBadge tono={TONO[p.estado]} texto={p.estado} />{p.duplicado && <> <EstadoBadge tono="critico" texto="Duplicado: devolver uno" /></>}</td>
+                        <td><EstadoBadge tono={TONO[p.estado]} texto={p.estado} />{p.duplicado && <> <EstadoBadge tono="critico" texto="Duplicado: devolver uno" /></>}{p.sinAprobacion && <> <EstadoBadge tono="critico" texto="Sin ruta aprobada: revisar o devolver" /></>}</td>
                         <td className="mono">{p.modo.toUpperCase()}</td>
                         <td className="mono">{fechaHora.format(p.creadoEn)}</td>
                         <td className="mono">{p.pagadoEn ? fechaHora.format(p.pagadoEn) : "—"}</td>

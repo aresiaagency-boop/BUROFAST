@@ -103,7 +103,7 @@ export function PagoAbrir({ locale }: { locale: Locale }) {
           return;
         }
         const codigo = cuerpo?.error?.codigo;
-        setMensaje(codigo === "YA_PAGADO" ? t.pago.yaPagado : codigo === "PAGOS_NO_CONFIGURADOS" ? t.pago.noDisponible : t.pago.error);
+        setMensaje(codigo === "YA_PAGADO" ? t.pago.yaPagado : codigo === "PAGOS_NO_CONFIGURADOS" || codigo === "LEGAL_PENDIENTE" ? t.pago.noDisponible : t.pago.error);
         emitirHestia("alerta");
       } catch {
         if (!cancelado) setMensaje(t.pago.error);

@@ -1,9 +1,9 @@
 import { db, isDatabaseConfigured } from "@/lib/db";
 import { correlationId, error, json, log } from "@/lib/http";
-import { registrarEventoStripe } from "@/lib/pagos/repositorio";
+import { existePagoConIntento, registrarEventoStripe } from "@/lib/pagos/repositorio";
 import type { Stripe } from "@/lib/pagos/stripe";
 import { construirEventoStripe, stripeConfigurado, webhookStripeConfigurado } from "@/lib/pagos/stripe";
-import { esEventoAjeno, procesarEventoStripe } from "@/lib/pagos/webhook";
+import { esEventoAjeno, idPaymentIntent, procesarEventoStripe } from "@/lib/pagos/webhook";
 import { auditar } from "@/lib/repositorio";
 
 // Webhook de Stripe. La firma (Stripe-Signature, HMAC con marca de tiempo) se
@@ -26,6 +26,10 @@ export async function POST(request: Request) {
   // De otra app de la misma cuenta: 200 para que Stripe no reintente, y nada
   // en nuestra base.
   if (esEventoAjeno(evento)) return json({ recibido: true, accion: "ajeno" }, { correlation });
+  if (evento.type === "charge.refunded") {
+    const intento = idPaymentIntent(evento.data.object.payment_intent);
+    if (!intento || !(await existePagoConIntento(intento))) return json({ recibido: true, accion: "ajeno" }, { correlation });
+  }
 
   try {
     const resultado = await db().begin(async (tx) => {

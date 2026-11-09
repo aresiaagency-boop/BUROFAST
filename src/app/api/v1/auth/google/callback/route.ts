@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { urlBase } from "@/lib/auth/base";
+import { destinoSeguro, urlBase } from "@/lib/auth/base";
 import { COOKIE_CLIENTE, crearSesionCliente, DURACION_CLIENTE_S, opcionesCookie } from "@/lib/auth/cliente";
 import { rolDeEquipo } from "@/lib/auth/equipo";
 import { canjearCodigo, COOKIE_OAUTH, leerEstadoOauth } from "@/lib/auth/google";
 import { isDatabaseConfigured } from "@/lib/db";
 import { correlationId, log } from "@/lib/http";
 import { auditar } from "@/lib/repositorio";
-import { cifradoConfigurado } from "@/lib/security/cifrado";
+import { cifradoConfigurado, hashEstable } from "@/lib/security/cifrado";
 import { COOKIE_SESION, crearTokenSesion, DURACION_SESION_S } from "@/lib/security/sesion";
 
 // Vuelta de Google. Valida state (anti-CSRF), canjea el código con PKCE y
@@ -19,7 +19,8 @@ export async function GET(request: Request) {
   const base = urlBase() ?? url.origin;
   const almacen = await cookies();
   const estado = leerEstadoOauth(almacen.get(COOKIE_OAUTH)?.value);
-  const destino = estado?.destino ?? "/es/expediente";
+  // El destino ya se filtró al empezar; se vuelve a filtrar por si acaso.
+  const destino = destinoSeguro(estado?.destino, "/es/expediente");
   const esMando = destino.startsWith("/mando");
 
   const salir = (motivo: string) => {
@@ -50,8 +51,10 @@ export async function GET(request: Request) {
   }
 
   const rol = rolDeEquipo(identidad.email);
+  // Del equipo se audita el correo; de un cliente, solo una huella.
+  const actor = rol ? identidad.email : cifradoConfigurado() ? `cliente:${hashEstable(identidad.email).slice(0, 16)}` : "cliente";
   if (esMando && !rol) {
-    if (isDatabaseConfigured()) await auditar({ actorId: identidad.email, accion: "sesion.google", resultado: "rechazado", correlationId: correlation });
+    if (isDatabaseConfigured()) await auditar({ actorId: actor, accion: "sesion.google", resultado: "rechazado", correlationId: correlation });
     return salir("sin_permiso");
   }
 
@@ -66,7 +69,7 @@ export async function GET(request: Request) {
     respuesta.cookies.set(COOKIE_CLIENTE, crearSesionCliente(identidad.email, identidad.nombre), opcionesCookie(DURACION_CLIENTE_S));
   }
   if (isDatabaseConfigured()) {
-    await auditar({ actorId: identidad.email, accion: rol ? "sesion.google" : "cliente.google", parametros: { rol: rol ?? "cliente" }, resultado: "ok", correlationId: correlation });
+    await auditar({ actorId: actor, accion: rol ? "sesion.google" : "cliente.google", parametros: { rol: rol ?? "cliente" }, resultado: "ok", correlationId: correlation });
   }
   return respuesta;
 }

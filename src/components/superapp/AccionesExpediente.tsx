@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { emitirHestia } from "@/lib/hestia/vivo";
+import { useAlmacen } from "@/lib/useAlmacen";
 import { DICCIONARIOS } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/locales";
 
@@ -29,7 +30,7 @@ export function PagarAnticipo({ locale, referencia, importe }: { locale: Locale;
         return;
       }
       const codigo = cuerpo?.error?.codigo;
-      setMensaje(codigo === "YA_PAGADO" ? t.pago.yaPagado : codigo === "PAGOS_NO_CONFIGURADOS" ? t.pago.noDisponible : t.pago.error);
+      setMensaje(codigo === "YA_PAGADO" ? t.pago.yaPagado : codigo === "PAGOS_NO_CONFIGURADOS" || codigo === "LEGAL_PENDIENTE" ? t.pago.noDisponible : t.pago.error);
       setEstado("error");
       emitirHestia("alerta");
     } catch {
@@ -67,5 +68,66 @@ export function SalirCliente({ locale }: { locale: Locale }) {
     >
       {t.app.salir}
     </button>
+  );
+}
+
+// Vincula un expediente a la cuenta con el código de camino. Si este navegador
+// lo recuerda (acaba de terminar el camino), viene ya escrito.
+export function VincularExpediente({ locale }: { locale: Locale }) {
+  const t = DICCIONARIOS[locale];
+  const router = useRouter();
+  const { camino } = useAlmacen();
+  const [escrito, setEscrito] = useState<string | null>(null);
+  const [estado, setEstado] = useState<"listo" | "enviando" | "no_coincide" | "error">("listo");
+  const codigo = escrito ?? camino.referencia ?? "";
+
+  async function vincular(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    setEstado("enviando");
+    try {
+      const respuesta = await fetch("/api/v1/expediente/vincular", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ referencia: codigo }),
+      });
+      if (respuesta.ok) {
+        emitirHestia("exito");
+        setEstado("listo");
+        router.refresh();
+        return;
+      }
+      setEstado(respuesta.status === 404 || respuesta.status === 400 ? "no_coincide" : "error");
+      emitirHestia("alerta");
+    } catch {
+      setEstado("error");
+    }
+  }
+
+  return (
+    <form className="cristal cristal--grande bloque vincular" onSubmit={(e) => void vincular(e)}>
+      <h2>{t.expediente.vincularTitulo}</h2>
+      <p>{t.expediente.vincularTexto}</p>
+      <label className="campo-cristal" htmlFor="codigo-camino">
+        <span>{t.expediente.vincularCampo}</span>
+        <input
+          id="codigo-camino"
+          name="referencia"
+          value={codigo}
+          onChange={(e) => setEscrito(e.target.value.toUpperCase())}
+          placeholder="BF-XXXXXX"
+          autoComplete="off"
+          spellCheck={false}
+          pattern="[Bb][Ff]-[A-Za-z0-9]{6}"
+          required
+          aria-invalid={estado === "no_coincide"}
+          dir="ltr"
+        />
+      </label>
+      {estado === "no_coincide" && <p className="alerta-holo error" role="alert">{t.expediente.vincularNoCoincide}</p>}
+      {estado === "error" && <p className="alerta-holo error" role="alert">{t.expediente.vincularError}</p>}
+      <div className="acciones">
+        <button type="submit" className="boton-cristal plasma-oro" disabled={estado === "enviando"}>{t.expediente.vincularBoton}</button>
+      </div>
+    </form>
   );
 }
