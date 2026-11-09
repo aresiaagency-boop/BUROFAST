@@ -6,7 +6,7 @@ import { hashEstable } from "@/lib/security/cifrado";
 import { vincularExpediente } from "@/lib/expediente";
 import { aplicarResultado, existePagoConIntento, importeDe, leadPagablePorId, leadPagablePorReferencia, listarPagos, marcarReembolsado, registrarEventoStripe, registrarPendiente, sesionAbierta, yaPagado } from "@/lib/pagos/repositorio";
 import { procesarEventoStripe } from "@/lib/pagos/webhook";
-import { crearLead } from "@/lib/repositorio";
+import { corregirRuta, crearLead } from "@/lib/repositorio";
 import { solicitudLeadSchema } from "@/lib/schemas";
 import { limitar } from "@/lib/security/limites";
 
@@ -53,7 +53,7 @@ describe.skipIf(!conBase)("cobros y límites en PostgreSQL", () => {
     const importe = importeDe("anticipo", pagable?.totalCentimos ?? 0);
     expect(importe).toBe(Math.floor((pagable?.totalCentimos ?? 0) / 2));
 
-    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe, modo: "test", sessionId: sesionId, url: "https://checkout.stripe.test/x", expiraEn: new Date(Date.now() + 60 * 60_000), condicionesVersion: "2026-11-09" });
+    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe, modo: "test", sessionId: sesionId, url: "https://checkout.stripe.test/x", expiraEn: new Date(Date.now() + 60 * 60_000), condicionesVersion: "2026-11-09", empezarYaEn: new Date() });
     expect(await sesionAbierta(lead.id, "anticipo")).toMatchObject({ sessionId: sesionId });
 
     const completado = { id: `evt_integracion_${sufijo}_1`, type: "checkout.session.completed", data: { object: { id: sesionId, mode: "payment", payment_status: "paid", payment_intent: intento, metadata: { app: "burofast" } } } } as unknown as Stripe.Event;
@@ -114,13 +114,47 @@ describe.skipIf(!conBase)("cobros y límites en PostgreSQL", () => {
     await cambiarEstadoLead({ leadId: lead.id, estado: "revision_abogado" });
     await cambiarEstadoLead({ leadId: lead.id, estado: "aprobado" });
     const sesion = `${sesionId}_b`;
-    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe: 1_000, modo: "test", sessionId: sesion, url: "https://checkout.stripe.test/y", expiraEn: new Date(Date.now() + 60 * 60_000), condicionesVersion: "2026-11-09" });
+    await registrarPendiente({ leadId: lead.id, tipo: "anticipo", importe: 1_000, modo: "test", sessionId: sesion, url: "https://checkout.stripe.test/y", expiraEn: new Date(Date.now() + 60 * 60_000), condicionesVersion: "2026-11-09", empezarYaEn: new Date() });
     // El abogado retira la aprobación y el cliente paga en una pestaña vieja.
     await cambiarEstadoLead({ leadId: lead.id, estado: "revision_abogado" });
     expect(await db().begin((tx) => aplicarResultado(tx, { sessionId: sesion, estado: "pagado", paymentIntent: `${intento}_b` }))).toMatchObject({ leadId: lead.id });
     const [estado] = await db()<{ estado: string }[]>`select estado from leads where id = ${lead.id}`;
     expect(estado.estado).toBe("revision_abogado");
     expect((await listarPagos()).find((p) => p.sessionId === sesion)?.sinAprobacion).toBe(true);
+  });
+
+  it("el abogado corrige la ruta y el precio antes de aprobar, nunca después", async () => {
+    const lead = await crearLead(solicitudLeadSchema.parse({
+      locale: "es",
+      respuestas: { sueno: "trabajar", ubicacion: "fuera", situacion: null, tiempo: null, pasaporte: "otro" },
+      nivelCita: "urgente",
+      conGuardian: false,
+      nombre: "Corrección Integración",
+      telefono: "+34 600 000 004",
+      email: "",
+      consentimientoPrivacidad: true,
+      consentimientoMarketing: false,
+    }));
+    leads.push(lead.id);
+    const [antes] = await db()<{ ruta_id: string; total: number }[]>`select ruta_id, total_estimado_centimos as total from leads where id = ${lead.id}`;
+    await cambiarEstadoLead({ leadId: lead.id, estado: "revision_abogado" });
+
+    const corregida = await corregirRuta(lead.id, {
+      respuestas: { sueno: "renovar", ubicacion: "espana", situacion: "autorizacion_vigente", tiempo: "1a_2a", pasaporte: "otro" },
+      nivelCita: "puede_esperar",
+      conGuardian: true,
+    });
+    expect(corregida.ok).toBe(true);
+    const [despues] = await db()<{ ruta_id: string; total: number; nivel_cita: string | null; con_guardian: boolean }[]>`
+      select ruta_id, total_estimado_centimos as total, nivel_cita, con_guardian from leads where id = ${lead.id}`;
+    expect(despues.ruta_id).not.toBe(antes.ruta_id);
+    expect(corregida.ok && corregida.totalCentimos).toBe(despues.total);
+    const citas = await db()<{ nivel: string }[]>`select nivel from citas where lead_id = ${lead.id}`;
+    for (const cita of citas) expect(cita.nivel).toBe("puede_esperar");
+
+    await cambiarEstadoLead({ leadId: lead.id, estado: "aprobado" });
+    expect(await corregirRuta(lead.id, { respuestas: { sueno: "renovar", ubicacion: "espana", situacion: "autorizacion_vigente", tiempo: "1a_2a", pasaporte: "otro" }, nivelCita: null, conGuardian: false }))
+      .toEqual({ ok: false, motivo: "ESTADO_NO_PERMITE" });
   });
 
   it("el límite de peticiones es uno para todas las instancias", async () => {

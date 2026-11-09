@@ -17,6 +17,8 @@ const entradaSchema = z.object({
   ficha: z.string().max(800).optional(),
   // …o la referencia de un expediente del cliente que ha entrado con Google.
   referencia: z.string().regex(/^BF-[A-Z0-9]{6}$/).optional(),
+  // Petición expresa de empezar ya (TRLGDCU art. 108.2): sin ella no se cobra.
+  empezarYa: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -31,6 +33,9 @@ export async function POST(request: Request) {
   const entrada = entradaSchema.safeParse(await request.json().catch(() => null));
   if (!entrada.success || (!entrada.data.ficha && !entrada.data.referencia)) {
     return error("ENTRADA_INVALIDA", "Falta la ficha de pago o la referencia.", { status: 400, correlation });
+  }
+  if (entrada.data.empezarYa !== true) {
+    return error("EMPEZAR_YA_REQUERIDO", "Para pagar hay que pedir expresamente que empecemos ya.", { status: 400, correlation });
   }
 
   let lead = null;

@@ -422,5 +422,7 @@ export const fr: Diccionario = {
     pendienteLento: "Stripe n’a pas encore confirmé le paiement. Si vous avez utilisé un moyen plus lent, vous le verrez dans votre dossier dès qu’il arrivera.",
     volverExpediente: "Aller à mon dossier",
     seguro: "Paiement sécurisé avec Stripe · BUROFAST ne voit jamais votre carte",
+    empezarYa: "Je souhaite que vous commenciez mon dossier dès maintenant. Je comprends que si je me rétracte dans les 14 jours, je ne paierai que le travail déjà effectué.",
+    continuarPago: "Continuer vers le paiement sécurisé",
   },
 };

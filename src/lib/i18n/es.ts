@@ -484,5 +484,7 @@ export const es: Diccionario = {
     pendienteLento: "Stripe todavía no ha confirmado el pago. Si pagaste con un método que tarda, lo verás en tu expediente en cuanto llegue.",
     volverExpediente: "Ir a mi expediente",
     seguro: "Pago seguro con Stripe · BUROFAST nunca ve tu tarjeta",
+    empezarYa: "Quiero que empecéis ya con mi expediente. Sé que, si desisto en los 14 días siguientes, pagaré solo lo que ya esté hecho.",
+    continuarPago: "Continuar al pago seguro",
   },
 };

@@ -13,13 +13,14 @@
 
 ## Hechos verificados
 
-- `npm run check` pasa con PostgreSQL 16 local: 181 pruebas (19 archivos), incluidas persistencia, cobros, vínculo de expediente y límites contra la base, y los evals de diagnóstico (26 casos) y HESTIA (37 casos).
+- `npm run check` pasa con PostgreSQL 16 local: 186 pruebas (20 archivos), incluidas persistencia, cobros, vínculo de expediente y límites contra la base, y los evals de diagnóstico (26 casos) y HESTIA (37 casos).
 - Next 16: `middleware.ts` es `proxy.ts` y corre en Node; `PageProps`, `LayoutProps` y `RouteContext` salen de `npx next typegen` (hay que relanzarlo al crear rutas).
 - Vercel: con `output: "standalone"` la build falla en `onBuildComplete` (`ENOENT .next/next-server.js.nft.json`). `next.config.ts` solo lo activa fuera de Vercel.
 - En Vercel, `x-forwarded-for` lo escribe Vercel con la IP real: `TRUSTED_PROXY_HOPS=1` toma la buena.
 - Un push a `main` puede no crear despliegue (le pasó a `b2126cb`, horas después del anterior). Remedio: Deployments → ⋯ → Create Deployment → `main` → Deploy to Production. El estado del commit en GitHub (`gh api …/commits/<sha>/status`) queda en `pending` sin contexto Vercel.
 - El formulario de variables de Vercel acepta un `.env` pegado en el campo Key: un `ClipboardEvent('paste')` con `DataTransfer` rellena todas las filas de golpe.
 - Google Auth Platform enseña el secreto del cliente una sola vez al crearlo; si se pierde, «Agregar secreto».
+- «Publicar app» en Google Auth Platform lo bloquea el clasificador de permisos de Claude: lo confirma el owner.
 - Stripe Workbench crea el destino con versión de API elegible: se eligió la del SDK (2026-10-28.endive).
 - La cuenta de Stripe es compartida: cada webhook recibe los eventos de todas las apps. BUROFAST marca sus sesiones con `metadata.app = "burofast"` y responde 200 sin tocar la base a lo ajeno.
 - Restricted key de Stripe: basta *Checkout Sessions: Escritura* (crear, leer y listar sesiones).
@@ -41,6 +42,7 @@
   - El correo tecleado ataba el expediente a quien controlara ese correo: ahora se vincula con el código de camino (`email_verificado_en`).
   - Teléfono y nombre reales de un tercero dentro de una prueba: sustituidos por huellas SHA-256.
 - El host y el puerto del PostgreSQL llegaron a publicarse en el commit `7745194`: retirados del árbol; siguen en el historial.
+- Cerrado lo que quedaba del verificador: casilla obligatoria de «empezad ya» antes de pagar (art. 108.2 TRLGDCU, se guarda en `pagos.empezar_ya_en`, migración 005) y corrección de ruta y precio por el abogado durante la revisión (`/api/v1/mando/leads/:id/ruta`, el servidor recalcula ruta, citas y total).
 - Un anticipo pagado no convertía el expediente: el `update` solo aceptaba `nuevo/contactado/revision_abogado` y el pago exige `aprobado`. Lo destapó `pagos.integration.test.ts`.
 - HESTIA local tomaba «tarjeta/card/carte/картка» como pago: en extranjería es la TIE. Lo destapó `eval/hestia.jsonl`.
 - En árabe «اللجوء» (con artículo) no se reconocía como asilo: se prueba también sin el prefijo `ال`.
@@ -63,5 +65,4 @@ Superapp holográfica en producción: núcleo HESTIA, cinco motores con agentes,
 3. Owner: rellenar `src/lib/legal.ts` (titular, NIF, domicilio, correo, registro, abogado, colegio, número). Hasta entonces no hay cobro live. En Google ya están la marca, los enlaces legales y el dominio: falta «Publicar app» para que entren los clientes.
 4. Decisión del owner: reescribir el historial público (`git filter-repo`) para quitar el host del PostgreSQL y los datos del flujo original, o cambiar el puerto expuesto y la contraseña.
 5. Seguridad: rol propio de PostgreSQL con permisos mínimos y TLS (`?sslmode=require`); rotar la API key de Evolution del `pinData` original; revisar que FlyDish ignora los eventos de Stripe de BUROFAST.
-6. Pendiente del verificador: casilla de «empezar ya» antes de pagar (art. 108 TRLGDCU) y corrección de ruta y precio por el abogado durante la revisión.
-7. Vercel Hobby es solo para uso no comercial: pasar a Pro antes de cobrar en serio.
+6. Vercel Hobby es solo para uso no comercial: pasar a Pro antes de cobrar en serio.

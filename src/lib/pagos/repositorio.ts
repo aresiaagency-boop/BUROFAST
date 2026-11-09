@@ -79,11 +79,11 @@ export async function sesionAbierta(leadId: string, tipo: TipoPago) {
 }
 
 export async function registrarPendiente(p: {
-  leadId: string; tipo: TipoPago; importe: number; modo: "live" | "test"; sessionId: string; url: string; expiraEn: Date; condicionesVersion: string;
+  leadId: string; tipo: TipoPago; importe: number; modo: "live" | "test"; sessionId: string; url: string; expiraEn: Date; condicionesVersion: string; empezarYaEn: Date;
 }) {
   await db()`
-    insert into pagos (lead_id, tipo, importe_centimos, modo, stripe_session_id, checkout_url, expira_en, condiciones_version)
-    values (${p.leadId}, ${p.tipo}, ${p.importe}, ${p.modo}, ${p.sessionId}, ${p.url}, ${p.expiraEn}, ${p.condicionesVersion})
+    insert into pagos (lead_id, tipo, importe_centimos, modo, stripe_session_id, checkout_url, expira_en, condiciones_version, empezar_ya_en)
+    values (${p.leadId}, ${p.tipo}, ${p.importe}, ${p.modo}, ${p.sessionId}, ${p.url}, ${p.expiraEn}, ${p.condicionesVersion}, ${p.empezarYaEn})
     on conflict (stripe_session_id) do nothing
   `;
 }

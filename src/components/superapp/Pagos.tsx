@@ -77,48 +77,60 @@ export function PagoVuelta({ locale, sesion, cancelado }: { locale: Locale; sesi
 
 // Enlace de pago enviado por el equipo: la ficha viaja en el fragmento (#),
 // que el navegador nunca manda a ningún servidor ni queda en los logs.
-export function PagoAbrir({ locale }: { locale: Locale }) {
+export function PagoAbrir({ locale, children }: { locale: Locale; children?: React.ReactNode }) {
   const t = DICCIONARIOS[locale];
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [empezarYa, setEmpezarYa] = useState(false);
+  const [abriendo, setAbriendo] = useState(false);
 
-  useEffect(() => {
+  // Antes de ir a Stripe, el cliente pide expresamente que empecemos ya
+  // (sin esa casilla no se cobra): por eso el enlace ya no salta solo.
+  async function abrir() {
     const ficha = window.location.hash.slice(1);
-    let cancelado = false;
-    const abrir = async () => {
-      if (!ficha) {
-        setMensaje(t.pago.error);
+    if (!ficha) {
+      setMensaje(t.pago.error);
+      return;
+    }
+    setAbriendo(true);
+    emitirHestia("pensando");
+    try {
+      const respuesta = await fetch("/api/v1/pagos/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale, ficha, empezarYa }),
+      });
+      const cuerpo = (await respuesta.json().catch(() => null)) as { url?: string; error?: { codigo?: string } } | null;
+      if (respuesta.ok && cuerpo?.url) {
+        window.location.replace(cuerpo.url);
         return;
       }
-      emitirHestia("pensando");
-      try {
-        const respuesta = await fetch("/api/v1/pagos/checkout", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ locale, ficha }),
-        });
-        const cuerpo = (await respuesta.json().catch(() => null)) as { url?: string; error?: { codigo?: string } } | null;
-        if (cancelado) return;
-        if (respuesta.ok && cuerpo?.url) {
-          window.location.replace(cuerpo.url);
-          return;
-        }
-        const codigo = cuerpo?.error?.codigo;
-        setMensaje(codigo === "YA_PAGADO" ? t.pago.yaPagado : codigo === "PAGOS_NO_CONFIGURADOS" || codigo === "LEGAL_PENDIENTE" ? t.pago.noDisponible : t.pago.error);
-        emitirHestia("alerta");
-      } catch {
-        if (!cancelado) setMensaje(t.pago.error);
-      }
-    };
-    void abrir();
-    return () => {
-      cancelado = true;
-    };
-  }, [locale, t]);
+      const codigo = cuerpo?.error?.codigo;
+      setMensaje(codigo === "YA_PAGADO" ? t.pago.yaPagado : codigo === "PAGOS_NO_CONFIGURADOS" || codigo === "LEGAL_PENDIENTE" ? t.pago.noDisponible : t.pago.error);
+      emitirHestia("alerta");
+    } catch {
+      setMensaje(t.pago.error);
+    }
+    setAbriendo(false);
+  }
 
   return (
     <section className="cristal cristal--grande pago-escena" aria-live="polite">
-      <NucleoHestia tamano={160} etiqueta="HESTIA" estadoInicial={mensaje ? "alerta" : "pensando"} />
-      <h1 className="titulo-paso">{mensaje ?? t.pago.abriendo}</h1>
+      <NucleoHestia tamano={160} etiqueta="HESTIA" estadoInicial={mensaje ? "alerta" : "reposo"} />
+      <h1 className="titulo-paso">{mensaje ?? t.pago.condiciones}</h1>
+      {!mensaje && (
+        <>
+          <label className="casilla-pago">
+            <input type="checkbox" checked={empezarYa} onChange={(e) => setEmpezarYa(e.target.checked)} />
+            <span>{t.pago.empezarYa}</span>
+          </label>
+          <div className="acciones">
+            <button type="button" className="boton-cristal plasma-oro cristal--vivo" disabled={!empezarYa || abriendo} onClick={() => void abrir()}>
+              {abriendo ? t.pago.abriendo : t.pago.continuarPago}
+            </button>
+          </div>
+          {children}
+        </>
+      )}
       <p className="mono" style={{ color: "var(--texto-tenue)" }}>{t.pago.seguro}</p>
       {mensaje && <Link className="boton-cristal" href={`/${locale}/expediente`}>{t.pago.volverExpediente}</Link>}
     </section>

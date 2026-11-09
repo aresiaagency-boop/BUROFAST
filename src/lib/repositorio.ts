@@ -4,6 +4,7 @@ import { CITAS, presupuesto } from "@/lib/catalogo";
 import type { EstadoCita } from "@/lib/citas";
 import { puedeTransicionar, venceGarantiaUrgente, venceSla } from "@/lib/citas";
 import type { NivelCita as Nivel } from "@/lib/catalogo";
+import type { TransactionSql } from "postgres";
 import { db, toDatabaseJson } from "@/lib/db";
 import { diagnosticar } from "@/lib/diagnostico";
 import type { SolicitudLead } from "@/lib/schemas";
@@ -16,13 +17,33 @@ export function nuevaReferencia() {
   return `BF-${[...bytes].map((b) => ALFABETO[b % ALFABETO.length]).join("")}`;
 }
 
-export async function crearLead(solicitud: SolicitudLead) {
-  const ruta = diagnosticar(solicitud.respuestas);
+// Ruta, citas cobrables y precio a partir de las respuestas. Lo usan el alta y
+// la corrección del abogado: el precio siempre se calcula aquí, en el servidor.
+export function planDe(respuestas: SolicitudLead["respuestas"], nivelPedido: SolicitudLead["nivelCita"], guardianPedido: boolean) {
+  const ruta = diagnosticar(respuestas);
   const citasCobrables = ruta.citas.filter((cita) => CITAS[cita].gestionable);
-  const nivelCita = citasCobrables.length > 0 ? solicitud.nivelCita : null;
+  const nivelCita = citasCobrables.length > 0 ? nivelPedido : null;
   // Guardián no se vende en protección internacional (gratuita) ni dos veces.
-  const conGuardian = solicitud.conGuardian && ruta.nivel !== "N3" && ruta.producto !== "guardian";
+  const conGuardian = guardianPedido && ruta.nivel !== "N3" && ruta.producto !== "guardian";
   const importe = presupuesto({ producto: ruta.producto, citas: ruta.citas, nivelCita, conGuardian });
+  return { ruta, citasCobrables, nivelCita, conGuardian, importe };
+}
+
+async function crearCitas(tx: TransactionSql, leadId: string, citasCobrables: CitaId[], nivelCita: NivelCita, ahora: Date) {
+  for (const tipo of citasCobrables) {
+    const yaPosible = CITAS[tipo].momento === "ahora";
+    await tx`
+      insert into citas (lead_id, tipo, nivel, estado, sla_vence_en, garantia_vence_en, activada_en)
+      values (${leadId}, ${tipo}, ${nivelCita}, ${yaPosible ? "requerida" : "en_espera"},
+              ${yaPosible ? venceSla(nivelCita, ahora) : null},
+              ${yaPosible && nivelCita === "urgente" ? venceGarantiaUrgente(ahora) : null},
+              ${yaPosible ? ahora : null})
+    `;
+  }
+}
+
+export async function crearLead(solicitud: SolicitudLead) {
+  const { ruta, citasCobrables, nivelCita, conGuardian, importe } = planDe(solicitud.respuestas, solicitud.nivelCita, solicitud.conGuardian);
   const referencia = nuevaReferencia();
   const ahora = new Date();
   const telefono = solicitud.telefono;
@@ -48,18 +69,7 @@ export async function crearLead(solicitud: SolicitudLead) {
       returning id
     `;
 
-    if (nivelCita) {
-      for (const tipo of citasCobrables) {
-        const yaPosible = CITAS[tipo].momento === "ahora";
-        await tx`
-          insert into citas (lead_id, tipo, nivel, estado, sla_vence_en, garantia_vence_en, activada_en)
-          values (${fila.id}, ${tipo}, ${nivelCita}, ${yaPosible ? "requerida" : "en_espera"},
-                  ${yaPosible ? venceSla(nivelCita, ahora) : null},
-                  ${yaPosible && nivelCita === "urgente" ? venceGarantiaUrgente(ahora) : null},
-                  ${yaPosible ? ahora : null})
-        `;
-      }
-    }
+    if (nivelCita) await crearCitas(tx, fila.id, citasCobrables, nivelCita, ahora);
     return fila;
   });
 
@@ -110,7 +120,41 @@ export type FilaLead = {
   demo: boolean;
   tieneEmail: boolean;
   pagadoCentimos: number;
+  respuestas: { sueno: string; ubicacion: string; situacion: string | null; tiempo: string | null; pasaporte: string };
+  conGuardian: boolean;
 };
+
+// El abogado corrige la ruta durante la revisión: nuevas respuestas, nuevo
+// plan y nuevo precio, recalculados aquí. Solo antes de aprobar, sin pagos y
+// sin citas que el equipo ya haya empezado a gestionar.
+export type ResultadoCorreccion =
+  | { ok: true; rutaId: string; totalCentimos: number }
+  | { ok: false; motivo: "LEAD_NO_EXISTE" | "ESTADO_NO_PERMITE" | "TIENE_PAGOS" | "CITAS_EN_CURSO" };
+
+export async function corregirRuta(leadId: string, entrada: { respuestas: SolicitudLead["respuestas"]; nivelCita: SolicitudLead["nivelCita"]; conGuardian: boolean }): Promise<ResultadoCorreccion> {
+  const { ruta, citasCobrables, nivelCita, conGuardian, importe } = planDe(entrada.respuestas, entrada.nivelCita, entrada.conGuardian);
+  return db().begin(async (tx): Promise<ResultadoCorreccion> => {
+    const [lead] = await tx<{ estado: string }[]>`select estado from leads where id = ${leadId} for update`;
+    if (!lead) return { ok: false, motivo: "LEAD_NO_EXISTE" };
+    if (!["nuevo", "contactado", "revision_abogado"].includes(lead.estado)) return { ok: false, motivo: "ESTADO_NO_PERMITE" };
+    const [{ pagos }] = await tx<{ pagos: number }[]>`select count(*)::int as pagos from pagos where lead_id = ${leadId}`;
+    if (pagos > 0) return { ok: false, motivo: "TIENE_PAGOS" };
+    const [{ avanzadas }] = await tx<{ avanzadas: number }[]>`select count(*)::int as avanzadas from citas where lead_id = ${leadId} and estado not in ('requerida', 'en_espera')`;
+    if (avanzadas > 0) return { ok: false, motivo: "CITAS_EN_CURSO" };
+    const r = entrada.respuestas;
+    await tx`
+      update leads set
+        sueno = ${r.sueno}, ubicacion = ${r.ubicacion}, situacion = ${r.situacion ? cifrar(r.situacion) : null},
+        tiempo = ${r.tiempo}, pasaporte = ${r.pasaporte},
+        ruta_id = ${ruta.id}, producto_id = ${ruta.producto}, nivel = ${ruta.nivel},
+        nivel_cita = ${nivelCita}, con_guardian = ${conGuardian}, total_estimado_centimos = ${importe.total}
+      where id = ${leadId}
+    `;
+    await tx`delete from citas where lead_id = ${leadId}`;
+    if (nivelCita) await crearCitas(tx, leadId, citasCobrables, nivelCita, new Date());
+    return { ok: true, rutaId: ruta.id, totalCentimos: importe.total };
+  });
+}
 
 export async function listarLeads(): Promise<FilaLead[]> {
   const filas = await db()<
@@ -118,10 +162,12 @@ export async function listarLeads(): Promise<FilaLead[]> {
       id: string; referencia: string; nombre_cifrado: string; telefono_cifrado: string; locale: string;
       ruta_id: string; producto_id: string; nivel: string; nivel_cita: string | null;
       total_estimado_centimos: number; estado: string; creado_en: Date; demo: boolean; tiene_email: boolean; pagado: number;
+      sueno: string; ubicacion: string; situacion: string | null; tiempo: string | null; pasaporte: string; con_guardian: boolean;
     }[]
   >`
     select l.id, l.referencia, l.nombre_cifrado, l.telefono_cifrado, l.locale, l.ruta_id, l.producto_id, l.nivel,
            l.nivel_cita, l.total_estimado_centimos, l.estado, l.creado_en, l.demo,
+           l.sueno, l.ubicacion, l.situacion, l.tiempo, l.pasaporte, l.con_guardian,
            (l.email_hash is not null) as tiene_email,
            coalesce((select sum(p.importe_centimos) from pagos p where p.lead_id = l.id and p.estado = 'pagado'), 0)::int as pagado
     from leads l order by l.creado_en desc limit 200
@@ -144,6 +190,14 @@ export async function listarLeads(): Promise<FilaLead[]> {
     demo: fila.demo,
     tieneEmail: fila.tiene_email,
     pagadoCentimos: fila.pagado,
+    respuestas: {
+      sueno: fila.sueno,
+      ubicacion: fila.ubicacion,
+      situacion: fila.situacion ? descifrar(fila.situacion) : null,
+      tiempo: fila.tiempo,
+      pasaporte: fila.pasaporte,
+    },
+    conGuardian: fila.con_guardian,
   }));
 }
 

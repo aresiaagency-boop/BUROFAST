@@ -422,5 +422,7 @@ export const pt: Diccionario = {
     pendienteLento: "A Stripe ainda não confirmou o pagamento. Se usaste um método mais lento, vais vê-lo no teu processo assim que chegar.",
     volverExpediente: "Ir para o meu processo",
     seguro: "Pagamento seguro com a Stripe · a BUROFAST nunca vê o teu cartão",
+    empezarYa: "Quero que comecem já o meu processo. Sei que, se desistir nos 14 dias seguintes, pago só o que já estiver feito.",
+    continuarPago: "Continuar para o pagamento seguro",
   },
 };

@@ -422,5 +422,7 @@ export const en: Diccionario = {
     pendienteLento: "Stripe hasn't confirmed the payment yet. If you used a slower method, you'll see it in your file as soon as it arrives.",
     volverExpediente: "Go to my file",
     seguro: "Secure payment with Stripe · BUROFAST never sees your card",
+    empezarYa: "I want you to start on my file now. I understand that if I withdraw within the next 14 days, I will only pay for the work already done.",
+    continuarPago: "Continue to secure payment",
   },
 };

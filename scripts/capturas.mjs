@@ -142,6 +142,14 @@ if (process.env.CAPTURAS_EMAIL && process.env.CAPTURAS_PASSWORD) {
     await mando.waitForTimeout(500);
     await foto(mando, nombre, true);
   }
+  // El formulario del abogado para corregir la ruta, si hay alguna solicitud en revisión.
+  await mando.goto(`${BASE}/mando/leads`);
+  const corregir = mando.getByRole("button", { name: "Corregir ruta" }).first();
+  if (await corregir.count()) {
+    await corregir.click();
+    await mando.waitForTimeout(300);
+    await foto(mando, "26-mando-corregir-ruta", true);
+  }
 }
 
 await navegador.close();

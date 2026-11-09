@@ -72,6 +72,8 @@ export async function abrirCheckout(lead: LeadPagable, tipo: TipoPago, locale: L
   await registrarPendiente({
     leadId: lead.id, tipo, importe, modo, sessionId: sesion.id, url: sesion.url, expiraEn: new Date(sesion.expires_at * 1000),
     condicionesVersion: LEGAL_ACTUALIZADO,
+    // Solo se llega aquí si el cliente marcó «empezad ya» (lo exige la ruta).
+    empezarYaEn: new Date(),
   });
   return { ok: true, url: sesion.url, reutilizada: false };
 }

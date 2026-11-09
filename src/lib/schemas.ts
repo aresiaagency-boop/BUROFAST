@@ -6,6 +6,11 @@ import { LOCALES } from "@/lib/i18n/locales";
 const citaIds = Object.keys(CITAS) as [keyof typeof CITAS, ...(keyof typeof CITAS)[]];
 const nivelesCita = Object.keys(NIVELES_CITA) as [keyof typeof NIVELES_CITA, ...(keyof typeof NIVELES_CITA)[]];
 
+// Fuera de España no hay situación ni tiempo; en España, ambos son obligatorios.
+export function respuestasCoherentes(r: { ubicacion: string; situacion: string | null; tiempo: string | null }) {
+  return (r.ubicacion === "fuera") === (r.situacion === null && r.tiempo === null);
+}
+
 // Teléfono en formato internacional: prefijo + 8 a 15 dígitos (E.164).
 export const telefonoSchema = z
   .string()
@@ -28,11 +33,7 @@ export const solicitudLeadSchema = z.object({
   // Campo trampa para bots: un humano nunca lo ve. Si llega relleno, la API
   // responde como si todo fuera bien y no guarda nada (ver /api/v1/leads).
   web: z.string().max(200).optional(),
-}).refine(
-  // Fuera de España no hay situación ni tiempo; en España, ambos son obligatorios.
-  (s) => (s.respuestas.ubicacion === "fuera") === (s.respuestas.situacion === null && s.respuestas.tiempo === null),
-  { path: ["respuestas"], message: "RESPUESTAS_INCOHERENTES" },
-);
+}).refine((s) => respuestasCoherentes(s.respuestas), { path: ["respuestas"], message: "RESPUESTAS_INCOHERENTES" });
 
 export type SolicitudLead = z.infer<typeof solicitudLeadSchema>;
 

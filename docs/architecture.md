@@ -33,7 +33,8 @@ Next.js 16 · App Router · proxy.ts (sesión + idioma)
 nuevo → (contactado) → revision_abogado ─(el abogado aprueba)→ aprobado ─(paga el anticipo, webhook)→ convertido
 ```
 
-- El botón de pago y el enlace firmado (7 días) solo existen con el expediente `aprobado`.
+- El botón de pago y el enlace firmado (7 días) solo existen con el expediente `aprobado`, y solo un abogado aprueba.
+- Antes de pagar, el cliente marca «empezad ya» (art. 108.2 TRLGDCU); sin esa marca no se abre Checkout.
 - El importe es el 50 % del presupuesto guardado en el servidor; el navegador no manda cifras.
 - Cada evento de Stripe se registra una sola vez (`stripe_eventos`) en la misma transacción que el cambio de estado.
 
@@ -77,6 +78,9 @@ Plazo de la primera acción: **24 h** en Urgente y **120 h** en Puedo esperar. L
 | `POST /api/v1/pagos/stripe/webhook` | Firma de Stripe | Cambia el estado del pago, una sola vez por evento |
 | `POST /api/v1/mando/leads/:id/estado` | operator | Mueve una solicitud por su ciclo (solo el abogado aprueba) |
 | `POST /api/v1/mando/leads/:id/enlace-pago` | operator | Enlace de pago firmado para un expediente aprobado |
+| `POST /api/v1/mando/leads/:id/ruta` | abogado (`ABOGADOS_EMAILS`) | Corrige respuestas antes de aprobar; ruta, citas y precio los recalcula el servidor |
+| `POST /api/v1/expediente/vincular` | Sesión de cliente | Vincula un expediente a la cuenta con su código de camino |
+| `GET /api/v1/mantenimiento/purgar` | Bearer `CRON_SECRET` (Vercel Cron) | Purga nocturna de lo que la política dice que se borra |
 
 Formato de error: `{ error: { codigo, mensaje, correlationId, detalle? } }`.
 

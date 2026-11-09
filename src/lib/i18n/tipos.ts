@@ -270,5 +270,7 @@ export type Diccionario = {
     pendienteLento: string;
     volverExpediente: string;
     seguro: string;
+    empezarYa: string;
+    continuarPago: string;
   };
 };

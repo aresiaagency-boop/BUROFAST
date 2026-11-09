@@ -59,7 +59,12 @@ export default async function Leads() {
                         <td className="mono">{fechaHora.format(l.creadoEn)}</td>
                         {operador && (
                           <td style={{ minWidth: 220 }}>
-                            <LeadAcciones id={l.id} transiciones={transicionesLead(estado)} puedeEnlace={estado === "aprobado" && stripeConfigurado()} />
+                            <LeadAcciones
+                              id={l.id}
+                              transiciones={transicionesLead(estado)}
+                              puedeEnlace={estado === "aprobado" && stripeConfigurado()}
+                              plan={["nuevo", "contactado", "revision_abogado"].includes(estado) && l.pagadoCentimos === 0 ? { respuestas: l.respuestas, nivelCita: l.nivelCita, conGuardian: l.conGuardian } : null}
+                            />
                           </td>
                         )}
                       </tr>

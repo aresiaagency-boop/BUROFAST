@@ -13,6 +13,7 @@ export function PagarAnticipo({ locale, referencia, importe }: { locale: Locale;
   const t = DICCIONARIOS[locale];
   const [estado, setEstado] = useState<"listo" | "abriendo" | "error">("listo");
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [empezarYa, setEmpezarYa] = useState(false);
 
   async function pagar() {
     setEstado("abriendo");
@@ -22,7 +23,7 @@ export function PagarAnticipo({ locale, referencia, importe }: { locale: Locale;
       const respuesta = await fetch("/api/v1/pagos/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locale, referencia }),
+        body: JSON.stringify({ locale, referencia, empezarYa }),
       });
       const cuerpo = (await respuesta.json().catch(() => null)) as { url?: string; error?: { codigo?: string } } | null;
       if (respuesta.ok && cuerpo?.url) {
@@ -43,8 +44,12 @@ export function PagarAnticipo({ locale, referencia, importe }: { locale: Locale;
   return (
     <div className="pagar">
       <p className="aviso-ia">{t.pago.condiciones}</p>
+      <label className="casilla-pago">
+        <input type="checkbox" checked={empezarYa} onChange={(e) => setEmpezarYa(e.target.checked)} />
+        <span>{t.pago.empezarYa}</span>
+      </label>
       <div className="acciones" style={{ marginTop: 10 }}>
-        <button type="button" className="boton-cristal plasma-oro cristal--vivo" disabled={estado === "abriendo"} onClick={() => void pagar()}>
+        <button type="button" className="boton-cristal plasma-oro cristal--vivo" disabled={estado === "abriendo" || !empezarYa} onClick={() => void pagar()}>
           {estado === "abriendo" ? t.pago.abriendo : t.pago.pagarAnticipo(importe)}
         </button>
         <small className="mono" style={{ color: "var(--texto-tenue)" }}>{t.pago.seguro}</small>
