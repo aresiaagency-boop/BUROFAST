@@ -9,7 +9,8 @@ const MODULOS: { href: string; texto: string; icono: NombreIcono }[] = [
   { href: "/mando", texto: "Mando", icono: "mando" },
   { href: "/mando/citas", texto: "Citas", icono: "citas" },
   { href: "/mando/leads", texto: "Solicitudes", icono: "personas" },
-  { href: "/mando/hestia", texto: "HESTIA y sistemas", icono: "agente" },
+  { href: "/mando/pagos", texto: "Pagos", icono: "documento" },
+  { href: "/mando/hestia", texto: "HESTIA y agentes", icono: "agente" },
 ];
 
 export function Navegacion() {
@@ -30,14 +31,17 @@ export function Navegacion() {
       </Link>
       <nav aria-label="Módulos">
         {MODULOS.map((m) => (
-          <Link key={m.href} href={m.href} aria-current={(m.href === "/mando" ? ruta === m.href : ruta.startsWith(m.href)) ? "page" : undefined}>
+          <Link key={m.href} href={m.href} className="cristal" aria-current={(m.href === "/mando" ? ruta === m.href : ruta.startsWith(m.href)) ? "page" : undefined}>
             <Icono nombre={m.icono} tamano={18} /> {m.texto}
           </Link>
         ))}
       </nav>
-      <button type="button" className="boton-texto" style={{ marginTop: "auto", display: "flex", gap: 8, alignItems: "center" }} onClick={salir}>
-        <Icono nombre="salir" tamano={16} /> Salir
-      </button>
+      <div className="lateral-pie">
+        <Link className="chip-cristal" href="/es">Ver la superapp</Link>
+        <button type="button" className="chip-cristal" onClick={salir}>
+          <Icono nombre="salir" tamano={16} /> Salir
+        </button>
+      </div>
     </aside>
   );
 }

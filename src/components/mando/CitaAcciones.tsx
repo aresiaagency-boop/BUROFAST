@@ -57,11 +57,11 @@ export function CitaAcciones({ citaId, permitidas, puedeEditar }: { citaId: stri
           void cambiar("reservada", { fechaCita: fecha ? new Date(fecha).toISOString() : undefined, lugar: String(datos.get("lugar") ?? "") || undefined });
         }}
       >
-        <input className="boton-mini" type="datetime-local" name="fecha" required aria-label="Fecha y hora de la cita" />
-        <input className="boton-mini" name="lugar" placeholder="Oficina / dirección" aria-label="Lugar de la cita" maxLength={160} />
+        <input className="campo-mini" type="datetime-local" name="fecha" required aria-label="Fecha y hora de la cita" />
+        <input className="campo-mini" name="lugar" placeholder="Oficina / dirección" aria-label="Lugar de la cita" maxLength={160} />
         <span style={{ display: "flex", gap: 6 }}>
-          <button className="boton-mini" type="submit" disabled={ocupado}>Guardar</button>
-          <button className="boton-mini" type="button" onClick={() => setPidiendoFecha(false)}>Volver</button>
+          <button className="chip-cristal plasma-oro" type="submit" disabled={ocupado}>Guardar</button>
+          <button className="chip-cristal" type="button" onClick={() => setPidiendoFecha(false)}>Volver</button>
         </span>
       </form>
     );
@@ -70,7 +70,7 @@ export function CitaAcciones({ citaId, permitidas, puedeEditar }: { citaId: stri
   return (
     <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
       {permitidas.map((estado) => (
-        <button key={estado} type="button" disabled={ocupado} className={`boton-mini${estado === "cancelada" || estado === "sin_cita_reembolso" ? " peligro" : ""}`}
+        <button key={estado} type="button" disabled={ocupado} className={`chip-cristal${estado === "cancelada" || estado === "sin_cita_reembolso" ? " plasma-rojo" : ""}`}
           onClick={() => (estado === "reservada" ? setPidiendoFecha(true) : void cambiar(estado))}>
           {TEXTO[estado]}
         </button>

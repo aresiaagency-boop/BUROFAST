@@ -9,12 +9,13 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (!sesion) redirect("/mando/acceso");
   return (
     <div className="mando">
+      <div className="rejilla-holo" aria-hidden="true" />
       <Navegacion />
       {children}
       <footer className="estado-pie">
         <span>entorno: {process.env.BUROFAST_ENTORNO ?? "sin definir"}</span>
         <span>sesión: {sesion.sub} · {sesion.rol}</span>
-        <span>v0.1.0 · fase 1</span>
+        <span>v0.2.0 · superapp</span>
       </footer>
     </div>
   );

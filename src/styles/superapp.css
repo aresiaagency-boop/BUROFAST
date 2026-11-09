@@ -1,0 +1,253 @@
+/* ------------------------------------------------------------------
+   Armazón de la superapp: barra superior, riel de motores, área de
+   trabajo, consola de HESTIA y barra inferior en móvil.
+------------------------------------------------------------------- */
+.superapp {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr) auto;
+  grid-template-rows: 64px minmax(0, 1fr) 30px;
+  grid-template-areas:
+    "barra barra barra"
+    "riel trabajo consola"
+    "pie pie pie";
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ---------- Barra superior ---------- */
+.barra {
+  grid-area: barra;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  background: linear-gradient(180deg, rgba(4, 12, 23, 0.92), rgba(7, 19, 34, 0.78));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--linea);
+}
+.barra::after {
+  /* Línea de plasma bajo la barra: luz que recorre de un lado a otro. */
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(66, 216, 245, 0.7) 30%, rgba(223, 248, 255, 0.9) 50%, rgba(66, 216, 245, 0.7) 70%, transparent);
+  opacity: 0.55;
+}
+.marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--texto); min-width: 0; }
+.marca-nombre { font-family: var(--fuente-titulo); font-weight: 700; letter-spacing: 0.16em; font-size: 1rem; }
+.marca-lema { display: block; color: var(--texto-tenue); font-size: 0.7rem; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barra-miga { flex: 1; min-width: 0; margin: 0; }
+.barra-miga.hud-etiqueta { flex-wrap: nowrap; overflow: hidden; white-space: nowrap; }
+.barra-acciones { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+.chip-hestia { gap: 8px; color: var(--texto); }
+.chip-hestia .nucleo { width: 22px; height: 22px; }
+
+.selector-idioma { position: relative; }
+.selector-idioma summary { list-style: none; cursor: pointer; }
+.selector-idioma summary::-webkit-details-marker { display: none; }
+.selector-idioma ul {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  min-width: 190px;
+  background: rgba(7, 19, 34, 0.97);
+  border: 1px solid var(--linea-fuerte);
+  box-shadow: var(--sombra);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+.selector-idioma a { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; color: var(--texto-suave); text-decoration: none; font-size: 0.92rem; }
+.selector-idioma a:hover, .selector-idioma a[aria-current="true"] { color: var(--nieve); background: rgba(22, 189, 235, 0.12); }
+.selector-idioma .mono { color: var(--texto-tenue); font-size: 0.72rem; }
+
+/* ---------- Riel de motores (escritorio) ---------- */
+.riel {
+  grid-area: riel;
+  position: sticky;
+  top: 64px;
+  align-self: start;
+  height: calc(100dvh - 94px);
+  overflow-y: auto;
+  padding: 18px 12px;
+  border-inline-end: 1px solid var(--linea);
+  background: linear-gradient(180deg, rgba(4, 12, 23, 0.55), rgba(7, 19, 34, 0.2));
+}
+.riel nav { display: grid; gap: 6px; }
+.riel-enlace {
+  --corte: 8px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  color: var(--texto-suave);
+  text-decoration: none;
+}
+.riel-enlace::before, .riel-enlace::after { opacity: 0; }
+.riel-enlace:hover { color: var(--texto); }
+.riel-enlace:hover::after { opacity: 0.5; }
+.riel-enlace[aria-current="page"] { color: var(--nieve); }
+.riel-enlace[aria-current="page"]::before, .riel-enlace[aria-current="page"]::after { opacity: 1; }
+.riel-enlace .riel-motor { display: block; font-weight: 600; font-size: 0.93rem; }
+.riel-enlace .riel-agente { display: block; font-family: var(--fuente-mono); font-size: 0.64rem; letter-spacing: 0.14em; color: var(--agente, var(--texto-tenue)); }
+.riel-separador { height: 1px; margin: 10px 4px; background: var(--linea); }
+.riel-temis { margin-top: 18px; padding: 12px 10px; font-size: 0.78rem; color: var(--texto-tenue); border-top: 1px dashed var(--linea); }
+
+/* ---------- Área de trabajo ---------- */
+.trabajo-app { grid-area: trabajo; min-width: 0; padding: 26px 32px 48px; }
+.trabajo-app > .contenedor { max-width: 1180px; margin: 0 auto; }
+.contenedor--estrecho { max-width: 780px !important; }
+.pie-app {
+  grid-area: pie;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 0 20px;
+  font-family: var(--fuente-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--texto-tenue);
+  border-top: 1px solid var(--linea);
+  background: rgba(4, 12, 23, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.pie-app span:last-child { margin-inline-start: auto; }
+
+/* Cabecera de cada motor: agente + título + narrativa */
+.cabecera-motor { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 18px; align-items: center; margin-bottom: 22px; }
+.cabecera-motor .hud-etiqueta { margin: 0; grid-column: 2; color: var(--agente, var(--cian)); }
+.cabecera-motor h1 { grid-column: 2; font-family: var(--fuente-titulo); font-size: clamp(1.6rem, 3.4vw, 2.3rem); line-height: 1.08; letter-spacing: -0.02em; margin: 0; }
+.cabecera-motor p { grid-column: 1 / -1; color: var(--texto-suave); margin: 10px 0 0; max-width: 64ch; }
+.cabecera-motor .emblema { grid-row: 1 / span 2; }
+
+/* ---------- Consola de HESTIA ---------- */
+.consola {
+  grid-area: consola;
+  position: sticky;
+  top: 64px;
+  align-self: start;
+  width: 372px;
+  height: calc(100dvh - 94px);
+  display: flex;
+  flex-direction: column;
+  border-inline-start: 1px solid var(--linea);
+  background: linear-gradient(180deg, rgba(4, 12, 23, 0.86), rgba(7, 19, 34, 0.94));
+}
+.consola[hidden] { display: none; }
+.consola-cabecera { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 14px 16px 10px; border-bottom: 1px solid var(--linea); }
+.consola-cabecera h2 { margin: 0; font-family: var(--fuente-titulo); font-size: 1.05rem; letter-spacing: 0.12em; }
+.consola-cabecera p { margin: 0; font-size: 0.74rem; color: var(--texto-tenue); }
+.consola-aviso { margin: 0; padding: 8px 16px; font-size: 0.74rem; color: var(--cian); border-bottom: 1px dashed var(--linea); }
+.consola-mensajes { flex: 1; overflow-y: auto; padding: 14px 16px; display: grid; gap: 12px; align-content: start; overscroll-behavior: contain; }
+.consola-vacio { color: var(--texto-suave); font-size: 0.9rem; }
+.mensaje { display: grid; gap: 4px; max-width: 92%; }
+.mensaje-yo { justify-self: end; }
+.mensaje-yo .mensaje-texto { --cara: rgba(22, 189, 235, 0.16); }
+.mensaje-cabecera { display: flex; align-items: center; gap: 8px; font-family: var(--fuente-mono); font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--agente, var(--cian)); }
+.mensaje-texto { --corte: 8px; padding: 10px 13px; font-size: 0.92rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mensaje-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.consola-pensando { display: flex; align-items: center; gap: 10px; color: var(--texto-tenue); font-size: 0.82rem; }
+.consola-sugerencias { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+.consola-formulario { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--linea); }
+.consola-formulario textarea { min-height: 50px; max-height: 140px; }
+.consola-error { margin: 0 16px 8px; }
+
+.boton-hestia-flotante { display: none; }
+.solo-movil { display: none; }
+
+/* ---------- Barra inferior (móvil) ---------- */
+.pestanas { display: none; }
+
+@media (max-width: 1279px) {
+  .superapp { grid-template-columns: 220px minmax(0, 1fr); grid-template-areas: "barra barra" "riel trabajo" "pie pie"; }
+  .consola {
+    position: fixed;
+    inset-block: 64px 0;
+    inset-inline-end: 0;
+    z-index: 45;
+    height: auto;
+    /* Con «start», una caja fija con top y bottom mide solo su contenido. */
+    align-self: stretch;
+    width: min(100vw, 400px);
+    box-shadow: -30px 0 60px rgba(0, 0, 0, 0.45);
+  }
+  .boton-hestia-flotante {
+    display: inline-flex;
+    position: fixed;
+    inset-inline-end: 18px;
+    bottom: 46px;
+    z-index: 35;
+  }
+}
+
+@media (max-width: 1023px) {
+  .superapp {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 58px minmax(0, 1fr) auto;
+    grid-template-areas: "barra" "trabajo" "pestanas";
+  }
+  .barra { padding: 0 12px; gap: 10px; }
+  .barra-miga, .marca-lema, .pie-app, .riel { display: none; }
+  .trabajo-app { padding: 18px 16px 96px; }
+  .consola { inset-block: 58px 0; width: 100vw; z-index: 50; background: linear-gradient(180deg, #040c17, #071322); }
+  .boton-hestia-flotante { bottom: 84px; min-height: 46px; padding: 8px 14px; }
+  .boton-hestia-flotante .texto-largo { display: none; }
+  .boton-hestia-flotante .solo-movil { display: inline; }
+  .pestanas {
+    grid-area: pestanas;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(4, 12, 23, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--linea-fuerte);
+  }
+  .pestana { display: grid; justify-items: center; gap: 2px; padding: 4px 2px; color: var(--texto-tenue); text-decoration: none; font-size: 0.68rem; min-width: 0; }
+  .pestana span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pestana[aria-current="page"] { color: var(--nieve); }
+  .pestana[aria-current="page"] .emblema { filter: drop-shadow(0 0 6px currentColor); }
+  .cristal::after { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .cristal { --cara: rgba(11, 27, 46, 0.86); }
+}
+
+/* ---------- MNEMÓSINE: documentos ---------- */
+.barra-luz { height: 8px; background: rgba(66, 216, 245, 0.1); overflow: hidden; clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px); }
+.barra-luz span { display: block; height: 100%; background: linear-gradient(90deg, var(--agente-mnemosine), var(--cian)); box-shadow: 0 0 12px rgba(169, 139, 255, 0.7); transition: width 500ms var(--ease-plasma); }
+.documentos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.documento { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 18px; align-items: center; padding: 14px 16px; }
+.documento small { display: block; color: var(--texto-tenue); font-size: 0.8rem; margin-top: 3px; }
+.documento[data-estado="tengo"] { --plasma: var(--verde-texto); --plasma-2: var(--verde); }
+.selector-estado { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 720px) { .documento { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- ARGOS: plazos ---------- */
+.argos { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; }
+.linea-plazos { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.linea-plazos li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 2px 12px; align-items: baseline; padding: 12px 0; border-bottom: 1px dashed var(--linea); }
+.linea-plazos li > * { grid-column: 2; }
+.linea-plazos li:last-child { border-bottom: 0; }
+.linea-plazos li::before { content: ""; width: 10px; height: 10px; transform: rotate(45deg) translateY(2px); border: 1.5px solid var(--agente-argos); box-shadow: 0 0 8px var(--agente-argos); }
+.linea-plazos li.pasado::before { background: var(--agente-argos); }
+.linea-plazos .mono { color: var(--nieve); }
+.linea-plazos small { color: var(--texto-tenue); font-family: var(--fuente-mono); font-size: 0.74rem; }
+@media (max-width: 860px) { .argos { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Expediente y pagos ---------- */
+.expedientes { display: grid; gap: 14px; }
+.expediente-fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 18px; margin: 12px 0; }
+.pago-escena { display: grid; justify-items: center; text-align: center; gap: 12px; padding: 20px 0; }

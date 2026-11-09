@@ -1,0 +1,272 @@
+/* ------------------------------------------------------------------
+   Láminas de cristal de diamante cortadas a láser, con filo de plasma.
+   Anatomía de cada pieza:
+     ::before  = el filo de plasma (anillo de 1 px que recorre el corte)
+     ::after   = la cara de cristal (laminada, con una faceta de luz)
+     contenido = encima, nítido
+   El corte láser son dos chaflanes (arriba-inicio y abajo-fin). En reposo
+   el plasma está quieto; vive al pasar, al enfocar y en las piezas «vivas».
+------------------------------------------------------------------- */
+
+.cristal,
+.boton-cristal,
+.campo-cristal,
+.chip-cristal {
+  --corte: 12px;
+  --filo: 1px;
+  --plasma: var(--cian);
+  --plasma-2: var(--holo);
+  --caliente: var(--nieve);
+  --forma: polygon(var(--corte) 0, 100% 0, 100% calc(100% - var(--corte)), calc(100% - var(--corte)) 100%, 0 100%, 0 var(--corte));
+  --forma-cara: polygon(
+    calc(var(--corte) - 0.6 * var(--filo)) 0, 100% 0,
+    100% calc(100% - var(--corte) + 0.6 * var(--filo)),
+    calc(100% - var(--corte) + 0.6 * var(--filo)) 100%,
+    0 100%, 0 calc(var(--corte) - 0.6 * var(--filo))
+  );
+  position: relative;
+  isolation: isolate;
+}
+
+.cristal::before,
+.boton-cristal::before,
+.campo-cristal::before,
+.chip-cristal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  clip-path: var(--forma);
+  background:
+    conic-gradient(from var(--giro), transparent 0 64%, color-mix(in srgb, var(--plasma) 75%, transparent) 76%, var(--caliente) 81%, color-mix(in srgb, var(--plasma) 70%, transparent) 86%, transparent 94%),
+    conic-gradient(from calc(var(--giro) + 180deg), transparent 0 80%, color-mix(in srgb, var(--plasma-2) 60%, transparent) 90%, transparent 97%),
+    linear-gradient(140deg, color-mix(in srgb, var(--caliente) 55%, transparent), color-mix(in srgb, var(--plasma) 22%, transparent) 34%, color-mix(in srgb, var(--plasma-2) 12%, transparent) 62%, color-mix(in srgb, var(--plasma) 45%, transparent));
+  animation: giro 9s linear infinite;
+  animation-play-state: paused;
+  transition: opacity 240ms var(--ease-plasma);
+}
+
+.cristal::after,
+.boton-cristal::after,
+.campo-cristal::after,
+.chip-cristal::after {
+  content: "";
+  position: absolute;
+  inset: var(--filo);
+  z-index: -1;
+  clip-path: var(--forma-cara);
+  background:
+    linear-gradient(166deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.025) 31%, transparent 31.4%),
+    radial-gradient(110% 80% at 0% 0%, rgba(169, 139, 255, 0.09), transparent 55%),
+    radial-gradient(90% 70% at 100% 100%, rgba(66, 216, 245, 0.08), transparent 60%),
+    var(--cara);
+  box-shadow:
+    inset 0 1px 0 rgba(223, 248, 255, 0.16),
+    inset 0 0 0 1px rgba(155, 240, 255, 0.05),
+    inset 0 0 0 3px rgba(4, 12, 23, 0.32),
+    inset 0 0 0 4px rgba(155, 240, 255, 0.045);
+}
+
+/* Paneles grandes: el cristal deja ver la rejilla de detrás, desenfocada. */
+.cristal::after { backdrop-filter: blur(14px) saturate(140%); -webkit-backdrop-filter: blur(14px) saturate(140%); }
+
+/* El plasma vive al pasar, al enfocar y en las piezas marcadas como vivas. */
+.cristal--vivo::before,
+.boton-cristal:hover::before,
+.boton-cristal:focus-visible::before,
+.chip-cristal:hover::before,
+.campo-cristal:focus-within::before,
+a.cristal:hover::before,
+button.cristal:hover::before { animation-play-state: running; }
+
+/* Variantes de plasma */
+.plasma-oro { --plasma: var(--oro); --plasma-2: #b98f3c; --caliente: #fff3d6; --base-carga: rgba(74, 52, 12, 0.8); --cara-activa: rgba(76, 56, 16, 0.94); }
+.plasma-rojo { --plasma: #e07272; --plasma-2: var(--rojo); --caliente: #ffe1e1; --base-carga: rgba(70, 16, 22, 0.8); --cara-activa: rgba(84, 22, 28, 0.94); }
+.plasma-agente { --plasma: var(--agente, var(--cian)); --plasma-2: color-mix(in srgb, var(--agente, var(--cian)) 70%, #071322); }
+
+/* ---------- Panel (lámina) ---------- */
+.cristal { padding: 18px 20px; color: var(--texto); }
+.cristal--grande { --corte: 22px; padding: 24px 26px; }
+.cristal h2, .cristal h3 { font-family: var(--fuente-titulo); margin: 0 0 8px; font-size: 1.08rem; letter-spacing: -0.005em; }
+.cristal p { margin: 0; color: var(--texto-suave); }
+
+/* ---------- Botón ---------- */
+.boton-cristal {
+  --corte: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 12px 24px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--nieve);
+  font-weight: 650;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35), 0 0 14px color-mix(in srgb, var(--plasma) 55%, transparent);
+  transition: filter 240ms var(--ease-plasma), transform 160ms var(--ease-plasma);
+}
+/* Cara cargada: la lámina principal brilla por dentro. */
+.boton-cristal::after {
+  background:
+    linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.24) 50%, transparent 62%),
+    linear-gradient(166deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 34%, transparent 34.4%),
+    radial-gradient(120% 140% at 50% 0%, color-mix(in srgb, var(--caliente) 22%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--plasma) 46%, var(--base-carga, rgba(11, 27, 46, 0.62))), color-mix(in srgb, var(--plasma-2) 24%, var(--base-carga, rgba(7, 19, 34, 0.84))));
+  background-size: 260% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 160% 0, 0 0, 0 0, 0 0;
+  background-repeat: no-repeat;
+  transition: background-position 700ms var(--ease-plasma);
+}
+.boton-cristal:hover,
+.boton-cristal:focus-visible {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--plasma) 55%, transparent)) drop-shadow(0 0 18px color-mix(in srgb, var(--plasma) 22%, transparent));
+}
+/* El corte láser: una línea de luz cruza la lámina al pasar. */
+.boton-cristal:hover::after,
+.boton-cristal:focus-visible::after { background-position: -60% 0, 0 0, 0 0, 0 0; }
+.boton-cristal--fantasma:hover::after,
+.boton-cristal--fantasma:focus-visible::after { background-position: -60% 0, 0 0, 0 0; }
+.boton-cristal:active { transform: translateY(1px) scale(0.995); }
+.boton-cristal:disabled,
+.boton-cristal[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; filter: none; }
+.boton-cristal:disabled::before { animation: none; }
+
+.boton-cristal--fantasma { color: var(--texto); text-shadow: none; }
+.boton-cristal--fantasma::after {
+  background:
+    linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.14) 50%, transparent 62%),
+    linear-gradient(166deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 34%, transparent 34.4%),
+    var(--cara);
+  background-size: 260% 100%, 100% 100%, 100% 100%;
+  background-position: 160% 0, 0 0, 0 0;
+  background-repeat: no-repeat;
+}
+.boton-cristal--mini { --corte: 7px; min-height: 36px; padding: 6px 14px; font-size: 0.86rem; gap: 6px; }
+.boton-cristal--ancho { width: 100%; }
+
+/* ---------- Campo de texto ---------- */
+.campo-cristal { --corte: 9px; display: block; }
+.campo-cristal::after { background: linear-gradient(166deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 30%, transparent 30.4%), rgba(4, 12, 23, 0.72); }
+.campo-cristal input,
+.campo-cristal textarea,
+.campo-cristal select {
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 16px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--texto);
+  font-size: 1rem;
+}
+.campo-cristal textarea { resize: none; line-height: 1.45; }
+.campo-cristal input::placeholder,
+.campo-cristal textarea::placeholder { color: var(--texto-tenue); }
+.campo-cristal:focus-within { filter: drop-shadow(0 0 6px rgba(66, 216, 245, 0.45)) drop-shadow(0 0 16px rgba(66, 216, 245, 0.18)); }
+/* El foco de teclado se ve en el campo entero, no en el input recortado. */
+.campo-cristal:has(:focus-visible) { outline: 2px solid var(--cian); outline-offset: 3px; }
+.campo-cristal input:focus-visible,
+.campo-cristal textarea:focus-visible,
+.campo-cristal select:focus-visible { outline: none; }
+.campo-cristal[data-invalido="true"] { --plasma: #e07272; --plasma-2: var(--rojo); --caliente: #ffd6d6; }
+.campo-cristal input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8) sepia(1) hue-rotate(160deg); cursor: pointer; }
+
+/* ---------- Chip ---------- */
+.chip-cristal {
+  --corte: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 0;
+  background: none;
+  color: var(--texto-suave);
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.chip-cristal:hover { color: var(--texto); }
+.chip-cristal { --cara: rgba(9, 22, 38, 0.9); }
+.chip-cristal[aria-pressed="true"],
+.chip-cristal[aria-current="true"],
+.chip-cristal[aria-current="page"] { color: var(--nieve); --cara: var(--cara-activa, rgba(10, 60, 86, 0.94)); }
+.chip-cristal[aria-pressed="true"]::before { animation-play-state: running; }
+
+/* ---------- HUD: etiquetas, lecturas, marcos ---------- */
+.hud-etiqueta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  margin: 0 0 10px;
+  font-family: var(--fuente-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cian);
+}
+.hud-etiqueta > * + *::before { content: ">>>"; margin-inline-end: 8px; color: var(--texto-tenue); letter-spacing: 0.04em; }
+.hud-etiqueta .oro { color: var(--oro); }
+[dir="rtl"] .hud-etiqueta > * + *::before { content: "<<<"; }
+
+.lecturas { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+.lectura { display: grid; gap: 2px; min-width: 0; }
+.lectura-nombre { font-family: var(--fuente-mono); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--texto-tenue); }
+.lectura-valor { font-family: var(--fuente-mono); font-size: 0.92rem; color: var(--nieve); font-variant-numeric: tabular-nums; }
+
+/* Marco HUD: cuatro escuadras de luz en las esquinas. */
+.marco-hud { position: relative; }
+.marco-hud::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  pointer-events: none;
+  --l: 26px;
+  --g: 1.5px;
+  --c: rgba(66, 216, 245, 0.55);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--l) var(--g) no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / var(--g) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--l) var(--g) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--g) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--l) var(--g) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--g) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--l) var(--g) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--g) var(--l) no-repeat;
+}
+
+/* Estado: texto + punto + color. El color nunca va solo. */
+.estado-holo {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 10px;
+  font-family: var(--fuente-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+.estado-holo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+.estado-holo.ok { color: var(--verde-texto); }
+.estado-holo.aviso { color: var(--ambar-texto); }
+.estado-holo.critico { color: var(--rojo-texto); }
+.estado-holo.info { color: var(--cian); }
+.estado-holo.oro { color: var(--oro); }
+.estado-holo.tenue { color: var(--texto-tenue); }
+
+.alerta-holo { padding: 12px 14px; font-size: 0.92rem; border-inline-start: 2px solid; background: rgba(7, 19, 34, 0.6); }
+.alerta-holo.error { border-color: var(--rojo-texto); background: rgba(183, 70, 70, 0.12); }
+.alerta-holo.info { border-color: var(--cian); background: rgba(22, 189, 235, 0.08); }
+.alerta-holo.oro { border-color: var(--oro); background: rgba(214, 181, 110, 0.08); }

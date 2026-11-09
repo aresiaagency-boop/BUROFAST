@@ -16,10 +16,20 @@ function secreto() {
   return valor;
 }
 
+function secretoValido() {
+  return Boolean(process.env.AUTH_SECRET && process.env.AUTH_SECRET.trim().length >= 32);
+}
+
+// Acceso con contraseña (respaldo): solo si hay hash del owner.
+export function passwordConfigurada() {
+  return secretoValido() && Boolean(process.env.OWNER_EMAIL?.trim() && process.env.OWNER_PASSWORD_HASH?.trim());
+}
+
+// El centro de mando tiene acceso si hay owner y al menos una vía de entrada:
+// Google (la principal) o la contraseña de respaldo.
 export function autenticacionConfigurada() {
-  return Boolean(
-    process.env.AUTH_SECRET && process.env.AUTH_SECRET.trim().length >= 32 && process.env.OWNER_EMAIL && process.env.OWNER_PASSWORD_HASH,
-  );
+  const google = Boolean(process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim());
+  return secretoValido() && Boolean(process.env.OWNER_EMAIL?.trim()) && (google || Boolean(process.env.OWNER_PASSWORD_HASH?.trim()));
 }
 
 function firmar(cuerpo: string) {

@@ -43,8 +43,9 @@ export function Sendero({ hito, capitulo, meta, rtl }: { hito: number; capitulo:
           <circle r="6.5" fill="#D6B56E" stroke="#F1DCAA" strokeWidth="2" />
         </g>
       </svg>
+      {/* El capítulo ya lo dice la escena; aquí solo la meta, bajo el hogar. */}
       <div className="sendero-leyenda">
-        <span>{capitulo}</span>
+        <span aria-hidden="true" />
         <span>{meta}</span>
       </div>
     </div>

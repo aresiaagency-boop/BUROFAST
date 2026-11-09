@@ -3,15 +3,15 @@ import { correlationId, error, ipCliente, json, log, origenPermitido } from "@/l
 import { auditar, crearLead, nuevaReferencia } from "@/lib/repositorio";
 import { solicitudLeadSchema } from "@/lib/schemas";
 import { cifradoConfigurado } from "@/lib/security/cifrado";
-import { checkEphemeralRateLimit } from "@/lib/security/rate-limit";
+import { limitar } from "@/lib/security/limites";
 
 export async function POST(request: Request) {
   const correlation = correlationId(request);
   if (!origenPermitido(request)) {
     return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
   }
-  const limite = checkEphemeralRateLimit(`leads:${ipCliente(request)}`, { limit: 5, windowMs: 10 * 60_000 });
-  if (!limite.allowed) {
+  const limite = await limitar(`leads:${ipCliente(request)}`, { limite: 5, ventanaMs: 10 * 60_000 });
+  if (!limite.permitido) {
     return error("DEMASIADAS_PETICIONES", "Demasiados envíos seguidos desde esta conexión.", { status: 429, correlation });
   }
 

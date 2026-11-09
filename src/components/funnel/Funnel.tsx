@@ -11,8 +11,10 @@ import type { Locale } from "@/lib/i18n/locales";
 import { direccion, ETIQUETA_INTL } from "@/lib/i18n/locales";
 import type { PasoId } from "@/lib/i18n/tipos";
 import { Icono, type NombreIcono } from "@/components/Iconos";
-import { SimboloBurofast } from "@/components/Marca";
 import { Sendero } from "@/components/funnel/Sendero";
+import { EmblemaAgente } from "@/components/holo/EmblemaAgente";
+import { borrar, CLAVE_CAMINO, escribir } from "@/lib/almacen";
+import { emitirHestia } from "@/lib/hestia/vivo";
 
 type Estado = {
   historial: PasoId[];
@@ -37,7 +39,7 @@ type Accion =
   | { tipo: "restaurar"; estado: Estado };
 
 const INICIAL: Estado = { historial: ["sueno"], respuestas: {}, nivelCita: undefined, conGuardian: false, referencia: null, restaurado: false };
-const CLAVE_ALMACEN = "burofast.camino.v1";
+const CLAVE_ALMACEN = CLAVE_CAMINO;
 
 function reducir(estado: Estado, accion: Accion): Estado {
   switch (accion.tipo) {
@@ -112,11 +114,8 @@ export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string 
 
   useEffect(() => {
     if (!estado.restaurado) return;
-    try {
-      sessionStorage.setItem(CLAVE_ALMACEN, JSON.stringify(estado));
-    } catch {
-      // Sin almacenamiento el camino sigue funcionando, solo no sobrevive a recargas.
-    }
+    // El resto de motores (Citas, Documentos, el Núcleo) leen de aquí.
+    escribir(CLAVE_ALMACEN, estado);
   }, [estado]);
 
   useEffect(() => {
@@ -129,22 +128,14 @@ export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string 
   const indicePaso = Math.max(0, previsto.indexOf(paso));
   const textos = paso === "tiempo" && preguntaResidenciaLegal(estado.respuestas.situacion) ? t.tiempoLegal : t.pasos[paso];
 
-  const responder = (campo: keyof Respuestas, valor: string | null, siguiente: PasoId) =>
+  const responder = (campo: keyof Respuestas, valor: string | null, siguiente: PasoId) => {
     despachar({ tipo: "responder", campo, valor, siguiente });
+    // La aplicación está viva: HESTIA reacciona a cada respuesta.
+    emitirHestia(siguiente === "camino" ? "exito" : "escuchando");
+  };
 
   return (
     <div className="funnel" lang={locale} dir={direccion(locale)}>
-      <header className="cabecera">
-        <Link className="marca" href="/">
-          <SimboloBurofast />
-          <span>
-            <span className="marca-nombre">BUROFAST</span>
-            <span className="marca-lema">{t.marca.lema}</span>
-          </span>
-        </Link>
-        <Link className="boton-texto" href="/">{t.comun.cambiarIdioma}</Link>
-      </header>
-
       <Sendero hito={HITO[paso]} capitulo={textos.capitulo} meta={t.comun.meta} rtl={rtl} />
 
       <main className="escena entrar" key={paso} aria-live="polite">
@@ -157,10 +148,10 @@ export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string 
 
         {paso === "sueno" && (
           <>
-            <div className="hestia">
-              <SimboloBurofast tamano={30} />
+            <div className="hestia-presenta cristal">
+              <EmblemaAgente agente="ARIADNA" tamano={40} />
               <p>
-                <strong>HESTIA · </strong>{t.marca.agentePresenta}
+                <strong>{t.agentes.ARIADNA.nombre} · </strong>{t.agentes.ARIADNA.frase}{" "}{t.marca.agentePresenta}
                 <span className="aviso-ia">{t.comun.avisoIa}</span>
               </p>
             </div>
@@ -229,18 +220,18 @@ export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string 
 
         {paso === "listo" && estado.referencia && (
           <PasoListo locale={locale} referencia={estado.referencia} whatsapp={whatsapp} onReiniciar={() => {
-            try { sessionStorage.removeItem(CLAVE_ALMACEN); } catch { /* sin almacenamiento */ }
+            borrar(CLAVE_ALMACEN);
             despachar({ tipo: "reiniciar" });
           }} />
         )}
 
         {/* Un camino sin respuestas suficientes (p. ej. tras borrar datos) vuelve al principio. */}
         {["camino", "citas", "plan", "contacto"].includes(paso) && !ruta && estado.restaurado && (
-          <div className="acciones"><button className="boton" type="button" onClick={() => despachar({ tipo: "reiniciar" })}>{t.listo.reiniciar}</button></div>
+          <div className="acciones"><button className="boton-cristal" type="button" onClick={() => despachar({ tipo: "reiniciar" })}>{t.listo.reiniciar}</button></div>
         )}
       </main>
 
-      <footer className="pie">
+      <footer className="pie-camino">
         {paso !== "listo" && estado.historial.length > 1 ? (
           <button className="boton-texto" type="button" onClick={() => despachar({ tipo: "atras" })}>{rtl ? "→" : "←"} {t.comun.atras}</button>
         ) : <span />}
@@ -252,7 +243,7 @@ export function Funnel({ locale, whatsapp }: { locale: Locale; whatsapp: string 
 
 function BotonOpcion({ icono, titulo, detalle, marcado, onElegir }: { icono: NombreIcono; titulo: string; detalle?: string; marcado: boolean; onElegir: () => void }) {
   return (
-    <button type="button" className="opcion" aria-pressed={marcado} onClick={onElegir}>
+    <button type="button" className="opcion cristal" aria-pressed={marcado} onClick={onElegir}>
       <span className="opcion-icono"><Icono nombre={icono} /></span>
       <span>
         <span className="opcion-titulo">{titulo}</span>
@@ -278,31 +269,31 @@ function PasoCamino({ locale, ruta, onSeguir }: { locale: Locale; ruta: Ruta; on
           </li>
         ))}
       </ol>
-      <section className="tarjeta">
+      <section className="cristal cristal--grande bloque">
         <p className="capitulo">{t.camino.tuRuta}</p>
         <h2>{t.rutas[ruta.id].nombre}</h2>
         <p>{t.rutas[ruta.id].resumen}</p>
       </section>
-      <section className="tarjeta">
+      <section className="cristal bloque">
         <h3>{t.camino.quienFirma}</h3>
         <p>{t.niveles[ruta.nivel]}</p>
       </section>
       {ruta.documentos.length > 0 && (
-        <section className="tarjeta">
+        <section className="cristal bloque">
           <h3>{t.camino.documentos}</h3>
           <ul className="lista">{ruta.documentos.map((doc) => <li key={doc}>{t.documentos[doc]}</li>)}</ul>
         </section>
       )}
-      <section className="tarjeta">
+      <section className="cristal bloque plasma-oro">
         <ul className="avisos">{ruta.avisos.map((aviso) => <li key={aviso}>{t.avisos[aviso]}</li>)}</ul>
       </section>
       {ruta.siguiente && (
-        <section className="tarjeta">
+        <section className="cristal bloque">
           <h3>{t.camino.siguiente}</h3>
           <p>{t.rutas[ruta.siguiente].nombre}</p>
         </section>
       )}
-      <div className="acciones"><button className="boton" type="button" onClick={onSeguir}>{t.comun.continuar}</button></div>
+      <div className="acciones"><button className="boton-cristal" type="button" onClick={onSeguir}>{t.comun.continuar}</button></div>
     </>
   );
 }
@@ -313,7 +304,7 @@ function PasoCitas({ locale, ruta, elegido, onElegir, onSeguir }: { locale: Loca
   const cobrables = ruta.citas.filter((c) => CITAS[c].gestionable);
   return (
     <>
-      <section className="tarjeta">
+      <section className="cristal bloque">
         <h3>{t.nivelesCita.citasDeTuRuta}</h3>
         <ul className="citas-ruta">
           {ruta.citas.map((cita) => (
@@ -330,7 +321,7 @@ function PasoCitas({ locale, ruta, elegido, onElegir, onSeguir }: { locale: Loca
       </section>
       <div className="niveles" role="group" aria-label={t.pasos.citas.titulo}>
         {(["puede_esperar", "urgente"] as const).map((nivel) => (
-          <button key={nivel} type="button" className={`tarjeta nivel ${nivel === "urgente" ? "urgente" : ""}`} aria-pressed={elegido === nivel} onClick={() => onElegir(nivel)}>
+          <button key={nivel} type="button" className={`cristal nivel ${nivel === "urgente" ? "urgente" : ""}`} aria-pressed={elegido === nivel} onClick={() => onElegir(nivel)}>
             <span className={`etiqueta ${nivel === "urgente" ? "urgente" : "espera"}`}>{t.nivelesCita[nivel].nombre}</span>
             <p className="nivel-precio">
               {formatearEuros(NIVELES_CITA[nivel].precioCentimos, intl)} <small>{t.nivelesCita.porCita}</small>
@@ -341,17 +332,17 @@ function PasoCitas({ locale, ruta, elegido, onElegir, onSeguir }: { locale: Loca
           </button>
         ))}
       </div>
-      <button type="button" className="opcion" style={{ marginTop: 12 }} aria-pressed={elegido === null} onClick={() => onElegir(null)}>
+      <button type="button" className="opcion cristal" style={{ marginTop: 12 }} aria-pressed={elegido === null} onClick={() => onElegir(null)}>
         <span className="opcion-icono"><Icono nombre="calendario" /></span>
         <span className="opcion-titulo">{t.nivelesCita.sinGestion}</span>
       </button>
-      <section className="tarjeta" style={{ marginTop: 14 }}>
+      <section className="cristal bloque" style={{ marginTop: 14 }}>
         <h3>{t.nivelesCita.reglasTitulo}</h3>
         <ul className="avisos">{t.nivelesCita.reglas.map((regla) => <li key={regla}>{regla}</li>)}</ul>
         <p style={{ marginTop: 10, color: "var(--oro-claro)" }}>{t.nivelesCita.garantia}</p>
       </section>
       <div className="acciones">
-        <button className="boton" type="button" disabled={elegido === undefined} onClick={onSeguir}>{t.comun.continuar}</button>
+        <button className="boton-cristal" type="button" disabled={elegido === undefined} onClick={onSeguir}>{t.comun.continuar}</button>
       </div>
     </>
   );
@@ -365,7 +356,7 @@ function PasoPlan({ locale, ruta, nivelCita, conGuardian, onGuardian, onSeguir }
   const importe = presupuesto({ producto: ruta.producto, citas: ruta.citas, nivelCita, conGuardian: ofrecerGuardian && conGuardian });
   return (
     <>
-      <section className="tarjeta">
+      <section className="cristal cristal--grande bloque">
         <table className="resumen-plan">
           <tbody>
             <tr><td>{t.productos[ruta.producto]}</td><td>{gratis ? t.plan.gratis : formatearEuros(importe.honorarios, intl)}</td></tr>
@@ -385,7 +376,7 @@ function PasoPlan({ locale, ruta, nivelCita, conGuardian, onGuardian, onSeguir }
         {!gratis && <p style={{ marginTop: 10, fontSize: "0.85rem" }}>{t.plan.tasas}</p>}
       </section>
       {ofrecerGuardian && (
-        <label className="tarjeta interruptor">
+        <label className="cristal bloque interruptor plasma-oro">
           <input type="checkbox" checked={conGuardian} onChange={(e) => onGuardian(e.target.checked)} />
           <span>
             <strong>{t.plan.guardian} · {formatearEuros(4_900, intl)}</strong>
@@ -394,7 +385,7 @@ function PasoPlan({ locale, ruta, nivelCita, conGuardian, onGuardian, onSeguir }
           </span>
         </label>
       )}
-      <div className="acciones"><button className="boton" type="button" onClick={onSeguir}>{t.comun.continuar}</button></div>
+      <div className="acciones"><button className="boton-cristal" type="button" onClick={onSeguir}>{t.comun.continuar}</button></div>
     </>
   );
 }
@@ -431,9 +422,11 @@ function PasoContacto({ locale, respuestas, nivelCita, conGuardian, whatsapp, on
       });
       const cuerpo = (await respuesta.json().catch(() => null)) as { referencia?: string; error?: { codigo: string; detalle?: { campos?: string[] } } } | null;
       if (respuesta.ok && cuerpo?.referencia) {
+        emitirHestia("exito");
         onTerminado(cuerpo.referencia);
         return;
       }
+      emitirHestia("alerta");
       if (respuesta.status === 400) {
         setCamposMal(cuerpo?.error?.detalle?.campos ?? []);
         setFallo(t.contacto.errorValidacion);
@@ -454,19 +447,26 @@ function PasoContacto({ locale, respuestas, nivelCita, conGuardian, whatsapp, on
 
   const mal = (campo: string) => camposMal.includes(campo);
   return (
-    <form className="formulario tarjeta" onSubmit={enviar} noValidate>
+    <form className="formulario cristal cristal--grande" onSubmit={enviar} noValidate>
       <div className="campo">
         <label htmlFor="nombre">{t.contacto.nombre}</label>
-        <input id="nombre" name="nombre" autoComplete="name" required minLength={2} maxLength={80} aria-invalid={mal("nombre")} />
+        <span className="campo-cristal" data-invalido={mal("nombre")}>
+          <input id="nombre" name="nombre" autoComplete="name" required minLength={2} maxLength={80} aria-invalid={mal("nombre")} />
+        </span>
       </div>
       <div className="campo">
         <label htmlFor="telefono">{t.contacto.telefono}</label>
-        <input id="telefono" name="telefono" type="tel" inputMode="tel" autoComplete="tel" required dir="ltr" placeholder="+34 600 000 000" aria-invalid={mal("telefono")} aria-describedby="telefono-ayuda" />
+        <span className="campo-cristal" data-invalido={mal("telefono")}>
+          <input id="telefono" name="telefono" type="tel" inputMode="tel" autoComplete="tel" required dir="ltr" placeholder="+34 600 000 000" aria-invalid={mal("telefono")} aria-describedby="telefono-ayuda" />
+        </span>
         <small id="telefono-ayuda">{t.contacto.telefonoAyuda}</small>
       </div>
       <div className="campo">
         <label htmlFor="email">{t.contacto.email} <span style={{ color: "var(--texto-tenue)", fontWeight: 400 }}>({t.contacto.opcional})</span></label>
-        <input id="email" name="email" type="email" autoComplete="email" dir="ltr" aria-invalid={mal("email")} />
+        <span className="campo-cristal" data-invalido={mal("email")}>
+          <input id="email" name="email" type="email" autoComplete="email" dir="ltr" aria-invalid={mal("email")} aria-describedby="email-ayuda" />
+        </span>
+        <small id="email-ayuda">{t.contacto.emailAyuda}</small>
       </div>
       <input className="trampa" name="web" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       <label className="interruptor">
@@ -478,11 +478,11 @@ function PasoContacto({ locale, respuestas, nivelCita, conGuardian, whatsapp, on
         <span>{t.contacto.marketing}</span>
       </label>
       <p className="aviso-ia">{t.comun.avisoIa} {t.comun.privacidadCorta}</p>
-      {fallo && <div className="alerta error" role="alert">{fallo}</div>}
+      {fallo && <div className="alerta-holo error" role="alert">{fallo}</div>}
       {sinServicio && whatsapp && (
-        <a className="boton secundario" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">{t.listo.whatsapp}</a>
+        <a className="boton-cristal boton-cristal--fantasma" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">{t.listo.whatsapp}</a>
       )}
-      <button className="boton oro" type="submit" disabled={enviando}>{enviando ? t.contacto.enviando : t.contacto.enviar}</button>
+      <button className="boton-cristal plasma-oro" type="submit" disabled={enviando}>{enviando ? t.contacto.enviando : t.contacto.enviar}</button>
     </form>
   );
 }
@@ -491,7 +491,7 @@ function PasoListo({ locale, referencia, whatsapp, onReiniciar }: { locale: Loca
   const t = DICCIONARIOS[locale];
   const mensaje = encodeURIComponent(`HESTIA · ${t.listo.referencia}: ${referencia}`);
   return (
-    <section className="tarjeta celebracion">
+    <section className="cristal cristal--grande celebracion cristal--vivo plasma-oro">
       <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true" style={{ margin: "0 auto 8px", display: "block" }}>
         <circle cx="48" cy="48" r="44" fill="rgba(214,181,110,0.12)" className="hogar-brillo" />
         <path d="M24 50 48 28l24 22v24H24z" fill="#10253B" stroke="#D6B56E" strokeWidth="3" strokeLinejoin="round" />
@@ -499,14 +499,16 @@ function PasoListo({ locale, referencia, whatsapp, onReiniciar }: { locale: Loca
       </svg>
       <p className="capitulo">{t.listo.referencia}</p>
       <p className="codigo" dir="ltr">{referencia}</p>
-      <p style={{ margin: "12px 0" }}>{t.listo.siguientePaso}</p>
+      <p style={{ margin: "12px 0 4px" }}>{t.listo.siguientePaso}</p>
+      <p style={{ margin: "0 0 12px" }}>{t.listo.despuesPago}</p>
       <div className="acciones" style={{ justifyContent: "center" }}>
+        <Link className="boton-cristal plasma-oro" href={`/${locale}/expediente`}>{t.listo.verExpediente}</Link>
         {whatsapp ? (
-          <a className="boton oro" href={`https://wa.me/${whatsapp}?text=${mensaje}`} target="_blank" rel="noopener noreferrer">{t.listo.whatsapp}</a>
+          <a className="boton-cristal" href={`https://wa.me/${whatsapp}?text=${mensaje}`} target="_blank" rel="noopener noreferrer">{t.listo.whatsapp}</a>
         ) : (
-          <p className="alerta info">{t.listo.whatsappNoConfigurado}</p>
+          <p className="alerta-holo info">{t.listo.whatsappNoConfigurado}</p>
         )}
-        <button className="boton secundario" type="button" onClick={onReiniciar}>{t.listo.reiniciar}</button>
+        <button className="boton-cristal boton-cristal--fantasma" type="button" onClick={onReiniciar}>{t.listo.reiniciar}</button>
       </div>
     </section>
   );

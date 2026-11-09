@@ -38,14 +38,14 @@ export default async function Mando() {
             </div>
           )}
           {resumen && (
-            <section className="panel">
-              <h2>Rutas más pedidas <Link className="chip" href="/mando/leads">Ver solicitudes</Link></h2>
+            <section className="panel cristal">
+              <h2>Rutas más pedidas <Link className="chip-cristal" href="/mando/leads">Ver solicitudes</Link></h2>
               {resumen.rutas.length === 0 ? (
                 <Vacio titulo="Aún no hay solicitudes" texto="Cuando alguien complete el funnel aparecerá aquí su ruta." />
               ) : (
                 <div className="barras">
                   {resumen.rutas.map((r) => (
-                    <div className="barra" key={r.rutaId}>
+                    <div className="barra-fila" key={r.rutaId}>
                       <span>{DICCIONARIOS.es.rutas[r.rutaId as RutaId]?.nombre ?? r.rutaId}</span>
                       <span className="barra-fondo"><span className="barra-relleno" style={{ width: `${(r.total / maxRuta) * 100}%`, display: "block" }} /></span>
                       <span className="mono">{r.total}</span>
@@ -55,7 +55,7 @@ export default async function Mando() {
               )}
             </section>
           )}
-          <section className="panel">
+          <section className="panel cristal">
             <h2>Sistemas</h2>
             <div className="tabla-contenedor">
               <table className="tabla">
@@ -76,7 +76,7 @@ export default async function Mando() {
           </section>
         </div>
         <aside className="columna">
-          <section className="panel">
+          <section className="panel cristal">
             <h2>Alertas</h2>
             <ul className="avisos">
               {resumen && resumen.citas.vencidas > 0 && <li>{resumen.citas.vencidas === 1 ? "1 cita ha superado" : `${resumen.citas.vencidas} citas han superado`} su plazo de primera acción. <Link href="/mando/citas">Abrir citas</Link></li>}
@@ -84,7 +84,7 @@ export default async function Mando() {
               {resumen && resumen.citas.vencidas === 0 && piezas.every((p) => p.estado === "operativo") && <li>Sin alertas abiertas.</li>}
             </ul>
           </section>
-          <section className="panel">
+          <section className="panel cristal">
             <h2>Actividad</h2>
             {auditorias.length === 0 ? (
               <Vacio titulo="Sin actividad registrada" texto={dbOk ? "La auditoría está vacía." : "Sin base de datos no hay registro de auditoría."} />

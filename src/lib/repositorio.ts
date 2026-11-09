@@ -26,20 +26,23 @@ export async function crearLead(solicitud: SolicitudLead) {
   const referencia = nuevaReferencia();
   const ahora = new Date();
   const telefono = solicitud.telefono;
+  // El correo se normaliza igual que el que devuelve Google: así «Mi
+  // expediente» lo encuentra por su hash.
+  const email = solicitud.email ? solicitud.email.trim().toLowerCase() : null;
 
   const lead = await db().begin(async (tx) => {
     const [fila] = await tx<{ id: string }[]>`
       insert into leads (
         referencia, origen, locale, sueno, ubicacion, situacion, tiempo, pasaporte,
         ruta_id, producto_id, nivel, nivel_cita, con_guardian, total_estimado_centimos,
-        nombre_cifrado, telefono_cifrado, telefono_hash, email_cifrado,
+        nombre_cifrado, telefono_cifrado, telefono_hash, email_cifrado, email_hash,
         consentimiento_privacidad_en, consentimiento_marketing
       ) values (
         ${referencia}, 'funnel', ${solicitud.locale}, ${solicitud.respuestas.sueno}, ${solicitud.respuestas.ubicacion},
         ${solicitud.respuestas.situacion ? cifrar(solicitud.respuestas.situacion) : null}, ${solicitud.respuestas.tiempo}, ${solicitud.respuestas.pasaporte},
         ${ruta.id}, ${ruta.producto}, ${ruta.nivel}, ${nivelCita}, ${conGuardian}, ${importe.total},
         ${cifrar(solicitud.nombre)}, ${cifrar(telefono)}, ${hashEstable(telefono)},
-        ${solicitud.email ? cifrar(solicitud.email) : null},
+        ${email ? cifrar(email) : null}, ${email ? hashEstable(email) : null},
         ${ahora}, ${solicitud.consentimientoMarketing}
       )
       returning id
@@ -105,6 +108,8 @@ export type FilaLead = {
   estado: string;
   creadoEn: Date;
   demo: boolean;
+  tieneEmail: boolean;
+  pagadoCentimos: number;
 };
 
 export async function listarLeads(): Promise<FilaLead[]> {
@@ -112,12 +117,14 @@ export async function listarLeads(): Promise<FilaLead[]> {
     {
       id: string; referencia: string; nombre_cifrado: string; telefono_cifrado: string; locale: string;
       ruta_id: string; producto_id: string; nivel: string; nivel_cita: string | null;
-      total_estimado_centimos: number; estado: string; creado_en: Date; demo: boolean;
+      total_estimado_centimos: number; estado: string; creado_en: Date; demo: boolean; tiene_email: boolean; pagado: number;
     }[]
   >`
-    select id, referencia, nombre_cifrado, telefono_cifrado, locale, ruta_id, producto_id, nivel,
-           nivel_cita, total_estimado_centimos, estado, creado_en, demo
-    from leads order by creado_en desc limit 200
+    select l.id, l.referencia, l.nombre_cifrado, l.telefono_cifrado, l.locale, l.ruta_id, l.producto_id, l.nivel,
+           l.nivel_cita, l.total_estimado_centimos, l.estado, l.creado_en, l.demo,
+           (l.email_hash is not null) as tiene_email,
+           coalesce((select sum(p.importe_centimos) from pagos p where p.lead_id = l.id and p.estado = 'pagado'), 0)::int as pagado
+    from leads l order by l.creado_en desc limit 200
   `;
   // El centro de mando ve el nombre y un teléfono enmascarado; el número
   // completo solo se descifra cuando hay que contactar (fase 2, con auditoría).
@@ -135,6 +142,8 @@ export async function listarLeads(): Promise<FilaLead[]> {
     estado: fila.estado,
     creadoEn: fila.creado_en,
     demo: fila.demo,
+    tieneEmail: fila.tiene_email,
+    pagadoCentimos: fila.pagado,
   }));
 }
 

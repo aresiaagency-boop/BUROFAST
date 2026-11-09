@@ -1,0 +1,127 @@
+/* ------------------------------------------------------------------
+   El Hogar de plasma: el núcleo vivo de HESTIA. Cada estado del sistema
+   cambia su color y su ritmo. Sin movimiento si el usuario lo pide.
+------------------------------------------------------------------- */
+.nucleo {
+  --nucleo-a: #fff3d6;
+  --nucleo-b: #d6b56e;
+  --nucleo-c: rgba(66, 216, 245, 0.25);
+  --nucleo-halo: rgba(214, 181, 110, 0.16);
+  --nucleo-avance: #d6b56e;
+  --vel-segmentos: 48s;
+  --vel-interior: 70s;
+  --vel-barrido: 9s;
+  --vel-llama: 4.2s;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.nucleo .nucleo-stop-a { stop-color: var(--nucleo-a); }
+.nucleo .nucleo-stop-b { stop-color: var(--nucleo-b); }
+.nucleo .nucleo-stop-c { stop-color: var(--nucleo-c); }
+.nucleo .nucleo-halo-a { stop-color: var(--nucleo-halo); }
+.nucleo .nucleo-barrido-b { stop-color: var(--cian); stop-opacity: 0.55; }
+.nucleo .nucleo-corazon { fill: var(--nucleo-a); opacity: 0.85; }
+.nucleo .nucleo-avance { stroke: var(--nucleo-avance); filter: drop-shadow(0 0 4px var(--nucleo-avance)); transition: stroke-dasharray 700ms var(--ease-plasma); }
+
+.nucleo-segmentos,
+.nucleo-interior,
+.nucleo-barrido { transform-origin: 200px 200px; transform-box: view-box; }
+.nucleo-segmentos { animation: rotar var(--vel-segmentos) linear infinite; }
+.nucleo-interior { animation: rotar var(--vel-interior) linear infinite reverse; }
+.nucleo-barrido { animation: rotar var(--vel-barrido) linear infinite; }
+.nucleo-llama { transform-origin: 200px 236px; transform-box: view-box; animation: latido var(--vel-llama) ease-in-out infinite; filter: drop-shadow(0 0 10px var(--nucleo-b)); }
+.nucleo-halo { animation: respirar 5s ease-in-out infinite; }
+.nucleo-estacion rect { filter: drop-shadow(0 0 4px currentColor); }
+.nucleo-estacion.activa rect { fill: currentColor; fill-opacity: 0.3; }
+
+@keyframes rotar { to { transform: rotate(360deg); } }
+@keyframes latido {
+  0%, 100% { transform: scale(0.97, 0.96); }
+  45% { transform: scale(1.02, 1.05); }
+  70% { transform: scale(0.99, 1.01); }
+}
+
+.nucleo[data-estado="escuchando"] { --nucleo-a: #eafcff; --nucleo-b: #42d8f5; --nucleo-halo: rgba(66, 216, 245, 0.2); --vel-barrido: 5s; --vel-llama: 3s; }
+.nucleo[data-estado="pensando"] { --nucleo-a: #f2ecff; --nucleo-b: #a98bff; --nucleo-c: rgba(66, 216, 245, 0.35); --nucleo-halo: rgba(169, 139, 255, 0.22); --vel-segmentos: 7s; --vel-interior: 9s; --vel-barrido: 1.5s; --vel-llama: 1.4s; }
+.nucleo[data-estado="hablando"] { --nucleo-a: #fffaf0; --nucleo-b: #f1dcaa; --nucleo-halo: rgba(241, 220, 170, 0.28); --vel-llama: 0.9s; }
+.nucleo[data-estado="exito"] { --nucleo-a: #ffffff; --nucleo-b: #f1dcaa; --nucleo-halo: rgba(214, 181, 110, 0.42); --vel-segmentos: 14s; --vel-llama: 1.2s; }
+.nucleo[data-estado="alerta"] { --nucleo-a: #ffe9c7; --nucleo-b: #e0a84a; --nucleo-halo: rgba(224, 168, 74, 0.26); --nucleo-avance: #e0a84a; --vel-llama: 1.6s; }
+.nucleo[data-estado="desconectada"] { filter: saturate(0.25) brightness(0.8); --vel-segmentos: 120s; --vel-barrido: 30s; }
+
+.nucleo--mini .nucleo-llama { filter: none; }
+
+/* ---------- Página Núcleo ---------- */
+.nucleo-portada {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: 28px 40px;
+  padding: 18px 0 30px;
+}
+.portada-texto { min-width: 0; }
+.portada-titulo {
+  font-family: var(--fuente-titulo);
+  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  margin: 6px 0 16px;
+  background: linear-gradient(176deg, #ffffff 30%, var(--nieve) 52%, var(--cian) 115%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-wrap: balance;
+}
+.portada-narrativa { color: var(--texto-suave); font-size: 1.08rem; max-width: 52ch; margin: 0 0 24px; }
+.portada-accion { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.portada-accion small { color: var(--texto-tenue); font-family: var(--fuente-mono); font-size: 0.74rem; letter-spacing: 0.06em; }
+.portada-nucleo { display: grid; place-items: center; position: relative; }
+.portada-nucleo .lecturas { margin-top: 10px; justify-content: center; }
+
+.motores-titulo { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin: 34px 0 14px; flex-wrap: wrap; }
+.motores-titulo h2 { font-family: var(--fuente-titulo); font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+.motores-titulo p { margin: 0; color: var(--texto-suave); max-width: 60ch; }
+
+.motores { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+.motor {
+  --corte: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  align-items: start;
+  padding: 18px 20px 16px;
+  text-decoration: none;
+  color: var(--texto);
+  transition: transform 200ms var(--ease-plasma);
+}
+.motor:hover { transform: translateY(-2px); }
+.motor .hud-etiqueta { margin: 0; color: var(--agente, var(--cian)); }
+.motor-nombre { font-family: var(--fuente-titulo); font-size: 1.12rem; font-weight: 650; margin: 2px 0 4px; }
+.motor-frase { color: var(--texto-suave); font-size: 0.9rem; margin: 0; }
+.motor-pie { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(66, 216, 245, 0.16); }
+.motor-estado { font-family: var(--fuente-mono); font-size: 0.78rem; color: var(--nieve); }
+.motor-abrir { font-size: 0.82rem; color: var(--agente, var(--cian)); }
+
+.temis-banda { margin-top: 28px; }
+.temis-reglas { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px 22px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.temis-reglas li { display: flex; gap: 10px; color: var(--texto-suave); font-size: 0.88rem; }
+.temis-reglas li::before { content: ""; flex: none; width: 7px; height: 7px; margin-top: 8px; transform: rotate(45deg); background: var(--agente-temis); box-shadow: 0 0 6px var(--agente-temis); }
+
+@media (max-width: 960px) {
+  .nucleo-portada { grid-template-columns: minmax(0, 1fr); }
+  .portada-nucleo { order: -1; }
+  .portada-nucleo .nucleo { width: min(78vw, 300px); }
+}
+
+/* ---------- Puerta de idiomas ---------- */
+.puerta { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; max-width: 1180px; margin: 0 auto; padding: 18px 22px 22px; }
+.puerta-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.puerta-escena { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 36px 44px; align-items: center; padding: 26px 0; }
+.puerta-nucleo { justify-self: center; padding: 16px; }
+.puerta-pie { display: flex; justify-content: space-between; gap: 12px; color: var(--texto-tenue); font-size: 0.8rem; }
+@media (max-width: 860px) {
+  .puerta-escena { grid-template-columns: minmax(0, 1fr); gap: 18px; padding-top: 12px; }
+  .puerta-nucleo .nucleo { width: min(60vw, 230px); }
+}

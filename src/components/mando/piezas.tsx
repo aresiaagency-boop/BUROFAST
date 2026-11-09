@@ -44,7 +44,7 @@ export function SlaBadge({ semaforo }: { semaforo: SemaforoSla }) {
 
 export function Metrica({ nombre, valor, fuente, consultadoEn }: { nombre: string; valor: string | number; fuente: string; consultadoEn: Date | null }) {
   return (
-    <div className="metrica">
+    <div className="metrica cristal">
       <div className="metrica-valor">{valor}</div>
       <div className="metrica-nombre">{nombre}</div>
       <div className="metrica-fuente">{fuente} · {consultadoEn ? `actualizado ${hace(consultadoEn)}` : "sin dato"}</div>

@@ -1,0 +1,108 @@
+/* BUROFAST · tokens. Paleta de la guía del centro de mando (noche, acero,
+   azul holográfico, cian, oro y los tres estados) más el espectro prismático
+   de los agentes: el diamante de BUROFAST refracta la luz de HESTIA en un
+   color por agente. Esos tonos son identidad, nunca estado. */
+@property --giro {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --noche: #071322;
+  --abismo: #040c17;
+  --acero: #10253b;
+  --acero-claro: #173452;
+  --holo: #16bdeb;
+  --cian: #42d8f5;
+  --nieve: #dff8ff;
+  --oro: #d6b56e;
+  --oro-claro: #f1dcaa;
+  --verde: #1d9b75;
+  --ambar: #b7791f;
+  --rojo: #b74646;
+  --verde-texto: #3cc79c;
+  --ambar-texto: #e0a84a;
+  --rojo-texto: #ec8a8a;
+
+  /* Espectro de los agentes */
+  --agente-hestia: #d6b56e;
+  --agente-ariadna: #42d8f5;
+  --agente-cronos: #5b8dff;
+  --agente-mnemosine: #a98bff;
+  --agente-argos: #3fe0c5;
+  --agente-temis: #c9d3e0;
+
+  --texto: #e8f1f8;
+  --texto-suave: #a9bccd;
+  --texto-tenue: #7690a7;
+  --linea: rgba(66, 216, 245, 0.16);
+  --linea-fuerte: rgba(66, 216, 245, 0.34);
+  --panel: rgba(16, 37, 59, 0.72);
+  --cara: rgba(11, 27, 46, 0.8);
+  --radio: 14px;
+  --radio-s: 10px;
+  --sombra: 0 18px 60px rgba(0, 0, 0, 0.35);
+
+  --fuente: "Inter Variable", "Inter", "Noto Sans Arabic Variable", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --fuente-titulo: "Space Grotesk Variable", "Space Grotesk", "Inter Variable", "Noto Sans Arabic Variable", system-ui, sans-serif;
+  --fuente-mono: "JetBrains Mono Variable", "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+
+  --ease-plasma: cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+
+* { box-sizing: border-box; }
+html { background: var(--noche); color-scheme: dark; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--texto);
+  font-family: var(--fuente);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -12%, rgba(22, 189, 235, 0.17), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 92% 108%, rgba(214, 181, 110, 0.1), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 0% 70%, rgba(169, 139, 255, 0.06), transparent 60%),
+    var(--noche);
+  background-attachment: fixed;
+}
+[dir="rtl"] body, body[dir="rtl"] { font-family: "Noto Sans Arabic Variable", var(--fuente); }
+
+/* Rejilla holográfica de fondo: profundidad sin ruido. Se desvanece hacia
+   los bordes para no competir con el contenido. */
+.rejilla-holo {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(66, 216, 245, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(66, 216, 245, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 20%, transparent 78%);
+}
+
+a { color: var(--cian); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--cian); outline-offset: 3px; border-radius: 4px; }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mono { font-family: var(--fuente-mono); }
+.saltar {
+  position: absolute; inset-inline-start: 12px; top: -60px; z-index: 100;
+  background: var(--acero); color: var(--texto); padding: 10px 14px; border: 1px solid var(--cian); text-decoration: none;
+}
+.saltar:focus { top: 12px; }
+
+@keyframes giro { to { --giro: 360deg; } }
+@keyframes entrar { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes respirar { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+@keyframes brillo { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+.entrar { animation: entrar 420ms var(--ease-plasma) both; }
+.hogar-brillo { animation: brillo 3.2s ease-in-out infinite; transform-origin: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

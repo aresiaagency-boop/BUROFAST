@@ -36,14 +36,14 @@ export default async function Citas({ searchParams }: PageProps<"/mando/citas">)
         estadoGlobal={dbOk ? { tono: "ok", texto: `${citas.length} citas en vista` } : { tono: "critico", texto: "Sin base de datos" }} />
       <div className="trabajo ancho">
         <div className="columna">
-          <section className="panel">
+          <section className="panel cristal">
             <h2>Cola de citas <span className="metrica-fuente">PostgreSQL · {hace(new Date(postgres.comprobadoEn))}</span></h2>
             <div className="filtros" role="group" aria-label="Filtros">
-              <Link className="chip" aria-current={!todas} href={enlace({ todas: null })}>Abiertas</Link>
-              <Link className="chip" aria-current={todas} href={enlace({ todas: "1" })}>Todas</Link>
-              <Link className="chip" aria-current={!nivel} href={enlace({ nivel: null })}>Cualquier nivel</Link>
-              <Link className="chip" aria-current={nivel === "urgente"} href={enlace({ nivel: "urgente" })}>Urgente · primera acción {NIVELES_CITA.urgente.primeraAccionHoras} h</Link>
-              <Link className="chip" aria-current={nivel === "puede_esperar"} href={enlace({ nivel: "puede_esperar" })}>Puedo esperar · {NIVELES_CITA.puede_esperar.primeraAccionHoras} h</Link>
+              <Link className="chip-cristal" aria-current={!todas} href={enlace({ todas: null })}>Abiertas</Link>
+              <Link className="chip-cristal" aria-current={todas} href={enlace({ todas: "1" })}>Todas</Link>
+              <Link className="chip-cristal" aria-current={!nivel} href={enlace({ nivel: null })}>Cualquier nivel</Link>
+              <Link className="chip-cristal" aria-current={nivel === "urgente"} href={enlace({ nivel: "urgente" })}>Urgente · primera acción {NIVELES_CITA.urgente.primeraAccionHoras} h</Link>
+              <Link className="chip-cristal" aria-current={nivel === "puede_esperar"} href={enlace({ nivel: "puede_esperar" })}>Puedo esperar · {NIVELES_CITA.puede_esperar.primeraAccionHoras} h</Link>
             </div>
             {!dbOk ? (
               <Vacio titulo="PostgreSQL no responde" texto={postgres.detalle} />
@@ -77,7 +77,7 @@ export default async function Citas({ searchParams }: PageProps<"/mando/citas">)
               </div>
             )}
           </section>
-          <section className="panel">
+          <section className="panel cristal">
             <h2>Reglas que aplica este módulo</h2>
             <ul className="avisos">
               {t.nivelesCita.reglas.map((r) => <li key={r}>{r}</li>)}

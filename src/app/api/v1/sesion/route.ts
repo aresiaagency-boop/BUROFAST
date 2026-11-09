@@ -2,8 +2,8 @@ import { z } from "zod";
 import { correlationId, error, ipCliente, json, origenPermitido } from "@/lib/http";
 import { auditar } from "@/lib/repositorio";
 import { verificarPassword } from "@/lib/security/password";
-import { checkEphemeralRateLimit } from "@/lib/security/rate-limit";
-import { autenticacionConfigurada, COOKIE_SESION, crearTokenSesion, DURACION_SESION_S } from "@/lib/security/sesion";
+import { limitar } from "@/lib/security/limites";
+import { COOKIE_SESION, crearTokenSesion, DURACION_SESION_S, passwordConfigurada } from "@/lib/security/sesion";
 import { isDatabaseConfigured } from "@/lib/db";
 
 const credencialesSchema = z.object({ email: z.string().trim().toLowerCase().email(), password: z.string().min(1).max(200) });
@@ -11,18 +11,18 @@ const credencialesSchema = z.object({ email: z.string().trim().toLowerCase().ema
 export async function POST(request: Request) {
   const correlation = correlationId(request);
   if (!origenPermitido(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
-  if (!autenticacionConfigurada()) {
-    return error("AUTENTICACION_NO_CONFIGURADA", "Faltan AUTH_SECRET, OWNER_EMAIL u OWNER_PASSWORD_HASH en el servidor.", { status: 503, correlation });
+  if (!passwordConfigurada()) {
+    return error("AUTENTICACION_NO_CONFIGURADA", "El acceso con contraseña no está activado: entra con Google.", { status: 503, correlation });
   }
-  const limite = checkEphemeralRateLimit(`login:${ipCliente(request)}`, { limit: 8, windowMs: 15 * 60_000 });
-  if (!limite.allowed) return error("DEMASIADOS_INTENTOS", "Demasiados intentos. Espera quince minutos.", { status: 429, correlation });
+  const limite = await limitar(`login:${ipCliente(request)}`, { limite: 8, ventanaMs: 15 * 60_000 });
+  if (!limite.permitido) return error("DEMASIADOS_INTENTOS", "Demasiados intentos. Espera quince minutos.", { status: 429, correlation });
 
   const credenciales = credencialesSchema.safeParse(await request.json().catch(() => null));
   if (!credenciales.success) return error("CREDENCIALES_INVALIDAS", "Correo o contraseña incorrectos.", { status: 401, correlation });
   // Segundo límite por cuenta: aunque alguien rote IPs, la cuenta del owner no
   // admite más de 10 intentos cada 15 minutos.
-  const porCuenta = checkEphemeralRateLimit(`login-cuenta:${credenciales.data.email}`, { limit: 10, windowMs: 15 * 60_000 });
-  if (!porCuenta.allowed) return error("DEMASIADOS_INTENTOS", "Demasiados intentos para esta cuenta. Espera quince minutos.", { status: 429, correlation });
+  const porCuenta = await limitar(`login-cuenta:${credenciales.data.email}`, { limite: 10, ventanaMs: 15 * 60_000 });
+  if (!porCuenta.permitido) return error("DEMASIADOS_INTENTOS", "Demasiados intentos para esta cuenta. Espera quince minutos.", { status: 429, correlation });
 
   const emailCorrecto = credenciales.data.email === process.env.OWNER_EMAIL?.trim().toLowerCase();
   // Se verifica la contraseña aunque el correo no coincida, para no revelar por
@@ -50,5 +50,6 @@ export async function DELETE(request: Request) {
   const correlation = correlationId(request);
   const respuesta = json({ ok: true }, { correlation });
   respuesta.cookies.set(COOKIE_SESION, "", { httpOnly: true, path: "/", maxAge: 0 });
+  respuesta.cookies.set("burofast.cliente", "", { httpOnly: true, path: "/", maxAge: 0 });
   return respuesta;
 }

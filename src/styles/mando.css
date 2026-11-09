@@ -1,0 +1,139 @@
+/* ------------------------------------------------------------------
+   Centro de mando del equipo. La holografía orienta (marcos, filos,
+   lecturas en mono); las tablas y los formularios se leen sin esfuerzo.
+------------------------------------------------------------------- */
+.mando {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr) 30px;
+  min-height: 100vh;
+}
+.lateral {
+  grid-row: 1 / span 3;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 12px;
+  background: linear-gradient(180deg, rgba(4, 12, 23, 0.96), rgba(10, 26, 44, 0.92));
+  border-inline-end: 1px solid var(--linea);
+}
+.lateral nav { display: grid; gap: 4px; }
+.lateral nav a {
+  --corte: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  color: var(--texto-suave);
+  text-decoration: none;
+  font-size: 0.93rem;
+}
+.lateral nav a::before, .lateral nav a::after { opacity: 0; }
+.lateral nav a:hover { color: var(--texto); }
+.lateral nav a:hover::after { opacity: 0.5; }
+.lateral nav a[aria-current="page"] { color: var(--nieve); }
+.lateral nav a[aria-current="page"]::before, .lateral nav a[aria-current="page"]::after { opacity: 1; }
+.lateral-pie { margin-top: auto; display: grid; gap: 8px; }
+
+.superior {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--linea);
+  background: rgba(4, 12, 23, 0.86);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.superior h1 { font-family: var(--fuente-titulo); font-size: 1.08rem; margin: 0; letter-spacing: 0.02em; }
+.miga { color: var(--texto-tenue); font-family: var(--fuente-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; }
+.trabajo { padding: 22px 24px 36px; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-content: start; max-width: 1600px; width: 100%; }
+.trabajo.ancho { grid-template-columns: minmax(0, 1fr); }
+.columna { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.estado-pie { grid-column: 2; display: flex; gap: 18px; align-items: center; padding: 0 24px; font-size: 0.7rem; color: var(--texto-tenue); border-top: 1px solid var(--linea); font-family: var(--fuente-mono); background: rgba(4, 12, 23, 0.7); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.metrica { --corte: 12px; padding: 14px 16px; }
+.metrica-valor { font-family: var(--fuente-mono); font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--nieve); text-shadow: 0 0 16px rgba(66, 216, 245, 0.35); }
+.metrica-nombre { color: var(--texto-suave); font-size: 0.86rem; }
+.metrica-fuente { color: var(--texto-tenue); font-size: 0.68rem; font-family: var(--fuente-mono); margin-top: 6px; letter-spacing: 0.04em; }
+.panel { --corte: 14px; padding: 16px 18px; min-width: 0; }
+.panel h2 { font-family: var(--fuente-titulo); font-size: 1rem; margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+
+.estado {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 10px;
+  font-family: var(--fuente-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+.estado::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+.estado.ok { color: var(--verde-texto); }
+.estado.aviso { color: var(--ambar-texto); }
+.estado.critico { color: var(--rojo-texto); }
+.estado.desconocido { color: var(--texto-tenue); }
+.estado.info { color: var(--cian); }
+.estado.demo { color: var(--oro); }
+
+.tabla-contenedor { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.tabla th { text-align: start; color: var(--texto-tenue); font-family: var(--fuente-mono); font-weight: 500; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.14em; padding: 8px 10px; border-bottom: 1px solid var(--linea-fuerte); white-space: nowrap; }
+.tabla td { padding: 10px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+.tabla tr:hover td { background: rgba(22, 189, 235, 0.05); }
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.vacio { text-align: center; padding: 28px 12px; color: var(--texto-suave); }
+.vacio strong { display: block; color: var(--texto); margin-bottom: 6px; }
+.linea-tiempo { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.linea-tiempo li { display: grid; grid-template-columns: 8px 1fr; gap: 10px; font-size: 0.85rem; }
+.linea-tiempo li::before { content: ""; width: 7px; height: 7px; margin-top: 6px; transform: rotate(45deg); background: var(--holo); box-shadow: 0 0 6px var(--holo); }
+.linea-tiempo small { display: block; color: var(--texto-tenue); font-family: var(--fuente-mono); font-size: 0.7rem; }
+.barras { display: grid; gap: 8px; }
+.barra-fila { display: grid; grid-template-columns: 150px 1fr 36px; gap: 10px; align-items: center; font-size: 0.84rem; }
+.barra-fondo { height: 6px; background: rgba(66, 216, 245, 0.1); overflow: hidden; }
+.barra-relleno { height: 100%; background: linear-gradient(90deg, var(--holo), var(--cian)); box-shadow: 0 0 10px rgba(66, 216, 245, 0.6); }
+.banner-demo { border: 1px dashed var(--oro); color: var(--oro-claro); padding: 8px 12px; font-size: 0.84rem; }
+.acceso { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.acceso-caja { width: min(100%, 420px); display: grid; gap: 16px; justify-items: center; text-align: center; }
+.acceso-caja form { width: 100%; text-align: start; }
+
+/* Constelación de sistemas: cada nodo es un sistema real con su estado. */
+.constelacion { width: 100%; height: auto; display: block; }
+.constelacion text { font-family: var(--fuente-mono); font-size: 11px; letter-spacing: 0.06em; fill: var(--texto-suave); }
+.constelacion .nodo-ok { color: var(--verde-texto); }
+.constelacion .nodo-aviso { color: var(--ambar-texto); }
+.constelacion .nodo-critico { color: var(--rojo-texto); }
+.constelacion .nodo-tenue { color: var(--texto-tenue); }
+
+.agentes-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.agente-tarjeta { --corte: 12px; padding: 14px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; }
+.agente-tarjeta .hud-etiqueta { margin: 0; color: var(--agente, var(--cian)); }
+.agente-tarjeta dl { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 0; }
+.agente-tarjeta dt { font-family: var(--fuente-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--texto-tenue); }
+.agente-tarjeta dd { margin: 0; font-family: var(--fuente-mono); color: var(--nieve); }
+
+@media (max-width: 1100px) {
+  .trabajo { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 780px) {
+  .mando { grid-template-columns: 1fr; grid-template-rows: auto 64px 1fr 30px; }
+  .lateral { grid-row: auto; position: static; height: auto; flex-direction: row; overflow-x: auto; padding: 8px; }
+  .lateral nav { grid-auto-flow: column; }
+  .lateral-pie { display: none; }
+  .estado-pie { grid-column: 1; }
+  .trabajo { padding: 16px; }
+}
+.campo-mini { padding: 6px 10px; min-height: 34px; background: rgba(4, 12, 23, 0.72); border: 1px solid var(--linea-fuerte); color: var(--texto); font-size: 0.8rem; }

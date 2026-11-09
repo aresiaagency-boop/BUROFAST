@@ -7,10 +7,14 @@ export function estadoGlobal(piezas: Comprobacion[]) {
 }
 
 export const NOMBRE_PIEZA: Record<Comprobacion["id"], string> = {
-  postgres: "PostgreSQL",
+  postgres: "PostgreSQL (EasyPanel)",
   cifrado: "Cifrado de datos personales",
-  autenticacion: "Autenticación",
-  n8n: "n8n (orquestador de HESTIA)",
+  autenticacion: "Acceso del equipo",
+  google: "Acceso con Google",
+  n8n: "n8n (servidor de HESTIA)",
+  hestia_ia: "HESTIA orquestadora (IA vía n8n)",
   whatsapp: "Número de WhatsApp de HESTIA",
-  hestia_webhook: "Credenciales de HESTIA (contexto y eventos)",
+  hestia_webhook: "Credenciales de HESTIA por WhatsApp",
+  stripe: "Stripe (cobros)",
+  stripe_webhook: "Webhook de Stripe",
 };
