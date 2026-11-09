@@ -37,7 +37,7 @@ Solo pueden salir placeholders de documentación.
 ## 4. Publicar y comprobar
 
 1. Commit en castellano y `git push origin main`.
-2. Vercel → Deployments: el despliegue del commit tiene que acabar en **Ready**. Si falla en `onBuildComplete`, alguien activó `output: "standalone"` en Vercel.
+2. Vercel → Deployments: el despliegue del commit tiene que acabar en **Ready**. Si falla en `onBuildComplete`, alguien activó `output: "standalone"` en Vercel. Si a los dos minutos no aparece ningún despliegue del commit, créalo a mano: ⋯ → Create Deployment → `main` → Deploy to Production.
 3. Sondas en producción (desde el navegador, el shell no llega a Vercel):
    - `GET /health/ready` → 200 cuando hay base y clave de cifrado.
    - `POST /api/v1/motores/argos` con `{"caducidad":"2027-03-01","hoy":"2026-11-09"}` → `estado: "lejos"`.
