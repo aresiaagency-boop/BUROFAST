@@ -54,6 +54,8 @@
 - 13 nov: `legal.ts` con titular ARES IA SYSTEMS S.L., CIF y domicilio (de la factura de la gestoría). Revisión legal: Roberto de Souza Escobal (Palma Auditores). La factura no acredita que sea abogado: los textos legales dicen «revisión legal» sin título, y colegio y número siguen pendientes. Faltan también correo y Registro Mercantil → el cobro live sigue bloqueado. La interfaz aún dice «abogado colegiado»: hay que confirmarlo o cambiarlo.
 - WhatsApp: de momento Evolution API, conectada a mano por el owner para pruebas.
 
+- 13 nov: flujo `LzDIhpysxeGsOAsH` **publicado** con el canal app (credencial «Header Auth account» del owner en Webhook app). `/webhook/burofast-hestia-app` responde 403 sin token. En Vercel solo hay 7 variables de configuración: **ningún secreto pegado** → la app sigue en modo local y sin base de datos. Reclamaciones: correo de la gestoría en `legal.ts`.
+
 ## Intentos fallidos
 
 - `add_repo` con push: sin la GitHub App de Claude no hay permiso; se instaló desde el navegador.

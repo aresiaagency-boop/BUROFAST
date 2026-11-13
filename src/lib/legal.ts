@@ -10,7 +10,8 @@ export const DATOS_LEGALES: Record<ClaveLegal, string | null> = {
   titular: "ARES IA SYSTEMS S.L.",
   nif: "B05779293",
   domicilio: "C/ Joaquín Verdaguer, 10, 1.º A, 07600 L'Arenal (Illes Balears)",
-  correo: null, // Correo para privacidad, desistimiento y reclamaciones
+  // Privacidad, desistimiento y reclamaciones: las atiende la gestoría.
+  correo: "fiscal@palmaauditores.com",
   registro: null, // Datos de inscripción en el Registro Mercantil
   // Quien revisa los asuntos legales (clave histórica «abogado»). No se afirma
   // un título profesional que no esté acreditado: colegio y número, pendientes.

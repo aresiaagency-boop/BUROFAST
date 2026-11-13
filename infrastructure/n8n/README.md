@@ -69,7 +69,5 @@ En el n8n de EasyPanel (2.29.9, 9 nov 2026), flujo `LzDIhpysxeGsOAsH`:
 
 - **Borrador** con 36 nodos: los 12 del canal app añadidos debajo del WhatsApp **original**, que no se tocó (webhook con ruta `BUROFAST`, apikey de Evolution leída del cuerpo). No es un *Import from file* completo: el WhatsApp de este repo sigue sin importar.
 - *OpenAI · App* y *Memoria · App* usan las credenciales de OpenAI y PostgreSQL que ya tenía el flujo.
-- **Webhook app sin credencial** (triángulo rojo) y las cinco herramientas sin autenticación (cuota de 120 consultas cada 10 min por IP; con la credencial de contexto, 3 000).
-- La **versión publicada** sigue siendo la anterior: `/webhook/burofast-hestia-app` no responde hasta pulsar *Publish*.
-
-Para encenderlo: crear la credencial `BUROFAST · app → HESTIA (Authorization: Bearer)` (paso 4), asignarla en **Webhook app** y pulsar *Publish*. Opcional: la credencial de contexto en las cinco herramientas.
+- 13 nov 2026: **publicado**. Webhook app usa la credencial «Header Auth account» creada por el owner; sin token responde 403. Las cinco herramientas siguen sin autenticación (120 consultas cada 10 min por IP; con la credencial de contexto, 3 000).
+- Falta `HESTIA_N8N_TOKEN` en Vercel (el mismo valor de la credencial) para que la app llame al flujo.
