@@ -7,17 +7,19 @@ export const CLAVES_LEGALES = ["titular", "nif", "domicilio", "correo", "registr
 export type ClaveLegal = (typeof CLAVES_LEGALES)[number];
 
 export const DATOS_LEGALES: Record<ClaveLegal, string | null> = {
-  titular: null, // Nombre o razón social de A.R.E.S.
-  nif: null,
-  domicilio: null,
+  titular: "ARES IA SYSTEMS S.L.",
+  nif: "B05779293",
+  domicilio: "C/ Joaquín Verdaguer, 10, 1.º A, 07600 L'Arenal (Illes Balears)",
   correo: null, // Correo para privacidad, desistimiento y reclamaciones
-  registro: null, // Registro Mercantil (si es sociedad) o «no aplica»
-  abogado: null, // Nombre del abogado colegiado que firma
-  colegio: null, // p. ej. «Ilustre Colegio de la Abogacía de las Illes Balears»
-  colegiado: null, // Número de colegiado
+  registro: null, // Datos de inscripción en el Registro Mercantil
+  // Quien revisa los asuntos legales (clave histórica «abogado»). No se afirma
+  // un título profesional que no esté acreditado: colegio y número, pendientes.
+  abogado: "Roberto de Souza Escobal (Palma Auditores), Gran Via Asima, 20, 3.º, local 35, 07009 Palma",
+  colegio: null,
+  colegiado: null,
 };
 
-export const LEGAL_ACTUALIZADO = "2026-11-09";
+export const LEGAL_ACTUALIZADO = "2026-11-13";
 
 export const DOCUMENTOS_LEGALES = ["privacidad", "condiciones", "aviso-legal"] as const;
 export type DocumentoLegalId = (typeof DOCUMENTOS_LEGALES)[number];

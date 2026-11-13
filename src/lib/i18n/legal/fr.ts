@@ -84,7 +84,7 @@ export const fr: TextosLegales = {
       secciones: [
         {
           titulo: "Qui fournit le service",
-          parrafos: ["BUROFAST est un service de {titular} (NIF {nif}). Le conseil juridique est donné et signé par un avocat inscrit : {abogado}, du {colegio}, numéro d’inscription {colegiado}."],
+          parrafos: ["BUROFAST est un service de {titular} (NIF {nif}). La révision juridique de chaque dossier est assurée par {abogado}. Ordre professionnel : {colegio}. Numéro d’inscription : {colegiado}."],
         },
         {
           titulo: "Ce que nous faisons et ce que nous ne faisons pas",
@@ -149,7 +149,7 @@ export const fr: TextosLegales = {
         },
         {
           titulo: "Profession réglementée",
-          parrafos: ["Les services juridiques sont fournis par un avocat inscrit : {abogado}, du {colegio}, numéro d’inscription {colegiado}. Titre professionnel : avocat (abogado), délivré en Espagne. Règles professionnelles : Statut général de la profession d’avocat en Espagne et Code de déontologie, publiés sur abogacia.es."],
+          parrafos: ["La révision juridique des dossiers est assurée par {abogado}. Ordre professionnel : {colegio}. Numéro d’inscription : {colegiado}. Le titre et les règles professionnelles applicables sont ceux de cet ordre."],
         },
         {
           titulo: "Utilisation du site",

@@ -49,6 +49,11 @@
 - HESTIA local tomaba «tarjeta/card/carte/картка» como pago: en extranjería es la TIE. Lo destapó `eval/hestia.jsonl`.
 - En árabe «اللجوء» (con artículo) no se reconocía como asilo: se prueba también sin el prefijo `ال`.
 
+- 13 nov: secciones con nombres técnicos en los seis idiomas (Panel, Diagnóstico, Citas previas, Documentación, Plazos, Expediente; roles de agente por servicio). Los identificadores internos (`camino`, `guardian`, ARIADNA…) no cambian.
+- 13 nov: logo = sello de oro (casco de A.R.E.S. simétrico con alas de velocidad, 24 muescas) en `Marca.tsx` y `src/app/icon.svg`.
+- 13 nov: `legal.ts` con titular ARES IA SYSTEMS S.L., CIF y domicilio (de la factura de la gestoría). Revisión legal: Roberto de Souza Escobal (Palma Auditores). La factura no acredita que sea abogado: los textos legales dicen «revisión legal» sin título, y colegio y número siguen pendientes. Faltan también correo y Registro Mercantil → el cobro live sigue bloqueado. La interfaz aún dice «abogado colegiado»: hay que confirmarlo o cambiarlo.
+- WhatsApp: de momento Evolution API, conectada a mano por el owner para pruebas.
+
 ## Intentos fallidos
 
 - `add_repo` con push: sin la GitHub App de Claude no hay permiso; se instaló desde el navegador.

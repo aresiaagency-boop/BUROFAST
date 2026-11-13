@@ -84,7 +84,7 @@ export const en: TextosLegales = {
       secciones: [
         {
           titulo: "Who provides the service",
-          parrafos: ["BUROFAST is a service of {titular} (tax ID {nif}). Legal advice is given and signed by a registered lawyer: {abogado}, of the {colegio}, bar number {colegiado}."],
+          parrafos: ["BUROFAST is a service of {titular} (tax ID {nif}). The legal review of every case is carried out by {abogado}. Professional body: {colegio}. Membership number: {colegiado}."],
         },
         {
           titulo: "What we do and what we don't",
@@ -149,7 +149,7 @@ export const en: TextosLegales = {
         },
         {
           titulo: "Regulated profession",
-          parrafos: ["Legal services are provided by a registered lawyer: {abogado}, of the {colegio}, bar number {colegiado}. Professional title: lawyer (abogado), issued in Spain. Professional rules: General Statute of the Spanish Legal Profession and Code of Ethics, published at abogacia.es."],
+          parrafos: ["The legal review of cases is carried out by {abogado}. Professional body: {colegio}. Membership number: {colegiado}. The professional title and rules that apply are those of that body."],
         },
         {
           titulo: "Use of the website",

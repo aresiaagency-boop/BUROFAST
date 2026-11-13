@@ -84,7 +84,7 @@ export const es: TextosLegales = {
       secciones: [
         {
           titulo: "Quién presta el servicio",
-          parrafos: ["BUROFAST es un servicio de {titular} (NIF {nif}). El asesoramiento jurídico lo presta y lo firma un abogado colegiado: {abogado}, del {colegio}, con número de colegiado {colegiado}."],
+          parrafos: ["BUROFAST es un servicio de {titular} (NIF {nif}). La revisión legal de cada expediente corresponde a {abogado}. Colegio profesional: {colegio}. Número de colegiado: {colegiado}."],
         },
         {
           titulo: "Qué hacemos y qué no",
@@ -149,7 +149,7 @@ export const es: TextosLegales = {
         },
         {
           titulo: "Profesión regulada",
-          parrafos: ["Los servicios jurídicos los presta un abogado colegiado: {abogado}, del {colegio}, con número de colegiado {colegiado}. Título profesional: abogado, expedido en España. Normas profesionales: Estatuto General de la Abogacía Española y Código Deontológico, publicados en abogacia.es."],
+          parrafos: ["La revisión legal de los expedientes corresponde a {abogado}. Colegio profesional: {colegio}. Número de colegiado: {colegiado}. El título y las normas profesionales aplicables son los de ese colegio."],
         },
         {
           titulo: "Uso de la web",
