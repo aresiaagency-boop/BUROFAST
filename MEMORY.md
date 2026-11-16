@@ -56,6 +56,9 @@
 
 - 13 nov: flujo `LzDIhpysxeGsOAsH` **publicado** con el canal app (credencial «Header Auth account» del owner en Webhook app). `/webhook/burofast-hestia-app` responde 403 sin token. En Vercel solo hay 7 variables de configuración: **ningún secreto pegado** → la app sigue en modo local y sin base de datos. Reclamaciones: correo de la gestoría en `legal.ts`.
 
+- 16 nov: prueba real de un caso de nacionalidad. Producción llega hasta el plan (428 € = 350 + 2 citas a 39 €); el envío, la aprobación y el cobro solo corren en local porque Vercel sigue sin secretos. Hallazgo corregido: HESTIA no entendía «¿me garantizáis…?» → intención `garantia` (responde TEMIS, seis idiomas, 2 casos en `eval/hestia.jsonl`). Pendiente: el responsable legal debe validar la lista documental de nacionalidad.
+- 16 nov: entregables fuera del repo: brochure de puesta en marcha (Docs), «Ruta al millón BUROFAST» (página) y sección nueva en el plan con la puerta 0 (encender producción antes del piloto).
+
 ## Intentos fallidos
 
 - `add_repo` con push: sin la GitHub App de Claude no hay permiso; se instaló desde el navegador.

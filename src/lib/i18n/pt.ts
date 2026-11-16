@@ -296,6 +296,7 @@ export const pt: Diccionario = {
   hestiaLocal: {
     saludo: "Olá! Sou a HESTIA. Posso dizer-te que percurso se adapta a ti, de que papéis e marcações precisas, quanto custa e quando renovar. Por onde começamos?",
     gracias: "Com todo o gosto! Continuo aqui sempre que precisares. Cada passo aproxima-te da tua nova vida.",
+    sinGarantia: "Não te posso garantir o resultado: a decisão é da Administração e ninguém honesto a pode prometer. O que garantimos é o nosso trabalho: revemos o teu percurso antes de te cobrar, verificamos o teu processo antes de o apresentar e, nas marcações urgentes, devolvemos a diferença se em 30 dias não houver marcação.",
     noEntendido: "Não tenho a certeza de ter percebido. Posso ajudar-te com o teu percurso, os teus documentos, as tuas marcações, os preços ou as datas de renovação. De que precisas?",
     camino: "A ARIADNE traça o teu percurso com cinco perguntas simples, em cerca de três minutos e sem registo. Abre o motor Caminho e começamos.",
     caminoConRuta: (ruta) => `O teu percurso é «${ruta}». No motor Caminho podes rever as etapas, as tuas marcações e o teu plano.`,

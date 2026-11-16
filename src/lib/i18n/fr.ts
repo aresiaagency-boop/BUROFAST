@@ -296,6 +296,7 @@ export const fr: Diccionario = {
   hestiaLocal: {
     saludo: "Bonjour ! Je suis HESTIA. Je peux vous dire quel parcours vous correspond, de quels papiers et rendez-vous vous avez besoin, combien cela coûte et quand renouveler. Par où commençons-nous ?",
     gracias: "Avec plaisir ! Je reste là quand vous en avez besoin. Chaque pas vous rapproche de votre nouvelle vie.",
+    sinGarantia: "Je ne peux pas vous garantir le résultat : la décision appartient à l’Administration et personne d’honnête ne peut la promettre. Ce que nous garantissons, c’est notre travail : nous vérifions votre parcours avant de vous facturer, nous contrôlons votre dossier avant le dépôt et, pour les rendez-vous urgents, nous remboursons la différence s’il n’y a pas de rendez-vous sous 30 jours.",
     noEntendido: "Je ne suis pas sûre de vous avoir compris. Je peux vous aider pour votre parcours, vos documents, vos rendez-vous, les prix ou vos dates de renouvellement. De quoi avez-vous besoin ?",
     camino: "ARIANE trace votre parcours en cinq questions simples, en trois minutes environ et sans inscription. Ouvrez le moteur Chemin et commençons.",
     caminoConRuta: (ruta) => `Votre parcours est « ${ruta} ». Dans le moteur Chemin, vous pouvez revoir les étapes, vos rendez-vous et votre plan.`,

@@ -358,6 +358,7 @@ export const es: Diccionario = {
   hestiaLocal: {
     saludo: "¡Hola! Soy HESTIA. Puedo decirte qué ruta encaja contigo, qué papeles y citas necesitas, cuánto cuesta y cuándo renovar. ¿Por dónde empezamos?",
     gracias: "¡Un placer! Aquí sigo cuando me necesites. Cada paso que das te acerca a tu nueva vida.",
+    sinGarantia: "No puedo garantizarte el resultado: la decisión es de la Administración y nadie honesto puede prometerla. Lo que sí garantizamos es nuestro trabajo: revisamos tu ruta antes de cobrarte, comprobamos tu expediente antes de presentarlo y, en las citas urgentes, te devolvemos la diferencia si en 30 días no hay cita.",
     noEntendido: "No estoy segura de haberte entendido. Puedo ayudarte con tu ruta, tus documentos, tus citas, los precios o tus plazos de renovación. ¿Qué necesitas?",
     camino: "ARIADNA traza tu ruta con cinco preguntas sencillas, en unos tres minutos y sin registrarte. Abre el motor Camino y empezamos.",
     caminoConRuta: (ruta) => `Tu ruta es «${ruta}». En el motor Camino puedes repasar las etapas, tus citas y tu plan.`,

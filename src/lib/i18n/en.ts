@@ -296,6 +296,7 @@ export const en: Diccionario = {
   hestiaLocal: {
     saludo: "Hi! I'm HESTIA. I can tell you which route fits you, which papers and appointments you need, what it costs and when to renew. Where shall we start?",
     gracias: "My pleasure! I'm here whenever you need me. Every step you take brings you closer to your new life.",
+    sinGarantia: "I can't guarantee the outcome: the decision belongs to the Administration and nobody honest can promise it. What we do guarantee is our work: we review your route before charging you, we check your file before it is submitted and, for urgent appointments, we refund the difference if there is no appointment within 30 days.",
     noEntendido: "I'm not sure I understood you. I can help with your route, your documents, your appointments, prices or your renewal dates. What do you need?",
     camino: "ARIADNA maps your route with five simple questions, in about three minutes and without signing up. Open the Path engine and let's begin.",
     caminoConRuta: (ruta) => `Your route is “${ruta}”. In the Path engine you can review the stages, your appointments and your plan.`,

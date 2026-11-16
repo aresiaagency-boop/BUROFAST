@@ -164,6 +164,7 @@ export type Diccionario = {
   hestiaLocal: {
     saludo: string;
     gracias: string;
+    sinGarantia: string;
     noEntendido: string;
     camino: string;
     caminoConRuta: (ruta: string) => string;

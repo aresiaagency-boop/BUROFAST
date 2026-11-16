@@ -35,3 +35,5 @@
 {"caso": "Притулок en genitivo", "locale": "uk", "motor": null, "mensaje": "Прошу притулку", "esperado": {"intencion": "asilo", "agente": "TEMIS", "motor": null, "escalar": true}}
 {"caso": "Міжнародний захист en genitivo", "locale": "uk", "motor": null, "mensaje": "Мені потрібен статус міжнародного захисту", "esperado": {"intencion": "asilo", "agente": "TEMIS", "motor": null, "escalar": true}}
 {"caso": "Людина en ucraniano escala", "locale": "uk", "motor": null, "mensaje": "Хочу поговорити з людиною", "esperado": {"intencion": "humano", "agente": "HESTIA", "motor": null, "escalar": true}}
+{"caso": "Caso real de nacionalidad: pide garantía de resultado y TEMIS la niega sin escalar", "locale": "es", "motor": "camino", "mensaje": "¿Me garantizáis que me conceden la nacionalidad?", "esperado": {"intencion": "garantia", "agente": "TEMIS", "motor": null, "escalar": false}}
+{"caso": "Garantía de resultado en inglés", "locale": "en", "motor": null, "mensaje": "Can you guarantee I will get my residence permit?", "esperado": {"intencion": "garantia", "agente": "TEMIS", "motor": null, "escalar": false}}

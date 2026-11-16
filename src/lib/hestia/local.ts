@@ -60,6 +60,8 @@ export function responderLocal(entrada: EntradaLocal): RespuestaHestia {
       return responder(h.humano, "HESTIA", null, true);
     case "saludo":
       return responder(h.saludo, "HESTIA", null);
+    case "garantia":
+      return responder(h.sinGarantia, "TEMIS", null);
     case "gracias":
       return responder(h.gracias, "HESTIA", null);
     case "camino":

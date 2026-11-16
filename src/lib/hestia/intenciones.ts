@@ -7,6 +7,7 @@ export const INTENCIONES = [
   "asilo",
   "humano",
   "expediente",
+  "garantia",
   "pago",
   "precio",
   "documentos",
@@ -28,6 +29,8 @@ const CLAVES: Record<(typeof INTENCIONES)[number], string[]> = {
   humano: ["una persona", "persona real", "alguien", "humano", "abogad", "a person", "real person", "someone", "somebody", "human", "lawyer", "une personne", "quelqu", "humain", "avocat", "uma pessoa", "alguem", "advogad", "محام", "شخص", "إنسان", "людин", "юрист", "адвокат"],
   expediente: ["expediente", "mi caso", "como va", "status", "my case", "my file", "dossier", "processo", "meu caso", "ملف", "حالتي", "справ", "статус"],
   // Sin «tarjeta/card/carte»: en extranjería casi siempre es la TIE, no un medio de pago.
+  // Nadie puede prometer lo que decide la Administración: respuesta fija.
+  garantia: ["garanti", "aseguras", "asegurais", "prometes", "prometeis", "guarantee", "promise", "promett", "promete", "ضمان", "تضمن", "гарант", "обіця"],
   pago: ["pagar", "pago", "factura", "pay", "payment", "invoice", "payer", "paiement", "pagamento", "دفع", "оплат", "сплат"],
   precio: ["precio", "cuanto", "cuesta", "coste", "costo", "tarifa", "honorario", "price", "cost", "how much", "fee", "prix", "combien", "tarif", "preco", "quanto", "custa", "سعر", "تكلفة", "كم", "ціна", "скільки", "вартіст"],
   documentos: ["documento", "papeles", "certificado", "antecedentes", "pasaporte", "document", "papers", "papiers", "certificat", "certidao", "وثيق", "مستند", "أوراق", "شهادة", "документ", "довідк", "паспорт"],
