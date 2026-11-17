@@ -10,7 +10,7 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Secret | PostgreSQL de EasyPanel | `postgres://USUARIO:CLAVE@HOST:PUERTO/burofast` (EasyPanel → postgres → Expose). HOST es la IP pública del servidor y PUERTO el expuesto: el nombre interno del servicio (`burofast_postgres:5432`) solo existe dentro de EasyPanel y en Vercel el build falla con `[migrate] failed: ENOTFOUND`. Con TLS activado en el servidor, añade `?sslmode=require`. Si la clave lleva `@`, `:` o `/`, codifícala (`encodeURIComponent`) |
 | `DATA_ENCRYPTION_KEY` | Secret | Cifrado de nombre, teléfono y correo. **Si se pierde, los datos cifrados no se recuperan** | `openssl rand -hex 32` |
-| `AUTH_SECRET` | Secret | Firma de sesiones, del estado de OAuth y de los enlaces de pago (≥ 32 caracteres) | `openssl rand -hex 32` |
+| `AUTH_SECRET` | Secret | Firma de sesiones, del estado de OAuth y de los enlaces de pago, y clave de las huellas de la Dirección (≥ 32 caracteres). Rotarla cierra todas las sesiones y deja de casar el `sub` fijado: tras rotarla, `delete from direccion_identidad;` y volver a entrar con la cuenta de A.R.E.S. | `openssl rand -hex 32` |
 | `APP_BASE_URL` | Config | URL pública: vuelta de Google, de Stripe y enlaces de HESTIA | `https://burofast.vercel.app` |
 | `BUROFAST_ENTORNO` | Config | `local`, `staging` o `produccion`; en `produccion` el seed DEMO no se ejecuta | `produccion` |
 | `TRUSTED_PROXY_HOPS` | Config | Cuántos proxys propios hay delante (Vercel = 1, Traefik de EasyPanel = 1) | `1` |

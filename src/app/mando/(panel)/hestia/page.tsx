@@ -3,6 +3,7 @@ import { Constelacion } from "@/components/mando/Constelacion";
 import { EstadoPiezaBadge, hace, Metrica, Vacio } from "@/components/mando/piezas";
 import { Superior } from "@/components/mando/Superior";
 import { metricasAgentes } from "@/lib/agentes-metricas";
+import { exigirDireccion } from "@/lib/autorizacion";
 import { comprobarTodo } from "@/lib/estado";
 import { estadoGlobal, NOMBRE_PIEZA } from "@/lib/estado-global";
 import { DICCIONARIOS } from "@/lib/i18n";
@@ -13,6 +14,7 @@ export const metadata = { title: "HESTIA y agentes" };
 export const dynamic = "force-dynamic";
 
 export default async function Hestia() {
+  await exigirDireccion();
   const piezas = await comprobarTodo();
   const dbOk = piezas.find((p) => p.id === "postgres")?.estado === "operativo";
   const [resumen, metricas] = dbOk ? await Promise.all([resumenOperativo(), metricasAgentes().catch(() => ({}))]) : [null, {}];

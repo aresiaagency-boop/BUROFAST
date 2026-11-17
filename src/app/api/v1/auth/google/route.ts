@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   if (!limite.permitido) return volver("limite");
   if (esDireccion && (await direccionBloqueada(ip))) return volver("bloqueado");
 
-  const inicio = iniciarGoogle(destino, { reautenticar: esDireccion });
+  const inicio = iniciarGoogle(destino, { pedirAuthTime: esDireccion });
   const respuesta = NextResponse.redirect(inicio.url, 303);
   respuesta.cookies.set(COOKIE_OAUTH, inicio.cookie, opcionesCookie(inicio.maxAge));
   respuesta.headers.set("cache-control", "no-store");

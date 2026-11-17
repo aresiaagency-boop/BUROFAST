@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EstadoPiezaBadge, fechaHora, hace, Metrica, Vacio } from "@/components/mando/piezas";
 import { Superior } from "@/components/mando/Superior";
+import { exigirDireccion } from "@/lib/autorizacion";
 import { DICCIONARIOS } from "@/lib/i18n";
 import { comprobarTodo } from "@/lib/estado";
 import { estadoGlobal, NOMBRE_PIEZA } from "@/lib/estado-global";
@@ -10,6 +11,7 @@ import type { RutaId } from "@/lib/diagnostico";
 export const metadata = { title: "Dirección", robots: { index: false, follow: false } };
 
 export default async function Mando() {
+  await exigirDireccion();
   const piezas = await comprobarTodo();
   const dbOk = piezas.find((p) => p.id === "postgres")?.estado === "operativo";
   const [resumen, auditorias] = dbOk ? await Promise.all([resumenOperativo(), ultimasAuditorias()]) : [null, []];

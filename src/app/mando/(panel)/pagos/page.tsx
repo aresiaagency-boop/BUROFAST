@@ -1,5 +1,6 @@
 import { EstadoBadge, fechaHora, hace, Metrica, Vacio } from "@/components/mando/piezas";
 import { Superior } from "@/components/mando/Superior";
+import { exigirDireccion } from "@/lib/autorizacion";
 import { formatearEuros } from "@/lib/catalogo";
 import { comprobarPostgres, comprobarStripe } from "@/lib/estado";
 import { listarPagos, resumenPagos } from "@/lib/pagos/repositorio";
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 const TONO = { pendiente: "aviso", pagado: "ok", fallido: "critico", expirado: "desconocido", reembolsado: "info" } as const;
 
 export default async function Pagos() {
+  await exigirDireccion();
   const [postgres, stripeApi] = await Promise.all([comprobarPostgres(), comprobarStripe()]);
   const dbOk = postgres.estado === "operativo";
   const [resumen, pagos] = dbOk ? await Promise.all([resumenPagos(), listarPagos()]) : [null, []];

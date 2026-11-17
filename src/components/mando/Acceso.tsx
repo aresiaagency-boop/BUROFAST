@@ -7,6 +7,7 @@ const MOTIVOS: Record<string, string> = {
   no_configurado: "El acceso a la Dirección no está disponible en este servidor.",
   limite: "Demasiados intentos. Espera unos minutos.",
   bloqueado: "Acceso bloqueado temporalmente por intentos fallidos. Vuelve a intentarlo dentro de una hora.",
+  autenticacion_antigua: "Google indica que iniciaste sesión hace más de 10 minutos. Cierra sesión en Google, vuelve a entrar con la cuenta de A.R.E.S. y pulsa «Entrar con Google».",
 };
 
 // Acceso a la Dirección: solo Google y solo la cuenta de A.R.E.S. No hay
@@ -20,7 +21,7 @@ export function Acceso({ google, destino, motivo }: { google: boolean; destino: 
         <NucleoHestia tamano={150} etiqueta="HESTIA" />
         <p className="hud-etiqueta" style={{ justifyContent: "center" }}><span>BUROFAST</span><span>Dirección</span></p>
         <h1 className="titulo-paso" style={{ fontSize: "1.6rem" }}>Acceso a la Dirección</h1>
-        <p className="metrica-fuente" style={{ textAlign: "center" }}>Solo la cuenta de Google de A.R.E.S. Google te pedirá de nuevo tu contraseña.</p>
+        <p className="metrica-fuente" style={{ textAlign: "center" }}>Solo la cuenta de Google de A.R.E.S. La primera vez que entre, quedará fijada.</p>
         {fallo && <p className="alerta-holo error" role="alert" style={{ width: "100%", textAlign: "start" }}>{fallo}</p>}
         {google ? (
           <a className="boton-cristal plasma-oro boton-cristal--ancho" href={`/api/v1/auth/google?destino=${encodeURIComponent(destino)}`} rel="nofollow">Entrar con Google</a>

@@ -36,11 +36,12 @@ export async function GET(request: Request) {
     return respuesta;
   };
 
-  // Todo fallo de la Dirección cuenta para el bloqueo y queda auditado, sin
-  // guardar el correo de quien lo intentó: solo una huella.
+  // Todo fallo de la Dirección queda auditado, sin guardar el correo de quien
+  // lo intentó: solo una huella. Cuenta para el bloqueo de la IP salvo que
+  // sea la propia cuenta de A.R.E.S. con la sesión de Google antigua: RHC no
+  // puede quedarse fuera por eso.
   const rechazarDireccion = async (motivo: string, identidad?: IdentidadGoogle) => {
-    // Solo una identidad de Google real cuenta para el bloqueo global.
-    await registrarFallo(ip, { global: Boolean(identidad) });
+    if (motivo !== "autenticacion_antigua") await registrarFallo(ip);
     log("warn", "direccion_rechazada", { correlation, motivo });
     if (isDatabaseConfigured()) {
       await auditar({
@@ -51,8 +52,10 @@ export async function GET(request: Request) {
         correlationId: correlation,
       });
     }
-    // Al usuario, un mensaje único: no se revela qué comprobación falló.
-    return salir(motivo === "cancelado" ? "cancelado" : "sin_permiso");
+    // Al usuario, un mensaje único: no se revela qué comprobación falló. La
+    // excepción es la sesión antigua: solo llega ahí la cuenta de A.R.E.S.
+    if (motivo === "cancelado" || motivo === "autenticacion_antigua") return salir(motivo);
+    return salir("sin_permiso");
   };
 
   const state = url.searchParams.get("state");

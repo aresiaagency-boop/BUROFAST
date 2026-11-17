@@ -23,10 +23,12 @@ export function urlRetorno() {
 
 const base64url = (buffer: Buffer) => buffer.toString("base64url");
 
-// reautenticar (Dirección): max_age obliga a Google a volver a pedir la
-// contraseña si el último inicio de sesión tiene más de cinco minutos, y el
-// id_token trae auth_time para comprobarlo.
-export function iniciarGoogle(destino: string, opciones: { reautenticar?: boolean } = {}) {
+// pedirAuthTime (Dirección): Google no admite max_age; lo que sí admite es
+// pedir auth_time con «claims». Solo llega si la app está verificada y
+// «Session age claims» está activado; si llega, direccion.ts lo exige reciente.
+export const CLAIMS_AUTH_TIME = JSON.stringify({ id_token: { auth_time: { essential: true } } });
+
+export function iniciarGoogle(destino: string, opciones: { pedirAuthTime?: boolean } = {}) {
   const state = base64url(randomBytes(24));
   const nonce = base64url(randomBytes(24));
   const verificador = base64url(randomBytes(48));
@@ -41,7 +43,7 @@ export function iniciarGoogle(destino: string, opciones: { reautenticar?: boolea
   url.searchParams.set("code_challenge", desafio);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("prompt", "select_account");
-  if (opciones.reautenticar) url.searchParams.set("max_age", "300");
+  if (opciones.pedirAuthTime) url.searchParams.set("claims", CLAIMS_AUTH_TIME);
   const cookie = sellar({ state, nonce, verificador, destino }, DURACION_ESTADO_S, "oauth-google");
   return { url: url.toString(), cookie, maxAge: DURACION_ESTADO_S };
 }

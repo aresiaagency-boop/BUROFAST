@@ -1,7 +1,7 @@
 import { EstadoBadge, fechaHora, Vacio } from "@/components/mando/piezas";
 import { LeadAcciones } from "@/components/mando/LeadAcciones";
 import { Superior } from "@/components/mando/Superior";
-import { exigirRol } from "@/lib/autorizacion";
+import { exigirDireccion } from "@/lib/autorizacion";
 import { formatearEuros, type ProductoId } from "@/lib/catalogo";
 import type { RutaId } from "@/lib/diagnostico";
 import { comprobarPostgres } from "@/lib/estado";
@@ -21,11 +21,11 @@ const TONO: Record<EstadoLead, "ok" | "aviso" | "critico" | "desconocido" | "inf
 };
 
 export default async function Leads() {
-  const sesion = await exigirRol("viewer");
+  const sesion = await exigirDireccion();
   const postgres = await comprobarPostgres();
   const listo = postgres.estado === "operativo" && cifradoConfigurado();
   const leads = listo ? await listarLeads() : [];
-  if (listo && sesion) await auditar({ actorId: sesion.sub, accion: "leads.listar", parametros: { total: leads.length }, resultado: "ok" });
+  if (listo) await auditar({ actorId: sesion.sub, accion: "leads.listar", parametros: { total: leads.length }, resultado: "ok" });
   const t = DICCIONARIOS.es;
   const operador = tieneRol(sesion, "operator");
   const esEstado = (e: string): e is EstadoLead => (ESTADOS_LEAD as readonly string[]).includes(e);

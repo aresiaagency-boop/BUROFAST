@@ -10,14 +10,30 @@ export const dynamic = "force-dynamic";
 
 // Señales públicas del radar de la portada. Solo agregados sin datos
 // personales: conversaciones de HESTIA por idioma en 24 h, latencia de la
-// base de datos y estado de HESTIA. La CDN lo guarda 30 s; además, un límite
-// por IP impide saltarse la caché con parámetros inventados.
+// base de datos y estado de HESTIA. La CDN lo guarda 30 s, pero una URL con
+// parámetros inventados se la salta: por eso la instancia guarda también el
+// resultado 30 s y la base de datos ve como mucho una consulta cada 30 s por
+// instancia, se pida como se pida. El límite por IP frena al resto.
+const VIGENCIA_RADAR_MS = 30_000;
+let enMemoria: { senales: SenalesRadar; hasta: number } | null = null;
+let enCurso: Promise<SenalesRadar> | null = null;
+
 export async function GET(request: Request) {
   const cabeceras = { "cache-control": "public, s-maxage=30, stale-while-revalidate=60" };
   if (!checkEphemeralRateLimit(`radar:${ipCliente(request)}`, { limit: 30, windowMs: 60_000 }).allowed) {
     return Response.json({ error: { codigo: "DEMASIADAS_PETICIONES", mensaje: "Espera un minuto." } }, { status: 429, headers: { "cache-control": "no-store" } });
   }
+  if (enMemoria && enMemoria.hasta > Date.now()) return Response.json(enMemoria.senales, { headers: cabeceras });
+  // Peticiones simultáneas comparten la misma consulta.
+  enCurso ??= medir().finally(() => {
+    enCurso = null;
+  });
+  const senales = await enCurso;
+  enMemoria = { senales, hasta: Date.now() + VIGENCIA_RADAR_MS };
+  return Response.json(senales, { headers: cabeceras });
+}
 
+async function medir(): Promise<SenalesRadar> {
   const postgres = await comprobarPostgres();
   const senales: SenalesRadar = {
     comprobadoEn: new Date().toISOString(),
@@ -60,5 +76,5 @@ export async function GET(request: Request) {
       senales.conversaciones24h = null;
     }
   }
-  return Response.json(senales, { headers: cabeceras });
+  return senales;
 }

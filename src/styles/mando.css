@@ -57,7 +57,9 @@
 .trabajo { padding: 22px 24px 36px; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-content: start; max-width: 1600px; width: 100%; }
 .trabajo.ancho { grid-template-columns: minmax(0, 1fr); }
 .columna { display: grid; gap: 16px; align-content: start; min-width: 0; }
-.estado-pie { grid-column: 2; display: flex; gap: 18px; align-items: center; padding: 0 24px; font-size: 0.7rem; color: var(--texto-tenue); border-top: 1px solid var(--linea); font-family: var(--fuente-mono); background: rgba(4, 12, 23, 0.7); }
+.estado-pie { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; padding: 0 24px; font-size: 0.7rem; color: var(--texto-tenue); border-top: 1px solid var(--linea); font-family: var(--fuente-mono); background: rgba(4, 12, 23, 0.7); }
+
+.pie-alerta { color: var(--rojo-texto); }
 
 .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .metrica { --corte: 12px; padding: 14px 16px; }

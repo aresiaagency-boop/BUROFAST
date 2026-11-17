@@ -1,6 +1,10 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { abrirSesion, accesoAnterior, direccionBloqueada, FALLOS_GLOBALES, FALLOS_POR_IP, fijarIdentidad, huella, registrarFallo, revocarSesion, subFijado, validarSesion } from "@/lib/auth/direccion";
+import { abrirSesion, accesoAnterior, direccionBloqueada, FALLOS_POR_IP, fijarIdentidad, huella, rechazosRecientes, registrarFallo, revocarSesion, subFijado, validarSesion } from "@/lib/auth/direccion";
 import { db } from "@/lib/db";
+import { auditar } from "@/lib/repositorio";
+
+// huella() es un HMAC con clave derivada de AUTH_SECRET.
+process.env.AUTH_SECRET ??= "secreto-de-pruebas-de-al-menos-32-caracteres";
 
 // Se salta sola sin DATABASE_URL: si el número de pruebas baja, la barrera de
 // la Dirección NO se ha probado contra PostgreSQL.
@@ -16,7 +20,9 @@ describe.skipIf(!conBase)("Dirección en PostgreSQL", () => {
     await db()`delete from direccion_sesiones where sub_hash = ${huella(sub)}`;
     // La identidad fijada es única: si la fijó esta prueba, se borra.
     if (!identidadPrevia) await db()`delete from direccion_identidad where sub_hash = ${huella(sub)}`;
-    await db()`delete from limites where clave = any(${[huella(`fallo:ip:198.51.100.${sufijo.slice(-2)}`), huella("fallo:global")]})`;
+    const ips = [`198.51.100.${sufijo.slice(-2)}`, ...Array.from({ length: 20 }, (_, i) => `192.0.2.${i}`)];
+    await db()`delete from limites where clave = any(${ips.map((ip) => huella(`fallo:ip:${ip}`))})`;
+    await db()`delete from audit_logs where correlation_id = ${`prueba-direccion-${sufijo}`}`;
     await db().end({ timeout: 5 });
   });
 
@@ -61,21 +67,28 @@ describe.skipIf(!conBase)("Dirección en PostgreSQL", () => {
     }
   });
 
-  it(`bloqueo global solo con ${FALLOS_GLOBALES} cuentas de Google ajenas`, async () => {
-    await db()`delete from limites where clave = ${huella("fallo:global")}`;
-    for (let i = 0; i < FALLOS_GLOBALES; i += 1) await registrarFallo(`192.0.2.${i}`, { global: true });
-    expect(await direccionBloqueada("192.0.2.200")).toBe(true);
-    await db()`delete from limites where clave = any(${[huella("fallo:global"), ...Array.from({ length: FALLOS_GLOBALES }, (_, i) => huella(`fallo:ip:192.0.2.${i}`))]})`;
+  it("sin bloqueo global: veinte IP con cuentas ajenas no dejan fuera a una IP limpia", async () => {
+    for (let i = 0; i < 20; i += 1) await registrarFallo(`192.0.2.${i}`);
     expect(await direccionBloqueada("192.0.2.200")).toBe(false);
+  });
+
+  it("los rechazos de 24 h se cuentan para la alerta de la Dirección", async () => {
+    const antes = await rechazosRecientes();
+    const correlationId = `prueba-direccion-${sufijo}`;
+    await auditar({ actorId: "google:prueba", accion: "direccion.acceso", parametros: { motivo: "otra_cuenta" }, resultado: "rechazado", correlationId });
+    await auditar({ actorId: "ip:prueba", accion: "direccion.acceso", parametros: { motivo: "state_invalido" }, resultado: "rechazado", correlationId });
+    const despues = await rechazosRecientes();
+    expect(despues.total).toBe(antes.total + 2);
+    expect(despues.cuentasAjenas).toBe(antes.cuentasAjenas + 1);
+    expect(despues.ultimo).toBeInstanceOf(Date);
   });
 
   it(`bloquea la IP al ${FALLOS_POR_IP}.º fallo`, async () => {
     const ip = `198.51.100.${sufijo.slice(-2)}`;
-    await db()`delete from limites where clave = ${huella("fallo:global")}`;
     expect(await direccionBloqueada(ip)).toBe(false);
-    for (let i = 0; i < FALLOS_POR_IP; i += 1) await registrarFallo(ip, { global: false });
+    for (let i = 0; i < FALLOS_POR_IP; i += 1) await registrarFallo(ip);
     expect(await direccionBloqueada(ip)).toBe(true);
-    // Peticiones basura no tocan el contador global: otras IP siguen entrando.
+    // El bloqueo es de esa IP: las demás siguen entrando.
     expect(await direccionBloqueada("198.51.100.250")).toBe(false);
   });
 });

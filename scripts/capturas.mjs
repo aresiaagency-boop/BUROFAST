@@ -5,7 +5,7 @@
 // Dirección solo se abre con Google; para capturarla en local, el script abre
 // una sesión de prueba directamente en la base de datos local (DATABASE_URL y
 // AUTH_SECRET) y se niega a hacerlo contra cualquier servidor que no sea local.
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createRequire } from "node:module";
 
@@ -133,7 +133,9 @@ const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE);
 if (local && process.env.DATABASE_URL && process.env.AUTH_SECRET) {
   const postgres = createRequire(import.meta.url)("postgres");
   const sql = postgres(process.env.DATABASE_URL, { max: 1 });
-  const huella = (v) => createHash("sha256").update(`burofast:direccion:${v}`).digest("base64url");
+  // Réplica de huella() en src/lib/auth/direccion.ts (HMAC con clave derivada).
+  const claveHuella = createHmac("sha256", process.env.AUTH_SECRET.trim()).update("burofast:direccion:huella").digest();
+  const huella = (v) => createHmac("sha256", claveHuella).update(v).digest("base64url");
   const sid = randomBytes(32).toString("base64url");
   const agente = "Mozilla/5.0 (capturas BUROFAST)";
   await sql`insert into direccion_sesiones (id_hash, sub_hash, ip_hash, agente_hash, expira_en) values (${huella(sid)}, ${huella("capturas")}, ${huella("127.0.0.1")}, ${huella(agente)}, now() + interval '10 minutes')`;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CitaAcciones } from "@/components/mando/CitaAcciones";
 import { EstadoBadge, EstadoCitaBadge, fechaHora, hace, SlaBadge, Vacio } from "@/components/mando/piezas";
 import { Superior } from "@/components/mando/Superior";
-import { exigirRol } from "@/lib/autorizacion";
+import { exigirDireccion } from "@/lib/autorizacion";
 import { CITAS, NIVELES_CITA } from "@/lib/catalogo";
 import { semaforoSla, transicionesPermitidas } from "@/lib/citas";
 import { comprobarPostgres } from "@/lib/estado";
@@ -13,10 +13,10 @@ import { tieneRol } from "@/lib/security/sesion";
 export const metadata = { title: "Citas" };
 
 export default async function Citas({ searchParams }: PageProps<"/mando/citas">) {
+  const sesion = await exigirDireccion();
   const parametros = await searchParams;
   const todas = parametros.todas === "1";
   const nivel = parametros.nivel === "urgente" || parametros.nivel === "puede_esperar" ? parametros.nivel : null;
-  const sesion = await exigirRol("viewer");
   const postgres = await comprobarPostgres();
   const dbOk = postgres.estado === "operativo";
   const citas = dbOk ? (await listarCitas({ abiertas: !todas })).filter((c) => !nivel || c.nivel === nivel) : [];

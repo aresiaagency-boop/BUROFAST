@@ -1,28 +1,30 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { db, isDatabaseConfigured } from "@/lib/db";
 import type { IdentidadGoogle } from "@/lib/auth/google";
-import { DURACION_SESION_S, INACTIVIDAD_MAX_S, nuevoIdSesion } from "@/lib/security/sesion";
+import { claveHuella, DURACION_SESION_S, INACTIVIDAD_MAX_S, nuevoIdSesion } from "@/lib/security/sesion";
 
 // Barrera de la Dirección. Solo entra la cuenta de Google de A.R.E.S.:
 //  1. Google OIDC con PKCE, state y nonce; nada de contraseñas.
 //  2. Correo exacto de OWNER_EMAIL, verificado por Google.
-//  3. Autenticación reciente: Google vuelve a pedir la contraseña (max_age).
+//  3. Edad de la sesión de Google: se pide auth_time con «claims». Google
+//     solo lo envía con la app verificada y «Session age claims» activado
+//     (Google Auth Platform → Settings → Advanced); si llega, tiene que ser de
+//     hace menos de 10 minutos. Google no admite max_age ni prompt=login: no
+//     se puede obligar a repetir la contraseña, solo comprobar cuándo fue.
 //  4. La cuenta queda fijada por su «sub» de Google en el primer acceso.
 //  5. Sesión en servidor: revocable, una sola activa, ligada al navegador,
 //     cuatro horas como máximo y treinta minutos de inactividad.
-//  6. Bloqueo: 5 fallos en una hora bloquean la IP. Además, 20 intentos en
-//     una hora de cuentas de Google que no son la de A.R.E.S., vengan de donde
-//     vengan, cierran la puerta durante esa hora. Solo cuentan para ese
-//     bloqueo global los intentos que superan el login de Google (caros de
-//     fabricar): peticiones basura no pueden dejar fuera a la Dirección.
+//  6. Bloqueo por IP: 5 fallos en una hora. No hay bloqueo global: con una
+//     sola cuenta de Google y cuatro IP cualquiera dejaría fuera a A.R.E.S.
+//     En su lugar, la Dirección enseña los intentos rechazados de 24 h.
 // Sin base de datos no hay Dirección: la barrera falla cerrada.
 
 export const MAX_EDAD_AUTENTICACION_S = 10 * 60;
 export const FALLOS_POR_IP = 5;
-export const FALLOS_GLOBALES = 20;
 export const VENTANA_FALLOS_MS = 60 * 60_000;
 
-export const huella = (valor: string) => createHash("sha256").update(`burofast:direccion:${valor}`).digest("base64url");
+// HMAC con clave derivada de AUTH_SECRET: lo guardado no se puede revertir.
+export const huella = (valor: string) => createHmac("sha256", claveHuella()).update(valor).digest("base64url");
 
 export type MotivoRechazo = "sin_owner" | "otra_cuenta" | "no_verificada" | "autenticacion_antigua" | "identidad_distinta";
 
@@ -35,7 +37,8 @@ export function evaluarIdentidad(
   if (!owner) return { ok: false, motivo: "sin_owner" };
   if (identidad.email !== owner) return { ok: false, motivo: "otra_cuenta" };
   if (!identidad.verificada) return { ok: false, motivo: "no_verificada" };
-  if (typeof identidad.authTime !== "number" || contexto.ahoraS - identidad.authTime > MAX_EDAD_AUTENTICACION_S || identidad.authTime - contexto.ahoraS > 60) {
+  // Sin auth_time (app sin verificar o ajuste apagado) no hay nada que medir.
+  if (typeof identidad.authTime === "number" && (contexto.ahoraS - identidad.authTime > MAX_EDAD_AUTENTICACION_S || identidad.authTime - contexto.ahoraS > 60)) {
     return { ok: false, motivo: "autenticacion_antigua" };
   }
   if (contexto.subFijado && contexto.subFijado !== huella(identidad.sub)) return { ok: false, motivo: "identidad_distinta" };
@@ -61,27 +64,38 @@ async function fallosRecientes(ambito: string) {
 export async function direccionBloqueada(ip: string) {
   // Si la base no responde, se trata como bloqueada: nunca se abre a ciegas.
   try {
-    const [porIp, global] = await Promise.all([fallosRecientes(`ip:${ip}`), fallosRecientes("global")]);
-    return porIp >= FALLOS_POR_IP || global >= FALLOS_GLOBALES;
+    return (await fallosRecientes(`ip:${ip}`)) >= FALLOS_POR_IP;
   } catch {
     return true;
   }
 }
 
-export async function registrarFallo(ip: string, opciones: { global: boolean }) {
+export async function registrarFallo(ip: string) {
   const segundos = VENTANA_FALLOS_MS / 1000;
-  for (const ambito of opciones.global ? [`ip:${ip}`, "global"] : [`ip:${ip}`]) {
-    try {
-      await db()`
-        insert into limites (clave, ventana_inicio, cuenta) values (${claveFallo(ambito)}, now(), 1)
-        on conflict (clave) do update set
-          cuenta = case when limites.ventana_inicio < now() - make_interval(secs => ${segundos}) then 1 else limites.cuenta + 1 end,
-          ventana_inicio = case when limites.ventana_inicio < now() - make_interval(secs => ${segundos}) then now() else limites.ventana_inicio end
-      `;
-    } catch {
-      // Si no se puede contar, direccionBloqueada ya falla cerrada.
-    }
+  try {
+    await db()`
+      insert into limites (clave, ventana_inicio, cuenta) values (${claveFallo(`ip:${ip}`)}, now(), 1)
+      on conflict (clave) do update set
+        cuenta = case when limites.ventana_inicio < now() - make_interval(secs => ${segundos}) then 1 else limites.cuenta + 1 end,
+        ventana_inicio = case when limites.ventana_inicio < now() - make_interval(secs => ${segundos}) then now() else limites.ventana_inicio end
+    `;
+  } catch {
+    // Si no se puede contar, direccionBloqueada ya falla cerrada.
   }
+}
+
+// Vigilancia en lugar de bloqueo global: lo que la Dirección enseña al entrar.
+export type RechazosDireccion = { total: number; cuentasAjenas: number; ultimo: Date | null };
+
+export async function rechazosRecientes(): Promise<RechazosDireccion> {
+  const [fila] = await db()<{ total: number; ajenas: number; ultimo: Date | null }[]>`
+    select count(*)::int as total,
+           count(*) filter (where parametros_redactados->>'motivo' in ('otra_cuenta', 'identidad_distinta', 'no_verificada'))::int as ajenas,
+           max(creado_en) as ultimo
+    from audit_logs
+    where accion = 'direccion.acceso' and resultado = 'rechazado' and creado_en > now() - interval '24 hours'
+  `;
+  return { total: fila?.total ?? 0, cuentasAjenas: fila?.ajenas ?? 0, ultimo: fila?.ultimo ?? null };
 }
 
 // --- Identidad fijada --------------------------------------------------------

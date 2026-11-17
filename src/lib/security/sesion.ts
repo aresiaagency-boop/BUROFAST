@@ -32,6 +32,15 @@ export function autenticacionConfigurada() {
   return secretoValido() && Boolean(process.env.OWNER_EMAIL?.trim() && process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim());
 }
 
+// Clave de las huellas de la Dirección (sub de Google, IP, navegador, sid),
+// derivada de AUTH_SECRET y distinta de la que firma la cookie. Con SHA-256 a
+// secas una IP se recupera probando las 2^32 posibles; con HMAC no.
+// Rotar AUTH_SECRET invalida las sesiones y el «sub» fijado: hay que vaciar
+// direccion_identidad (docs/variables-entorno.md).
+export function claveHuella() {
+  return createHmac("sha256", secreto()).update("burofast:direccion:huella").digest();
+}
+
 function firmar(cuerpo: string) {
   return createHmac("sha256", secreto()).update(`direccion:${cuerpo}`).digest("base64url");
 }
