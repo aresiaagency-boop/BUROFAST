@@ -50,6 +50,8 @@ npx next typegen     # genera PageProps/RouteContext si tsc no los encuentra
 - `AGENTS.md` (lo reescribe `next dev`).
 - Cualquier `.env*`. Las variables se documentan en `docs/variables-entorno.md`.
 - `infrastructure/n8n/hestia.workflow.json` a mano: se regenera con `scripts/n8n/construir-hestia.py`. Nunca con `pinData`.
+- `public/mapa/mapamundi.jpg`: el mapamundi de A.R.E.S., tal cual. Todo el radar se dibuja encima, sobre su plano.
+- `public/mapa/paises.<hash>.json` y `src/lib/radar-paises.ts` a mano: se regeneran con `scripts/mapa/generar-paises.mjs` (zonas de idioma y grupos de pasaporte viven en ese script; la calibración, en `src/lib/mapa-calibracion.json`).
 
 ## Revisión
 

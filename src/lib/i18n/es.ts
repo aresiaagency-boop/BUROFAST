@@ -22,6 +22,22 @@ export const es: Diccionario = {
     contenido: (p) => `${p.rutas} rutas · ${p.agentes} agentes · ${p.citas} tipos de cita · ${p.idiomas} idiomas`,
     zonas: { es: "Latinoamérica", en: "Reino Unido y África anglófona", fr: "África francófona", pt: "Brasil y África lusófona", ar: "Magreb y Oriente Medio", uk: "Ucrania" },
   },
+  radarExtranjeria: {
+    titulo: {
+      nucleo: "Radar de extranjería: tu idioma, tu pasaporte y tu país hasta España",
+      camino: "Radar de ARIADNA: el hilo de tu ruta hasta España",
+      citas: "Reloj de CRONOS: las citas que pide tu ruta",
+      documentos: "Escáner de MNEMÓSINE: tus documentos, de tu país a España",
+      guardian: "Vigía de ARGOS: el plazo de tu tarjeta",
+      expediente: "Recorrido de HESTIA: las etapas de tu expediente",
+      pagos: "Radar de pagos: cobro seguro con Stripe",
+      acceso: "Radar de la Dirección: sede de Palma",
+    },
+    leyenda: { idioma: "Tu idioma", pasaporte: "Tu pasaporte", pais: "Tu país", meta: "España · sede en Palma", estasEnEspana: "Estás en España" },
+    pais: { etiqueta: "Tu país (opcional)", ninguno: "Sin elegir", ayuda: "Solo para el radar: se queda en este dispositivo y no cambia tu diagnóstico." },
+    etapa: (etapa) => `Etapa actual: ${etapa}`,
+    rumbo: (etapa) => `Tu expediente va hacia: ${etapa}`,
+  },
   comun: {
     atras: "Atrás",
     continuar: "Continuar",

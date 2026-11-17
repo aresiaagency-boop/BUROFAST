@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { COLOR_AGENTE, EmblemaAgente } from "@/components/holo/EmblemaAgente";
-import type { Estacion } from "@/components/holo/NucleoHestia";
-import { NucleoHestia } from "@/components/holo/NucleoHestia";
+import { RadarPagina, SelectorPais } from "@/components/holo/RadarPagina";
 import { hoyIso } from "@/lib/almacen";
 import { CITAS } from "@/lib/catalogo";
 import { DICCIONARIOS } from "@/lib/i18n";
@@ -13,13 +12,11 @@ import type { MotorId } from "@/lib/motores";
 import { AGENTE_DE_MOTOR, AGENTES, motorArgos, MOTORES } from "@/lib/motores";
 import { useAlmacen } from "@/lib/useAlmacen";
 
-// Ángulo de cada motor en la órbita del núcleo.
-const ANGULO: Record<MotorId, number> = { camino: 300, citas: 12, documentos: 84, guardian: 156, expediente: 228 };
 const REGLAS_PORTADA = ["abogado_revisa", "cita_gratis", "sin_bots", "urgente_no_salta_cola", "asilo_persona", "datos_cifrados"] as const;
 
 export function NucleoPagina({ locale, expedientes }: { locale: Locale; expedientes: number | null }) {
   const t = DICCIONARIOS[locale];
-  const { listo, camino, documentos, guardian } = useAlmacen();
+  const { listo, camino, documentos, guardian, pais } = useAlmacen();
   const ruta = camino.ruta;
 
   // Avance real del camino: terminado, con ruta, a medias o sin empezar.
@@ -37,12 +34,14 @@ export function NucleoPagina({ locale, expedientes }: { locale: Locale; expedien
     expediente: expedientes === null ? t.nucleo.estadoExpediente.sinSesion : t.nucleo.estadoExpediente.conSesion(expedientes),
   };
 
-  const estaciones: Estacion[] = MOTORES.map((m) => ({
-    id: m,
-    angulo: ANGULO[m],
-    color: COLOR_AGENTE[AGENTE_DE_MOTOR[m]],
-    activa: (m === "camino" && Boolean(ruta)) || (m === "guardian" && Boolean(guardian)) || (m === "expediente" && Boolean(expedientes)),
-  }));
+  // Motores encendidos en el aro del radar: los que ya trabajan para ti.
+  const activos: Partial<Record<MotorId, boolean>> = {
+    camino: Boolean(ruta),
+    citas: Boolean(ruta && ruta.citas.some((c) => CITAS[c].gestionable)),
+    documentos: Boolean(ruta && ruta.documentos.some((d) => documentos[d] === "tengo")),
+    guardian: Boolean(guardian),
+    expediente: Boolean(expedientes),
+  };
 
   const textoAccion = camino.referencia ? t.listo.verExpediente : camino.empezado ? t.nucleo.continuar : t.nucleo.empezar;
   const hrefAccion = camino.referencia ? `/${locale}/expediente` : `/${locale}/camino`;
@@ -62,9 +61,16 @@ export function NucleoPagina({ locale, expedientes }: { locale: Locale; expedien
             <Link className="boton-cristal plasma-oro" href={hrefAccion}>{textoAccion}</Link>
             {!camino.referencia && <small>{t.nucleo.duracion}</small>}
           </div>
+          {/* En móvil el radar va arriba y sin pie: el país se elige aquí. */}
+          <div className="portada-pais-movil rx-figura--nucleo">
+            <SelectorPais locale={locale} pais={pais} />
+          </div>
         </div>
         <div className="portada-nucleo marco-hud">
-          <NucleoHestia tamano={380} progreso={progreso} estaciones={estaciones} etiqueta={`HESTIA · ${t.agentes.HESTIA.frase}`} />
+          <RadarPagina locale={locale} variante="nucleo" progreso={progreso} activos={activos} />
+          <div className="portada-pais-escritorio rx-figura--nucleo">
+            <SelectorPais locale={locale} pais={pais} />
+          </div>
           <div className="lecturas">
             <div className="lectura"><span className="lectura-nombre">{t.nucleo.lecturas.idioma}</span><span className="lectura-valor">{NOMBRE_NATIVO[locale]}</span></div>
             <div className="lectura"><span className="lectura-nombre">{t.nucleo.lecturas.agentes}</span><span className="lectura-valor">{AGENTES.length}</span></div>

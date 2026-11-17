@@ -35,7 +35,7 @@ export default async function Citas({ params }: PageProps<"/[lang]/citas">) {
 
   return (
     <>
-      <CabeceraMotor locale={lang} agente="CRONOS" titulo={t.motorCitas.titulo} narrativa={t.motorCitas.narrativa} />
+      <CabeceraMotor locale={lang} agente="CRONOS" radar="citas" titulo={t.motorCitas.titulo} narrativa={t.motorCitas.narrativa} />
       {citas.length > 0 && (
         <section className="cristal cristal--grande bloque">
           <h2>{t.motorCitas.enExpediente}</h2>

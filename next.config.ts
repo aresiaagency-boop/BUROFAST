@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
         ],
       },
+      // Trazados del radar: el nombre lleva el hash del contenido.
+      {
+        source: "/mapa/:archivo(paises\\.[a-f0-9]{10}\\.json)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
       // La Dirección no se indexa ni se guarda en ninguna caché.
       {
         source: "/mando/:ruta*",

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Cristal, DefsCristal } from "@/components/holo/RadarExtranjeria";
+import { useTrazados } from "@/components/holo/useRadarVivo";
 import { DICCIONARIOS } from "@/lib/i18n";
-import { LOCALES, type Locale } from "@/lib/i18n/locales";
+import { esLocale, LOCALES, type Locale } from "@/lib/i18n/locales";
 import { MAPA, MERIDIANOS, PERIODO_BARRIDO_S, SEDE, ZONAS, type SenalesRadar } from "@/lib/radar";
 
 // Radar holográfico de la portada sobre el mapamundi de A.R.E.S. El haz barre
@@ -40,9 +42,25 @@ function arco(x: number, y: number) {
   return `M${x} ${y}Q${(mx - dy * 0.22).toFixed(1)} ${(my + dx * 0.22).toFixed(1)} ${SEDE.x} ${SEDE.y}`;
 }
 
+// Cristal de las zonas: ids fijos, la portada tiene un solo radar.
+const IDS_CRISTAL = { relieve: "radar-relieve", sombra: "radar-sombra", halo: "radar-halo", reflejo: "radar-reflejo" };
+
+// El idioma del navegador, si es uno de los seis: su zona se alza sola hasta
+// que el usuario señala otro.
+function idiomaNavegador(): Locale | null {
+  for (const l of navigator.languages ?? [navigator.language]) {
+    const corto = l.slice(0, 2).toLowerCase();
+    if (esLocale(corto)) return corto;
+  }
+  return null;
+}
+const sinSuscripcion = () => () => {};
+
 const retardo = (angulo: number) => `${((angulo / 360) * PERIODO_BARRIDO_S).toFixed(2)}s`;
 
 export function RadarMundial() {
+  const trazados = useTrazados();
+  const sugerido = useSyncExternalStore(sinSuscripcion, idiomaNavegador, () => null);
   const [senales, setSenales] = useState<SenalesRadar | null>(null);
   const [sinSenal, setSinSenal] = useState(false);
 
@@ -79,7 +97,7 @@ export function RadarMundial() {
   const estadoBase = !senales ? null : senales.baseDatos.estado === "operativo" ? "operativo" : senales.baseDatos.estado === "no_configurado" ? "aviso" : "error";
 
   return (
-    <figure className="radar" aria-label={t.titulo}>
+    <figure className="radar" aria-label={t.titulo} data-sugerido={sugerido ?? undefined}>
       <svg className="radar-lienzo" viewBox={`${-MARGEN} ${-MARGEN} ${lado + MARGEN * 2} ${lado + MARGEN * 2}`} role="img" aria-labelledby="radar-titulo radar-desc">
         <title id="radar-titulo">{t.titulo}</title>
         <desc id="radar-desc">{t.descripcion}</desc>
@@ -94,6 +112,7 @@ export function RadarMundial() {
             <stop offset="0.72" stopColor="#040c17" stopOpacity="0" />
             <stop offset="1" stopColor="#040c17" stopOpacity="0.55" />
           </radialGradient>
+          <DefsCristal ids={IDS_CRISTAL} lado={lado} />
           <filter id="radar-brillo" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="b" />
             <feMerge>
@@ -126,6 +145,15 @@ export function RadarMundial() {
         {/* El mapamundi tal cual, recortado a su disco. */}
         <image href="/mapa/mapamundi.jpg" x={0} y={0} width={lado} height={lado} clipPath="url(#radar-disco)" preserveAspectRatio="xMidYMid slice" />
         <circle cx={cx} cy={cy} r={radio} fill="url(#radar-viñeta)" />
+        {/* Zonas de idioma en cristal: se alza la que señalas. */}
+        <g className="radar-cristales" clipPath="url(#radar-disco)">
+          {trazados &&
+            LOCALES.map((l) => (
+              <g key={l} className="radar-cristal" data-idioma={l}>
+                <Cristal d={trazados.zonas[l]} nivel="zona" ids={IDS_CRISTAL} grosor={lado * 0.0055} />
+              </g>
+            ))}
+        </g>
         <circle cx={cx} cy={cy} r={radio} className="radar-borde" />
 
         {/* Haz del radar con su estela. */}

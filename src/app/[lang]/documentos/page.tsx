@@ -16,7 +16,7 @@ export default async function Documentos({ params }: PageProps<"/[lang]/document
   const t = DICCIONARIOS[lang];
   return (
     <>
-      <CabeceraMotor locale={lang} agente="MNEMOSINE" titulo={t.motorDocumentos.titulo} narrativa={t.motorDocumentos.narrativa} />
+      <CabeceraMotor locale={lang} agente="MNEMOSINE" radar="documentos" titulo={t.motorDocumentos.titulo} narrativa={t.motorDocumentos.narrativa} />
       <MotorDocumentos locale={lang} />
     </>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { COLOR_AGENTE, EmblemaAgente } from "@/components/holo/EmblemaAgente";
-import { NucleoHestia } from "@/components/holo/NucleoHestia";
+import { RadarMini } from "@/components/holo/RadarExtranjeria";
 import { CLAVE_CONVERSACION, leerCamino } from "@/lib/almacen";
 import { emitirHestia, EVENTO_PREGUNTAR } from "@/lib/hestia/vivo";
 import { DICCIONARIOS } from "@/lib/i18n";
@@ -149,7 +149,7 @@ export function HestiaConsola({ locale, abierta, aperturas, onCerrar, whatsapp }
       }}
     >
       <div className="consola-cabecera">
-        <NucleoHestia tamano={44} etiqueta="" />
+        <RadarMini tamano={44} />
         <div>
           <h2>{t.hestia.titulo}</h2>
           <p>{t.hestia.subtitulo}</p>
@@ -191,7 +191,7 @@ export function HestiaConsola({ locale, abierta, aperturas, onCerrar, whatsapp }
         )}
         {enviando && (
           <p className="consola-pensando">
-            <NucleoHestia tamano={22} mini etiqueta="" estadoInicial="pensando" />
+            <RadarMini tamano={22} estadoInicial="pensando" />
             {t.hestia.pensando}
           </p>
         )}

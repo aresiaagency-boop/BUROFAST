@@ -13,6 +13,7 @@ import type { PasoId } from "@/lib/i18n/tipos";
 import { Icono, type NombreIcono } from "@/components/Iconos";
 import { Sendero } from "@/components/funnel/Sendero";
 import { EmblemaAgente } from "@/components/holo/EmblemaAgente";
+import { RadarPagina } from "@/components/holo/RadarPagina";
 import { borrar, CLAVE_CAMINO, escribir } from "@/lib/almacen";
 import { emitirHestia } from "@/lib/hestia/vivo";
 
@@ -106,6 +107,9 @@ export function Funnel({ locale, whatsapp, enlacePrivacidad }: { locale: Locale;
     try {
       const texto = sessionStorage.getItem(CLAVE_ALMACEN);
       if (texto) guardado = { ...INICIAL, ...(JSON.parse(texto) as Estado) };
+      // Un historial de otra versión o manipulado no puede tumbar el camino.
+      const historial = (Array.isArray(guardado.historial) ? guardado.historial : []).filter((p): p is PasoId => typeof p === "string" && Object.hasOwn(HITO, p));
+      guardado = { ...guardado, historial: historial.length ? historial : INICIAL.historial };
     } catch {
       // Navegación privada o almacenamiento bloqueado: se empieza de cero.
     }
@@ -139,9 +143,17 @@ export function Funnel({ locale, whatsapp, enlacePrivacidad }: { locale: Locale;
       <Sendero hito={HITO[paso]} capitulo={textos.capitulo} meta={t.comun.meta} rtl={rtl} />
 
       <main className="escena entrar" key={paso} aria-live="polite">
-        <p className="capitulo">{textos.capitulo}</p>
-        <h1 className="titulo-paso" tabIndex={-1} ref={tituloRef}>{textos.titulo}</h1>
-        <p className="narrativa">{textos.narrativa}</p>
+        <div className="escena-cabecera">
+          <div className="escena-texto">
+            <p className="capitulo">{textos.capitulo}</p>
+            <h1 className="titulo-paso" tabIndex={-1} ref={tituloRef}>{textos.titulo}</h1>
+            <p className="narrativa">{textos.narrativa}</p>
+          </div>
+          {/* El radar de ARIADNA sigue tus respuestas: idioma, pasaporte y dónde estás. */}
+          <div className="escena-radar">
+            <RadarPagina locale={locale} variante="camino" respuestas={estado.respuestas} ruta={ruta} conLeyenda={false} />
+          </div>
+        </div>
         {(paso === "situacion" || paso === "tiempo" || paso === "pasaporte") && (
           <p className="aviso-ia" style={{ marginTop: -12, marginBottom: 18 }}>{t.comun.privacidadCorta}</p>
         )}

@@ -1,0 +1,204 @@
+/* ------------------------------------------------------------------
+   Radar de extranjería. Un mapamundi, el de A.R.E.S., en todas las
+   páginas; lo elegido por el usuario en cristal en relieve con bordes de
+   plasma vivo. Cada página tiñe el radar con el color de su agente y le
+   pone su instrumento. Sin movimiento si el usuario lo pide.
+------------------------------------------------------------------- */
+.rx,
+.rx-figura { --rx-tono: var(--cian); --rx-barrido: var(--rx-tono); }
+.rx--nucleo, .rx-figura--nucleo { --rx-tono: var(--holo); --rx-barrido: var(--oro); }
+.rx--camino, .rx-figura--camino { --rx-tono: var(--agente-ariadna); }
+.rx--citas, .rx-figura--citas { --rx-tono: var(--agente-cronos); }
+.rx--documentos, .rx-figura--documentos { --rx-tono: var(--agente-mnemosine); }
+.rx--guardian, .rx-figura--guardian { --rx-tono: var(--agente-argos); }
+.rx--expediente, .rx-figura--expediente { --rx-tono: var(--cian); --rx-barrido: var(--oro); }
+.rx--pagos { --rx-tono: var(--verde-texto); }
+.rx--acceso { --rx-tono: var(--oro); }
+
+.rx { display: block; width: 100%; height: auto; overflow: visible; }
+.rx :is(path, line, circle) { vector-effect: non-scaling-stroke; }
+
+.rx-fondo { fill: rgba(4, 12, 23, 0.55); filter: drop-shadow(0 0 22px color-mix(in srgb, var(--rx-tono) 32%, transparent)); }
+.rx-tinte { fill: var(--rx-tono); mix-blend-mode: color; opacity: 0.16; }
+.rx--acceso .rx-mapa { filter: grayscale(1) sepia(0.35) brightness(0.82) contrast(1.15); }
+.rx-borde { fill: none; stroke: var(--rx-tono); stroke-width: 1.5; opacity: 0.85; filter: drop-shadow(0 0 6px var(--rx-tono)); }
+.rx-aro { transform-box: fill-box; transform-origin: center; animation: rx-giro 160s linear infinite; }
+.rx-marca { stroke: color-mix(in srgb, var(--rx-tono) 38%, transparent); stroke-width: 1; }
+.rx-marca--mayor { stroke: var(--rx-tono); stroke-width: 1.4; }
+.rx-aro-guion { fill: none; stroke: color-mix(in srgb, var(--rx-tono) 32%, transparent); stroke-width: 1; stroke-dasharray: 2 8; }
+.rx-avance { fill: none; stroke: var(--oro); stroke-width: 3.2; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--oro)); }
+.rx-estacion path { fill: color-mix(in srgb, var(--rx-marca) 22%, #071322); stroke: var(--rx-marca); stroke-width: 1.4; }
+.rx-estacion[data-activa] path { fill: var(--rx-marca); stroke: #ffffff; }
+
+/* --- Cristal en relieve con plasma -------------------------------------
+   Cada nivel fija cuánto vidrio, cuánto plasma y cuánto se alza. */
+.rx-cristal { --rx-nivel: var(--rx-tono); --rx-cara: 0.3; --rx-halo: 0.6; --rx-filo: 0.9; --rx-chispa: 1; --rx-reflejo: 0.6; --rx-alza: 0.6; }
+.rx-cristal--zona { --rx-cara: 0.15; --rx-halo: 0.4; --rx-filo: 0.6; --rx-chispa: 0.55; --rx-reflejo: 0.35; --rx-alza: 0.3; }
+.rx-cristal--grupo { --rx-cara: 0.24; --rx-halo: 0.55; --rx-filo: 0.85; --rx-chispa: 0.85; --rx-reflejo: 0.5; --rx-alza: 0.6; }
+.rx-cristal--pais { --rx-nivel: color-mix(in srgb, var(--rx-tono) 45%, #ffffff); --rx-cara: 0.55; --rx-halo: 1; --rx-filo: 1; --rx-chispa: 1; --rx-reflejo: 0.9; --rx-alza: 1.2; }
+.rx-cristal--sede { --rx-nivel: var(--oro); --rx-cara: 0.5; --rx-halo: 0.85; --rx-filo: 1; --rx-chispa: 1; --rx-reflejo: 0.8; --rx-alza: 1; }
+/* Lo concreto manda: con grupo o país, la zona da un paso atrás. */
+.rx[data-con-grupo] .rx-cristal--zona { --rx-cara: 0.08; --rx-halo: 0.18; --rx-filo: 0.45; --rx-chispa: 0.25; --rx-alza: 0.15; }
+/* Con país, todo lo demás se apaga para que tu país sea el que brille. */
+.rx[data-con-pais] .rx-cristal--zona { --rx-cara: 0.05; --rx-halo: 0.08; --rx-filo: 0.3; --rx-chispa: 0; --rx-reflejo: 0.15; --rx-alza: 0; }
+.rx[data-con-pais] .rx-cristal--grupo { --rx-cara: 0.08; --rx-halo: 0.15; --rx-filo: 0.45; --rx-chispa: 0.2; --rx-reflejo: 0.25; --rx-alza: 0.2; }
+
+.rx-cristal-sombra { fill: #000000; opacity: calc(0.55 * var(--rx-alza)); }
+.rx-cristal-canto { fill: color-mix(in srgb, var(--rx-nivel) 48%, #02060c); opacity: calc(0.35 + 0.6 * var(--rx-alza)); }
+.rx-cristal-cara { fill: var(--rx-nivel); fill-opacity: var(--rx-cara); }
+.rx-cristal-reflejo { opacity: var(--rx-reflejo); mix-blend-mode: screen; }
+.rx-plasma-halo { fill: none; stroke: var(--rx-nivel); stroke-width: 6; opacity: var(--rx-halo); }
+.rx-plasma-filo { fill: none; stroke: var(--rx-nivel); stroke-width: 1.5; stroke-linejoin: round; opacity: var(--rx-filo); }
+.rx-plasma-chispa { fill: none; stroke: color-mix(in srgb, var(--rx-nivel) 28%, #ffffff); stroke-width: 1.2; stroke-linejoin: round; stroke-dasharray: 22 9 5 9; opacity: var(--rx-chispa); }
+/* El plasma vivo, solo donde importa y es pequeño: tu país y España. Animar
+   el borde de una zona entera repinta el radar en cada fotograma. */
+.rx-cristal:is(.rx-cristal--pais, .rx-cristal--sede) .rx-plasma-halo { animation: rx-parpadeo 4.3s linear infinite; }
+.rx-cristal:is(.rx-cristal--pais, .rx-cristal--sede) .rx-plasma-chispa { animation: rx-flujo 2.8s linear infinite; }
+/* El vidrio se alza sobre su canto: la cara, el reflejo y el plasma suben. */
+.rx-cristal-cara,
+.rx-cristal-reflejo,
+.rx-plasma-halo,
+.rx-plasma-filo,
+.rx-plasma-chispa { transform: translate(calc(var(--rx-alza) * var(--rx-u, 1) * -0.8px), calc(var(--rx-alza) * var(--rx-u, 1) * -2.4px)); transition: transform 320ms var(--ease-plasma, ease), opacity 320ms; }
+
+/* --- Hilo hasta la sede -------------------------------------------------- */
+.rx-hilo-halo { fill: none; stroke: var(--rx-tono); stroke-width: 6; opacity: 0.4; }
+.rx-hilo-trazo { fill: none; stroke: color-mix(in srgb, var(--rx-tono) 35%, #ffffff); stroke-width: 1.6; stroke-dasharray: 3 6; animation: rx-flujo-hilo 1.4s linear infinite; }
+.rx-hilo--ariadna .rx-hilo-trazo { vector-effect: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 0; animation: rx-tejer 5.5s ease-in-out infinite; }
+.rx-hilo-origen { fill: var(--rx-tono); stroke: #ffffff; stroke-width: 1.2; }
+
+/* --- Sede de Palma ------------------------------------------------------- */
+.rx-sede-rombo { fill: var(--oro); stroke: #fff6dc; stroke-width: 1.2; }
+.rx-sede-onda { fill: none; stroke: var(--oro); stroke-width: 1.6; transform-box: fill-box; transform-origin: center; animation: rx-onda 2.4s ease-out infinite; }
+.rx-sede-aqui { fill: none; stroke: #fff6dc; stroke-width: 1.2; stroke-dasharray: 3 4; transform-box: fill-box; transform-origin: center; animation: rx-giro 12s linear infinite; }
+
+/* --- Barrido -------------------------------------------------------------- */
+.rx-barrido,
+.rx-reloj-segundero,
+.rx-mini-barrido { transform-box: fill-box; transform-origin: center; animation-name: rx-giro; animation-timing-function: linear; animation-iteration-count: infinite; }
+.rx-barrido { mix-blend-mode: screen; }
+.rx-caja { fill: none; stroke: none; }
+.rx-estela { fill: var(--rx-barrido); }
+.rx-haz { stroke: color-mix(in srgb, var(--rx-barrido) 30%, #ffffff); stroke-width: 2; filter: drop-shadow(0 0 6px var(--rx-barrido)); }
+.rx[data-estado="pensando"] .rx-barrido { animation-duration: 2.4s !important; }
+.rx[data-estado="exito"] { --rx-barrido: var(--verde-texto); }
+.rx[data-estado="alerta"] { --rx-tono: var(--ambar-texto); --rx-barrido: var(--ambar-texto); }
+.rx[data-estado="desconectada"] { filter: saturate(0.3) brightness(0.8); }
+
+/* --- ARIADNA · laberinto --------------------------------------------------- */
+.rx-laberinto-anillo { fill: none; stroke: color-mix(in srgb, var(--rx-tono) 50%, transparent); stroke-width: 1.2; stroke-dasharray: 70 16 24 16; transform-box: fill-box; transform-origin: center; animation: rx-giro linear infinite; }
+.rx-laberinto-anillo[data-sentido="antihorario"] { animation-name: rx-giro-inverso; }
+
+/* --- CRONOS · reloj ------------------------------------------------------- */
+.rx-reloj-hora { stroke: var(--rx-tono); stroke-width: 2; }
+.rx-reloj-minuto { stroke: color-mix(in srgb, var(--rx-tono) 42%, transparent); stroke-width: 1; }
+.rx-reloj-cita path { fill: color-mix(in srgb, var(--rx-tono) 25%, #071322); stroke: color-mix(in srgb, var(--rx-tono) 60%, transparent); stroke-width: 1.2; }
+.rx-reloj-cita[data-tuya] path { fill: color-mix(in srgb, var(--rx-tono) 70%, #ffffff); stroke: #ffffff; stroke-width: 1.4; transform-box: fill-box; transform-origin: center; animation: rx-latido 2.4s ease-in-out infinite; }
+.rx-reloj-segundero { animation-duration: 60s; animation-timing-function: steps(60); }
+.rx-reloj-estela { fill: var(--rx-tono); opacity: 0.2; }
+.rx-reloj-aguja { stroke: #ffffff; stroke-width: 1.6; filter: drop-shadow(0 0 4px var(--rx-tono)); }
+.rx-reloj-aguja-hora { stroke: var(--rx-tono); stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--rx-tono)); }
+.rx-reloj-eje { fill: var(--rx-tono); stroke: #ffffff; stroke-width: 1.4; }
+
+/* --- MNEMÓSINE · escáner ------------------------------------------------- */
+.rx-escaner-rejilla { stroke: color-mix(in srgb, var(--rx-tono) 20%, transparent); stroke-width: 1; }
+.rx-escaner-haz { animation: rx-escanear 5.2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+.rx-escaner-estela { fill: var(--rx-tono); opacity: 0.16; }
+.rx-escaner-linea { stroke: color-mix(in srgb, var(--rx-tono) 30%, #ffffff); stroke-width: 2; filter: drop-shadow(0 0 6px var(--rx-tono)); }
+.rx-documento { fill: none; stroke-width: 5; stroke: color-mix(in srgb, var(--rx-tono) 22%, transparent); }
+.rx-documento[data-estado="tengo"] { stroke: var(--rx-tono); filter: drop-shadow(0 0 5px var(--rx-tono)); }
+.rx-documento[data-estado="pidiendo"] { stroke: var(--ambar-texto); }
+
+/* --- ARGOS · vigía -------------------------------------------------------- */
+.rx-vigia-onda { fill: none; stroke: var(--rx-tono); stroke-width: 1.4; opacity: 0; transform-box: fill-box; transform-origin: center; animation: rx-vigia 4.8s ease-out infinite; }
+.rx-vigia-iris { fill: none; stroke: color-mix(in srgb, var(--rx-tono) 60%, transparent); stroke-width: 1.2; stroke-dasharray: 2 6; transform-box: fill-box; transform-origin: center; animation: rx-giro 50s linear infinite; }
+.rx-vigia-iris--interior { stroke-dasharray: 14 6; animation-name: rx-giro-inverso; animation-duration: 30s; }
+.rx-vigia-ojo { fill: none; stroke: color-mix(in srgb, var(--rx-tono) 70%, transparent); stroke-width: 1.4; transform-box: fill-box; transform-origin: center; animation: rx-parpado 7s ease-in-out infinite; }
+.rx-cuenta { fill: none; stroke: var(--rx-tono); stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 0 5px var(--rx-tono)); }
+.rx-cuenta[data-estado="ventana"] { stroke: var(--ambar-texto); filter: drop-shadow(0 0 5px var(--ambar-texto)); }
+.rx-cuenta:is([data-estado="gracia"], [data-estado="fuera"]) { stroke: var(--rojo-texto); filter: drop-shadow(0 0 5px var(--rojo-texto)); }
+
+/* --- HESTIA · etapas del expediente -------------------------------------- */
+.rx-etapa circle { fill: #071322; stroke: var(--oro); stroke-width: 1.5; }
+.rx-etapa[data-estado="hecha"] circle { fill: var(--oro); }
+.rx-etapa[data-estado="actual"] circle { fill: var(--oro-claro); stroke: #ffffff; filter: drop-shadow(0 0 6px var(--oro)); transform-box: fill-box; transform-origin: center; animation: rx-latido 1.8s ease-in-out infinite; }
+
+/* --- Dirección · cerrojo -------------------------------------------------- */
+.rx-cerrojo-anillo { fill: none; stroke: var(--oro); stroke-width: 2; stroke-dasharray: 28 10; opacity: 0.8; transform-box: fill-box; transform-origin: center; animation: rx-giro 24s linear infinite; }
+.rx-cerrojo-anillo--interior { stroke-dasharray: 4 6; animation-name: rx-giro-inverso; animation-duration: 16s; }
+
+/* --- Glifo pequeño ------------------------------------------------------- */
+.rx-mini { --rx-mini: var(--cian); display: block; flex: none; overflow: visible; }
+.rx-mini-velo { fill: rgba(4, 12, 23, 0.32); }
+.rx-mini-barrido { animation-duration: 3.2s; }
+.rx-mini-estela { fill: var(--rx-mini); opacity: 0.5; }
+.rx-mini-haz { stroke: #ffffff; stroke-width: 3; }
+.rx-mini-borde { fill: none; stroke: var(--rx-mini); stroke-width: 4; }
+.rx-mini-aro { fill: none; stroke: var(--rx-mini); stroke-width: 3; stroke-dasharray: 3 7; opacity: 0.6; transform-box: fill-box; transform-origin: center; animation: rx-giro 20s linear infinite; }
+.rx-mini-sede { fill: var(--oro); stroke: #fff6dc; stroke-width: 1; }
+.rx-mini[data-estado="pensando"] .rx-mini-barrido { animation-duration: 0.9s; }
+.rx-mini[data-estado="pensando"] { --rx-mini: var(--agente-mnemosine); }
+.rx-mini[data-estado="hablando"] { --rx-mini: var(--oro-claro); }
+.rx-mini[data-estado="exito"] { --rx-mini: var(--verde-texto); }
+.rx-mini[data-estado="alerta"] { --rx-mini: var(--ambar-texto); }
+.rx-mini[data-estado="desconectada"] { filter: saturate(0.25) brightness(0.8); }
+
+/* --- Figura: radar, lectura, leyenda y país ------------------------------ */
+.rx-figura { margin: 0; display: grid; gap: 10px; justify-items: center; min-width: 0; }
+.rx-figura > .rx { max-width: var(--rx-tamano, 420px); }
+.rx-pie { width: 100%; display: grid; gap: 8px; color: var(--texto-suave); font-size: 0.8rem; }
+.rx-lectura { margin: 0; text-align: center; color: var(--rx-tono); font: 600 0.74rem var(--fuente-mono); letter-spacing: 0.06em; }
+.rx-leyenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; }
+.rx-leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.rx-leyenda strong { color: var(--texto); font-weight: 600; }
+.rx-leyenda [data-nivel="zona"] { --rx-nivel: var(--rx-tono); }
+.rx-leyenda [data-nivel="grupo"] { --rx-nivel: var(--rx-tono); }
+.rx-leyenda [data-nivel="pais"] { --rx-nivel: color-mix(in srgb, var(--rx-tono) 45%, #ffffff); }
+.rx-leyenda [data-nivel="sede"] { --rx-nivel: var(--oro); }
+.rx-muestra { flex: none; width: 10px; height: 10px; transform: rotate(45deg); border: 1.5px solid var(--rx-nivel); background: color-mix(in srgb, var(--rx-nivel) 35%, transparent); box-shadow: 0 0 8px var(--rx-nivel); }
+.rx-leyenda [data-nivel="zona"] .rx-muestra { background: color-mix(in srgb, var(--rx-nivel) 12%, transparent); }
+.rx-selector { display: grid; gap: 4px; justify-self: center; width: min(100%, 320px); }
+.rx-selector-etiqueta { font: 600 0.7rem var(--fuente-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--rx-tono); }
+.rx-selector select { width: 100%; padding: 9px 12px; border: 1px solid var(--linea-fuerte); border-radius: var(--radio-s); background: var(--cara); color: var(--texto); }
+.rx-selector select:focus-visible { outline: 2px solid var(--rx-tono); outline-offset: 2px; }
+.rx-selector small { color: var(--texto-tenue); font-size: 0.74rem; }
+
+/* --- Animaciones --------------------------------------------------------- */
+@keyframes rx-giro { to { transform: rotate(360deg); } }
+@keyframes rx-giro-inverso { to { transform: rotate(-360deg); } }
+@keyframes rx-flujo { to { stroke-dashoffset: -90; } }
+@keyframes rx-flujo-hilo { to { stroke-dashoffset: -18; } }
+@keyframes rx-tejer {
+  0% { stroke-dashoffset: 100; opacity: 1; }
+  62% { stroke-dashoffset: 0; opacity: 1; }
+  88% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.15; }
+}
+/* Parpadeo irregular del plasma: nunca dos destellos iguales seguidos. */
+@keyframes rx-parpadeo {
+  0%, 100% { opacity: var(--rx-halo); }
+  6% { opacity: calc(var(--rx-halo) * 0.55); }
+  8% { opacity: var(--rx-halo); }
+  31% { opacity: calc(var(--rx-halo) * 0.8); }
+  33% { opacity: calc(var(--rx-halo) * 1.15); }
+  58% { opacity: calc(var(--rx-halo) * 0.65); }
+  61% { opacity: var(--rx-halo); }
+  83% { opacity: calc(var(--rx-halo) * 1.2); }
+}
+@keyframes rx-onda { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(1.8); opacity: 0; } }
+@keyframes rx-latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.22); } }
+@keyframes rx-escanear { from { transform: translateY(-300px); } to { transform: translateY(330px); } }
+@keyframes rx-vigia { 0% { transform: scale(0.04); opacity: 0.9; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes rx-parpado { 0%, 91%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.06); } }
+
+/* Fuera de la pantalla, todo quieto. */
+.rx[data-pausado] * { animation-play-state: paused !important; }
+/* En pantallas táctiles (móviles) el halo no parpadea y el hilo no fluye: el
+   plasma sigue recorriendo tu país y España, que es lo que se mira. */
+@media (pointer: coarse) {
+  .rx .rx-plasma-halo, .rx .rx-hilo-trazo:not(.rx-hilo--ariadna *) { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rx *, .rx-mini * { animation: none !important; transition: none !important; }
+}

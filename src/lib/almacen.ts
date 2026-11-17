@@ -5,15 +5,20 @@ import type { DocumentoId, Respuestas, Ruta } from "@/lib/diagnostico";
 import { diagnosticar, respuestasSchema } from "@/lib/diagnostico";
 import type { EstadoDocumento } from "@/lib/motores";
 import { ESTADOS_DOCUMENTO } from "@/lib/motores";
+import type { PaisRadar } from "@/lib/radar";
+import { esPaisRadar } from "@/lib/radar";
 
 // Lo que la superapp recuerda en ESTE navegador (sessionStorage): las
-// respuestas del camino, las marcas de documentos y la fecha del Guardián.
+// respuestas del camino, las marcas de documentos, la fecha del Guardián y,
+// si lo eliges, tu país para el radar.
 // Nada de nombre, teléfono ni correo: eso solo viaja al servidor, cifrado.
 
 export const CLAVE_CAMINO = "burofast.camino.v1";
 export const CLAVE_DOCUMENTOS = "burofast.documentos.v1";
 export const CLAVE_GUARDIAN = "burofast.guardian.v1";
 export const CLAVE_CONVERSACION = "burofast.hestia.v1";
+// Tu país, solo para el radar: no viaja al servidor ni entra en el diagnóstico.
+export const CLAVE_PAIS = "burofast.pais.v1";
 export const EVENTO_ALMACEN = "burofast:almacen";
 
 function leer<T>(clave: string): T | null {
@@ -88,6 +93,11 @@ export function leerDocumentos(): Partial<Record<DocumentoId, EstadoDocumento>> 
 export function leerGuardian(): string | null {
   const datos = leer<{ caducidad?: string }>(CLAVE_GUARDIAN);
   return typeof datos?.caducidad === "string" && /^\d{4}-\d{2}-\d{2}$/.test(datos.caducidad) ? datos.caducidad : null;
+}
+
+export function leerPais(): PaisRadar | null {
+  const datos = leer<{ pais?: string }>(CLAVE_PAIS);
+  return esPaisRadar(datos?.pais) ? datos.pais : null;
 }
 
 export function hoyIso() {

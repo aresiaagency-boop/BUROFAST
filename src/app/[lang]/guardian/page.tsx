@@ -16,7 +16,7 @@ export default async function Guardian({ params }: PageProps<"/[lang]/guardian">
   const t = DICCIONARIOS[lang];
   return (
     <>
-      <CabeceraMotor locale={lang} agente="ARGOS" titulo={t.motorGuardian.titulo} narrativa={t.motorGuardian.narrativa} />
+      <CabeceraMotor locale={lang} agente="ARGOS" radar="guardian" titulo={t.motorGuardian.titulo} narrativa={t.motorGuardian.narrativa} />
       <MotorGuardian locale={lang} />
     </>
   );

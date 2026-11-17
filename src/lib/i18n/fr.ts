@@ -22,6 +22,22 @@ export const fr: Diccionario = {
     contenido: (p) => `${p.rutas} parcours · ${p.agentes} agents · ${p.citas} types de rendez-vous · ${p.idiomas} langues`,
     zonas: { es: "Amérique latine", en: "Royaume-Uni et Afrique anglophone", fr: "Afrique francophone", pt: "Brésil et Afrique lusophone", ar: "Maghreb et Moyen-Orient", uk: "Ukraine" },
   },
+  radarExtranjeria: {
+    titulo: {
+      nucleo: "Radar des étrangers : votre langue, votre passeport et votre pays jusqu'en Espagne",
+      camino: "Radar d'ARIADNA : le fil de votre parcours jusqu'en Espagne",
+      citas: "Horloge de CRONOS : les rendez-vous que demande votre parcours",
+      documentos: "Scanner de MNEMÓSINE : vos documents, de votre pays à l'Espagne",
+      guardian: "Vigie d'ARGOS : l'échéance de votre carte",
+      expediente: "Parcours d'HESTIA : les étapes de votre dossier",
+      pagos: "Radar des paiements : paiement sécurisé avec Stripe",
+      acceso: "Radar de la Direction : siège de Palma",
+    },
+    leyenda: { idioma: "Votre langue", pasaporte: "Votre passeport", pais: "Votre pays", meta: "Espagne · siège à Palma", estasEnEspana: "Vous êtes en Espagne" },
+    pais: { etiqueta: "Votre pays (facultatif)", ninguno: "Non choisi", ayuda: "Uniquement pour le radar : il reste sur cet appareil et ne change pas votre diagnostic." },
+    etapa: (etapa) => `Étape actuelle : ${etapa}`,
+    rumbo: (etapa) => `Votre dossier mène à : ${etapa}`,
+  },
   comun: {
     atras: "Retour",
     continuar: "Continuer",

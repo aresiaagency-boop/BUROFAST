@@ -1,4 +1,5 @@
-import { NucleoHestia } from "@/components/holo/NucleoHestia";
+import { RadarAcceso } from "@/components/holo/RadarAcceso";
+import { DICCIONARIOS } from "@/lib/i18n";
 
 const MOTIVOS: Record<string, string> = {
   error: "No se pudo completar el acceso con Google. Vuelve a intentarlo.",
@@ -18,7 +19,7 @@ export function Acceso({ google, destino, motivo }: { google: boolean; destino: 
     <main className="acceso">
       <div className="rejilla-holo" aria-hidden="true" />
       <div className="acceso-caja">
-        <NucleoHestia tamano={150} etiqueta="HESTIA" />
+        <RadarAcceso etiqueta={DICCIONARIOS.es.radarExtranjeria.titulo.acceso} />
         <p className="hud-etiqueta" style={{ justifyContent: "center" }}><span>BUROFAST</span><span>Dirección</span></p>
         <h1 className="titulo-paso" style={{ fontSize: "1.6rem" }}>Acceso a la Dirección</h1>
         <p className="metrica-fuente" style={{ textAlign: "center" }}>Solo la cuenta de Google de A.R.E.S. La primera vez que entre, quedará fijada.</p>

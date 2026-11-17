@@ -22,6 +22,22 @@ export const en: Diccionario = {
     contenido: (p) => `${p.rutas} routes · ${p.agentes} agents · ${p.citas} appointment types · ${p.idiomas} languages`,
     zonas: { es: "Latin America", en: "UK and English-speaking Africa", fr: "French-speaking Africa", pt: "Brazil and Portuguese-speaking Africa", ar: "Maghreb and Middle East", uk: "Ukraine" },
   },
+  radarExtranjeria: {
+    titulo: {
+      nucleo: "Immigration radar: your language, your passport and your country to Spain",
+      camino: "ARIADNA radar: the thread of your route to Spain",
+      citas: "CRONOS clock: the appointments your route needs",
+      documentos: "MNEMÓSINE scanner: your documents, from your country to Spain",
+      guardian: "ARGOS watch: your card's deadline",
+      expediente: "HESTIA journey: the stages of your file",
+      pagos: "Payments radar: secure checkout with Stripe",
+      acceso: "Management radar: Palma office",
+    },
+    leyenda: { idioma: "Your language", pasaporte: "Your passport", pais: "Your country", meta: "Spain · office in Palma", estasEnEspana: "You are in Spain" },
+    pais: { etiqueta: "Your country (optional)", ninguno: "Not chosen", ayuda: "Only for the radar: it stays on this device and does not change your assessment." },
+    etapa: (etapa) => `Current stage: ${etapa}`,
+    rumbo: (etapa) => `Your file is heading to: ${etapa}`,
+  },
   comun: {
     atras: "Back",
     continuar: "Continue",

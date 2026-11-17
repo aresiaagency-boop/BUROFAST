@@ -6,6 +6,7 @@ import type { EstadoLead } from "@/lib/expediente";
 import type { Locale } from "@/lib/i18n/locales";
 import type { AgenteId, EstadoDocumento, EstadoPlazo, MotorId, ReglaTemis } from "@/lib/motores";
 import type { EstadoPago, TipoPago } from "@/lib/pagos/repositorio";
+import type { VarianteRadar } from "@/lib/radar";
 
 type Opcion = { titulo: string; detalle: string };
 type Paso = { capitulo: string; titulo: string; narrativa: string };
@@ -44,6 +45,14 @@ export type Diccionario = {
     conversaciones: string;
     contenido: (p: { rutas: number; agentes: number; citas: number; idiomas: number }) => string;
     zonas: Record<Locale, string>;
+  };
+  // El radar de extranjería de cada página de la superapp.
+  radarExtranjeria: {
+    titulo: Record<VarianteRadar, string>;
+    leyenda: { idioma: string; pasaporte: string; pais: string; meta: string; estasEnEspana: string };
+    pais: { etiqueta: string; ninguno: string; ayuda: string };
+    etapa: (etapa: string) => string;
+    rumbo: (etapa: string) => string;
   };
   comun: {
     atras: string;

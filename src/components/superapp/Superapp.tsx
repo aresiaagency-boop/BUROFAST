@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EmblemaAgente, COLOR_AGENTE } from "@/components/holo/EmblemaAgente";
-import { NucleoHestia } from "@/components/holo/NucleoHestia";
+import { RadarMini } from "@/components/holo/RadarExtranjeria";
 import { SimboloBurofast } from "@/components/Marca";
 import { HestiaConsola } from "@/components/superapp/HestiaConsola";
 import { EVENTO_PREGUNTAR } from "@/lib/hestia/vivo";
@@ -117,7 +117,7 @@ export function Superapp({
             aria-controls="consola-hestia"
             onClick={() => alternarConsola(!consolaAbierta)}
           >
-            <NucleoHestia tamano={22} mini etiqueta="" />
+            <RadarMini tamano={22} />
             <span>HESTIA</span>
           </button>
           {cliente ? (
@@ -168,7 +168,7 @@ export function Superapp({
       />
       {!consolaAbierta && (
         <button type="button" className="boton-cristal boton-hestia-flotante plasma-oro" aria-label={t.app.hablarHestia} aria-controls="consola-hestia" aria-expanded={false} onClick={() => alternarConsola(true)}>
-          <NucleoHestia tamano={26} mini etiqueta="" />
+          <RadarMini tamano={26} />
           <span className="texto-largo">{t.app.hablarHestia}</span>
           <span className="solo-movil" aria-hidden="true">HESTIA</span>
         </button>

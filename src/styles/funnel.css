@@ -137,3 +137,13 @@
   .etapa::before { top: 3px; inset-inline-start: 2px; margin: 0; }
   .etapa::after { display: none; }
 }
+
+/* Cabecera de cada paso con el radar de ARIADNA a la derecha. */
+.escena-cabecera { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 200px); gap: 6px 24px; align-items: center; }
+.escena-texto { min-width: 0; }
+.escena-radar .rx-figura { --rx-tamano: 200px; }
+@media (max-width: 720px) {
+  .escena-cabecera { grid-template-columns: minmax(0, 1fr) 104px; gap: 4px 12px; }
+  .escena-radar .rx-figura { --rx-tamano: 104px; }
+  .escena-radar .rx-pie { display: none; }
+}

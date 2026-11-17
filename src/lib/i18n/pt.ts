@@ -22,6 +22,22 @@ export const pt: Diccionario = {
     contenido: (p) => `${p.rutas} percursos · ${p.agentes} agentes · ${p.citas} tipos de marcação · ${p.idiomas} línguas`,
     zonas: { es: "América Latina", en: "Reino Unido e África anglófona", fr: "África francófona", pt: "Brasil e África lusófona", ar: "Magrebe e Médio Oriente", uk: "Ucrânia" },
   },
+  radarExtranjeria: {
+    titulo: {
+      nucleo: "Radar de imigração: a tua língua, o teu passaporte e o teu país até Espanha",
+      camino: "Radar da ARIADNA: o fio do teu percurso até Espanha",
+      citas: "Relógio do CRONOS: as marcações que o teu percurso pede",
+      documentos: "Scanner da MNEMÓSINE: os teus documentos, do teu país até Espanha",
+      guardian: "Vigia do ARGOS: o prazo do teu cartão",
+      expediente: "Percurso da HESTIA: as etapas do teu processo",
+      pagos: "Radar de pagamentos: pagamento seguro com Stripe",
+      acceso: "Radar da Direção: sede em Palma",
+    },
+    leyenda: { idioma: "A tua língua", pasaporte: "O teu passaporte", pais: "O teu país", meta: "Espanha · sede em Palma", estasEnEspana: "Estás em Espanha" },
+    pais: { etiqueta: "O teu país (opcional)", ninguno: "Por escolher", ayuda: "Só para o radar: fica neste dispositivo e não muda o teu diagnóstico." },
+    etapa: (etapa) => `Etapa atual: ${etapa}`,
+    rumbo: (etapa) => `O teu processo leva a: ${etapa}`,
+  },
   comun: {
     atras: "Voltar",
     continuar: "Continuar",

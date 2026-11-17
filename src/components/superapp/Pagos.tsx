@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { NucleoHestia } from "@/components/holo/NucleoHestia";
+import { RadarExtranjeria } from "@/components/holo/RadarExtranjeria";
 import { formatearEuros } from "@/lib/catalogo";
 import { emitirHestia } from "@/lib/hestia/vivo";
 import { DICCIONARIOS } from "@/lib/i18n";
@@ -54,7 +54,9 @@ export function PagoVuelta({ locale, sesion, cancelado }: { locale: Locale; sesi
 
   return (
     <section className="cristal cristal--grande pago-escena" aria-live="polite">
-      <NucleoHestia tamano={180} etiqueta="HESTIA" estadoInicial={estado.fase === "pagado" ? "exito" : estado.fase === "comprobando" ? "pensando" : "reposo"} />
+      <div className="pago-radar">
+        <RadarExtranjeria variante="pagos" etiqueta={t.radarExtranjeria.titulo.pagos} estado={estado.fase === "pagado" ? "exito" : estado.fase === "comprobando" ? "pensando" : "reposo"} barrido={{ periodo: 6 }} />
+      </div>
       {cancelado ? (
         <>
           <h1 className="titulo-paso">{t.pago.cancelado}</h1>
@@ -115,7 +117,9 @@ export function PagoAbrir({ locale, children }: { locale: Locale; children?: Rea
 
   return (
     <section className="cristal cristal--grande pago-escena" aria-live="polite">
-      <NucleoHestia tamano={160} etiqueta="HESTIA" estadoInicial={mensaje ? "alerta" : "reposo"} />
+      <div className="pago-radar">
+        <RadarExtranjeria variante="pagos" etiqueta={t.radarExtranjeria.titulo.pagos} estado={mensaje ? "alerta" : "reposo"} barrido={{ periodo: 6 }} />
+      </div>
       <h1 className="titulo-paso">{mensaje ?? t.pago.condiciones}</h1>
       {!mensaje && (
         <>

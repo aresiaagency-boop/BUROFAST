@@ -42,6 +42,24 @@
 .puerta:has(.idioma[hreflang="ar"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="ar"],
 .puerta:has(.idioma[hreflang="uk"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="uk"] { stroke: var(--oro-claro); stroke-width: 2.2; }
 
+/* Zonas de idioma en cristal: tenues en reposo; la que señalas (o la de tu
+   navegador, mientras no señales ninguna) se alza con plasma vivo. */
+.radar-cristal .rx-cristal { --rx-tono: var(--cian); --rx-cara: 0.07; --rx-halo: 0.12; --rx-filo: 0.35; --rx-chispa: 0; --rx-reflejo: 0.15; --rx-alza: 0; --rx-reproduce: paused; }
+/* Solo la zona alzada lleva plasma en movimiento: una a la vez. */
+.radar-cristal .rx-plasma-chispa { animation: rx-flujo 2.8s linear infinite; animation-play-state: var(--rx-reproduce); }
+.puerta:has(.idioma[hreflang="es"]:is(:hover, :focus-visible)) .radar-cristal[data-idioma="es"] .rx-cristal,
+.puerta:has(.idioma[hreflang="en"]:is(:hover, :focus-visible)) .radar-cristal[data-idioma="en"] .rx-cristal,
+.puerta:has(.idioma[hreflang="fr"]:is(:hover, :focus-visible)) .radar-cristal[data-idioma="fr"] .rx-cristal,
+.puerta:has(.idioma[hreflang="pt"]:is(:hover, :focus-visible)) .radar-cristal[data-idioma="pt"] .rx-cristal,
+.puerta:has(.idioma[hreflang="ar"]:is(:hover, :focus-visible)) .radar-cristal[data-idioma="ar"] .rx-cristal,
+.puerta:has(.idioma[hreflang="uk"]:is(:hover, :focus-visible)) .radar-cristal[data-idioma="uk"] .rx-cristal,
+.puerta:not(:has(.idioma:is(:hover, :focus-visible))) .radar[data-sugerido="es"] .radar-cristal[data-idioma="es"] .rx-cristal,
+.puerta:not(:has(.idioma:is(:hover, :focus-visible))) .radar[data-sugerido="en"] .radar-cristal[data-idioma="en"] .rx-cristal,
+.puerta:not(:has(.idioma:is(:hover, :focus-visible))) .radar[data-sugerido="fr"] .radar-cristal[data-idioma="fr"] .rx-cristal,
+.puerta:not(:has(.idioma:is(:hover, :focus-visible))) .radar[data-sugerido="pt"] .radar-cristal[data-idioma="pt"] .rx-cristal,
+.puerta:not(:has(.idioma:is(:hover, :focus-visible))) .radar[data-sugerido="ar"] .radar-cristal[data-idioma="ar"] .rx-cristal,
+.puerta:not(:has(.idioma:is(:hover, :focus-visible))) .radar[data-sugerido="uk"] .radar-cristal[data-idioma="uk"] .rx-cristal { --rx-cara: 0.3; --rx-halo: 0.9; --rx-filo: 1; --rx-chispa: 1; --rx-reflejo: 0.7; --rx-alza: 1.4; --rx-reproduce: running; }
+
 .radar-hud { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: var(--radio-s); background: var(--cara); color: var(--texto-suave); font-size: 0.8rem; }
 .radar-hud p { margin: 0; }
 .radar-hud-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--cian); font: 600 0.7rem var(--fuente-mono); letter-spacing: 0.14em; text-transform: uppercase; }
@@ -75,6 +93,6 @@
   .radar-idiomas { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .radar-barrido, .radar-aro-guion, .radar-arco, .radar-sede-onda, .radar-latido { animation: none; }
+  .radar-barrido, .radar-aro-guion, .radar-arco, .radar-sede-onda, .radar-latido, .radar-cristal * { animation: none; transition: none; }
   .radar-ping { animation: none; opacity: 0.5; transform: scale(2.4); }
 }

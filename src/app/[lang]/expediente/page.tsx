@@ -7,6 +7,7 @@ import { sesionClienteActual } from "@/lib/auth/cliente";
 import { googleConfigurado } from "@/lib/auth/google";
 import { formatearEuros } from "@/lib/catalogo";
 import { isDatabaseConfigured } from "@/lib/db";
+import { ETAPA_DE_RUTA } from "@/lib/diagnostico";
 import type { EstadoLead, Expediente } from "@/lib/expediente";
 import { expedientesDeCliente } from "@/lib/expediente";
 import { DICCIONARIOS } from "@/lib/i18n";
@@ -39,7 +40,7 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
     const google = googleConfigurado();
     return (
       <>
-        <CabeceraMotor locale={lang} agente="HESTIA" titulo={t.expediente.titulo} narrativa={t.expediente.narrativa} />
+        <CabeceraMotor locale={lang} agente="HESTIA" radar="expediente" titulo={t.expediente.titulo} narrativa={t.expediente.narrativa} />
         <section className="cristal cristal--grande bloque">
           {acceso && acceso !== "no_configurado" && <p className="alerta-holo error" role="alert" style={{ marginBottom: 14 }}>{t.expediente.errorAcceso}</p>}
           {google ? (
@@ -70,7 +71,7 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
 
   return (
     <>
-      <CabeceraMotor locale={lang} agente="HESTIA" titulo={t.expediente.titulo} narrativa={t.expediente.narrativa} />
+      <CabeceraMotor locale={lang} agente="HESTIA" radar="expediente" titulo={t.expediente.titulo} narrativa={t.expediente.narrativa} etapaServidor={expedientes[0] ? ETAPA_DE_RUTA[expedientes[0].rutaId] : null} />
       <div className="acciones" style={{ marginTop: 0, marginBottom: 16 }}>
         <span className="mono" style={{ color: "var(--texto-suave)", fontSize: "0.82rem" }}>{t.expediente.sesionComo(cliente.email)}</span>
         <SalirCliente locale={lang} />

@@ -2,9 +2,10 @@
 
 import { useSyncExternalStore } from "react";
 import type { EstadoCaminoLocal } from "@/lib/almacen";
-import { CLAVE_CAMINO, CLAVE_DOCUMENTOS, CLAVE_GUARDIAN, EVENTO_ALMACEN, leerCamino, leerDocumentos, leerGuardian } from "@/lib/almacen";
+import { CLAVE_CAMINO, CLAVE_DOCUMENTOS, CLAVE_GUARDIAN, CLAVE_PAIS, EVENTO_ALMACEN, leerCamino, leerDocumentos, leerGuardian, leerPais } from "@/lib/almacen";
 import type { DocumentoId } from "@/lib/diagnostico";
 import type { EstadoDocumento } from "@/lib/motores";
+import type { PaisRadar } from "@/lib/radar";
 
 // Lectura reactiva de lo que la superapp guarda en este navegador. Con
 // useSyncExternalStore el servidor pinta el estado «sin datos» y el cliente
@@ -15,6 +16,7 @@ export type InstantaneaLocal = {
   camino: EstadoCaminoLocal;
   documentos: Partial<Record<DocumentoId, EstadoDocumento>>;
   guardian: string | null;
+  pais: PaisRadar | null;
 };
 
 const VACIO: InstantaneaLocal = {
@@ -22,6 +24,7 @@ const VACIO: InstantaneaLocal = {
   camino: { empezado: false, respuestas: {}, ruta: null, nivelCita: null, conGuardian: false, referencia: null, paso: 0 },
   documentos: {},
   guardian: null,
+  pais: null,
 };
 
 let crudoEnCache: string | null = null;
@@ -29,7 +32,7 @@ let valorEnCache: InstantaneaLocal = VACIO;
 
 function crudo() {
   try {
-    return [CLAVE_CAMINO, CLAVE_DOCUMENTOS, CLAVE_GUARDIAN].map((clave) => sessionStorage.getItem(clave) ?? "").join("\u0001");
+    return [CLAVE_CAMINO, CLAVE_DOCUMENTOS, CLAVE_GUARDIAN, CLAVE_PAIS].map((clave) => sessionStorage.getItem(clave) ?? "").join("\u0001");
   } catch {
     return "";
   }
@@ -39,7 +42,7 @@ function instantanea(): InstantaneaLocal {
   const actual = crudo();
   if (actual !== crudoEnCache) {
     crudoEnCache = actual;
-    valorEnCache = { listo: true, camino: leerCamino(), documentos: leerDocumentos(), guardian: leerGuardian() };
+    valorEnCache = { listo: true, camino: leerCamino(), documentos: leerDocumentos(), guardian: leerGuardian(), pais: leerPais() };
   }
   return valorEnCache;
 }

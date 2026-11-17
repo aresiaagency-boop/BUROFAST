@@ -11,6 +11,7 @@ import "@/styles/superapp.css";
 import "@/styles/funnel.css";
 import "@/styles/mando.css";
 import "@/styles/radar.css";
+import "@/styles/radar-extranjeria.css";
 import { direccion, esLocale, LOCALE_POR_DEFECTO } from "@/lib/i18n/locales";
 
 export const metadata: Metadata = {
