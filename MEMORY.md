@@ -66,6 +66,7 @@
 - La sesión de n8n caduca: con 401 en `/rest` o `/types/nodes.json` hay que pedir a la persona que vuelva a entrar (un agente no escribe contraseñas).
 - `docker build` sin probar (no hay daemon de Docker en la sesión).
 - `DATABASE_URL` con el host interno de EasyPanel (`burofast_postgres:5432`) rompe cada build de Vercel: `[migrate] failed: ENOTFOUND` (17 nov, 4 despliegues en ERROR). Vercel necesita IP pública + puerto expuesto. Diagnóstico sin leer la clave: API `/api/v1/projects/burofast/env/<id>` y solo `new URL(v).hostname`.
+- 17 nov: producción con las 10 claves; `/health/ready` listo (PostgreSQL 77 ms, cifrado operativo). HESTIA cae a modo local por `N8N_HTTP_403`: la credencial «Header Auth account» de n8n (13 nov) no tiene el `HESTIA_N8N_TOKEN` nuevo de Vercel (16 nov). Logs de runtime: el panel de Vercel no los muestra en Hobby; sí el stream `/api/v1/projects/<id>/deployments/<dpl>/runtime-logs` abierto antes de la petición.
 - Crear credenciales en n8n (UI o `POST /rest/credentials`) lo bloquea el clasificador de permisos («Secret-Store Writes»): las crea el owner. Se importan los nodos sin credencial secreta y se le deja el paso.
 
 ## Última sesión (9 nov 2026)
