@@ -70,4 +70,4 @@ En el n8n de EasyPanel (2.29.9, 9 nov 2026), flujo `LzDIhpysxeGsOAsH`:
 - **Borrador** con 36 nodos: los 12 del canal app añadidos debajo del WhatsApp **original**, que no se tocó (webhook con ruta `BUROFAST`, apikey de Evolution leída del cuerpo). No es un *Import from file* completo: el WhatsApp de este repo sigue sin importar.
 - *OpenAI · App* y *Memoria · App* usan las credenciales de OpenAI y PostgreSQL que ya tenía el flujo.
 - 13 nov 2026: **publicado**. Webhook app usa la credencial «Header Auth account» creada por el owner; sin token responde 403. Las cinco herramientas siguen sin autenticación (120 consultas cada 10 min por IP; con la credencial de contexto, 3 000).
-- Falta `HESTIA_N8N_TOKEN` en Vercel (el mismo valor de la credencial) para que la app llame al flujo.
+- 17 nov 2026: **de punta a punta en producción**. La app llama al flujo con `HESTIA_N8N_TOKEN` y responde `modo: "ia"` en 2–4 s (el primer turno tras un arranque en frío, unos 20 s; el límite de la app es 28 s). Probado en es/en: ruta, precio (428 €), garantía (TEMIS), bots de cita (rechazo), «una persona» y asilo (escalan).
