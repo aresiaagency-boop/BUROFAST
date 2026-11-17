@@ -8,7 +8,7 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 
 | Variable | Tipo | Para qué | Valor / cómo generarla |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Secret | PostgreSQL de EasyPanel | `postgres://USUARIO:CLAVE@HOST:PUERTO/burofast` (EasyPanel → postgres → Expose). Con TLS activado en el servidor, añade `?sslmode=require`. Si la clave lleva `@`, `:` o `/`, codifícala (`encodeURIComponent`) |
+| `DATABASE_URL` | Secret | PostgreSQL de EasyPanel | `postgres://USUARIO:CLAVE@HOST:PUERTO/burofast` (EasyPanel → postgres → Expose). HOST es la IP pública del servidor y PUERTO el expuesto: el nombre interno del servicio (`burofast_postgres:5432`) solo existe dentro de EasyPanel y en Vercel el build falla con `[migrate] failed: ENOTFOUND`. Con TLS activado en el servidor, añade `?sslmode=require`. Si la clave lleva `@`, `:` o `/`, codifícala (`encodeURIComponent`) |
 | `DATA_ENCRYPTION_KEY` | Secret | Cifrado de nombre, teléfono y correo. **Si se pierde, los datos cifrados no se recuperan** | `openssl rand -hex 32` |
 | `AUTH_SECRET` | Secret | Firma de sesiones, del estado de OAuth y de los enlaces de pago (≥ 32 caracteres) | `openssl rand -hex 32` |
 | `APP_BASE_URL` | Config | URL pública: vuelta de Google, de Stripe y enlaces de HESTIA | `https://burofast.vercel.app` |

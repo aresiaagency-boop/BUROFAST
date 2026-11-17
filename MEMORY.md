@@ -65,6 +65,7 @@
 - El shell de esta sesión no llega a Vercel, Stripe, n8n ni al PostgreSQL de EasyPanel: todo se configura por el navegador o por la integración GitHub → Vercel.
 - La sesión de n8n caduca: con 401 en `/rest` o `/types/nodes.json` hay que pedir a la persona que vuelva a entrar (un agente no escribe contraseñas).
 - `docker build` sin probar (no hay daemon de Docker en la sesión).
+- `DATABASE_URL` con el host interno de EasyPanel (`burofast_postgres:5432`) rompe cada build de Vercel: `[migrate] failed: ENOTFOUND` (17 nov, 4 despliegues en ERROR). Vercel necesita IP pública + puerto expuesto. Diagnóstico sin leer la clave: API `/api/v1/projects/burofast/env/<id>` y solo `new URL(v).hostname`.
 - Crear credenciales en n8n (UI o `POST /rest/credentials`) lo bloquea el clasificador de permisos («Secret-Store Writes»): las crea el owner. Se importan los nodos sin credencial secreta y se le deja el paso.
 
 ## Última sesión (9 nov 2026)
