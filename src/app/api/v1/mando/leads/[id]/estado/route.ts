@@ -3,7 +3,7 @@ import { puedeConfirmarRuta } from "@/lib/auth/equipo";
 import { exigirRol } from "@/lib/autorizacion";
 import { isDatabaseConfigured } from "@/lib/db";
 import { ESTADOS_LEAD } from "@/lib/expediente";
-import { correlationId, error, json, origenPermitido } from "@/lib/http";
+import { correlationId, error, json, origenEstricto } from "@/lib/http";
 import { cambiarEstadoLead } from "@/lib/leads";
 import { cerrarCheckoutsAbiertos } from "@/lib/pagos/checkout";
 import { stripeConfigurado } from "@/lib/pagos/stripe";
@@ -14,7 +14,7 @@ const cambioSchema = z.object({ estado: z.enum(ESTADOS_LEAD.filter((e) => e !== 
 
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/leads/[id]/estado">) {
   const correlation = correlationId(request);
-  if (!origenPermitido(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
+  if (!origenEstricto(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
   const sesion = await exigirRol("operator");
   if (!sesion) return error("SIN_PERMISO", "Cambiar una solicitud requiere rol operator u owner.", { status: 403, correlation });
   if (!isDatabaseConfigured()) return error("SIN_BASE_DE_DATOS", "DATABASE_URL no está configurada.", { status: 503, correlation });
@@ -26,7 +26,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/le
   const estado = cambio.data.estado as (typeof ESTADOS_LEAD)[number];
   if (estado === "aprobado" && !puedeConfirmarRuta(sesion.sub, sesion.rol)) {
     await auditar({ actorId: sesion.sub, accion: "lead.confirmar_ruta", objetivoId: id, resultado: "rechazado", correlationId: correlation });
-    return error("SOLO_ABOGADO", "Solo un abogado de ABOGADOS_EMAILS (o el owner, si la lista está vacía) puede confirmar la ruta.", { status: 403, correlation });
+    return error("SOLO_ABOGADO", "Solo la cuenta de la Dirección puede confirmar la ruta.", { status: 403, correlation });
   }
 
   const resultado = await cambiarEstadoLead({ leadId: id, estado });

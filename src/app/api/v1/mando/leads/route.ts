@@ -6,7 +6,7 @@ import { auditar, listarLeads } from "@/lib/repositorio";
 export async function GET(request: Request) {
   const correlation = correlationId(request);
   const sesion = await exigirRol("viewer");
-  if (!sesion) return error("NO_AUTORIZADO", "Inicia sesión en el centro de mando.", { status: 401, correlation });
+  if (!sesion) return error("NO_AUTORIZADO", "Inicia sesión en la Dirección.", { status: 401, correlation });
   if (!isDatabaseConfigured()) return error("SIN_BASE_DE_DATOS", "DATABASE_URL no está configurada.", { status: 503, correlation });
   try {
     const leads = await listarLeads();

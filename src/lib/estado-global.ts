@@ -9,7 +9,7 @@ export function estadoGlobal(piezas: Comprobacion[]) {
 export const NOMBRE_PIEZA: Record<Comprobacion["id"], string> = {
   postgres: "PostgreSQL (EasyPanel)",
   cifrado: "Cifrado de datos personales",
-  autenticacion: "Acceso del equipo",
+  autenticacion: "Acceso a la Dirección",
   google: "Acceso con Google",
   n8n: "n8n (servidor de HESTIA)",
   hestia_ia: "HESTIA orquestadora (IA vía n8n)",

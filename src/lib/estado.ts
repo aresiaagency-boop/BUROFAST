@@ -135,7 +135,7 @@ export async function comprobarTodo() {
   return [
     postgres,
     deEntorno("cifrado", cifradoConfigurado(), "DATA_ENCRYPTION_KEY"),
-    deEntorno("autenticacion", autenticacionConfigurada(), "AUTH_SECRET, OWNER_EMAIL y Google (o OWNER_PASSWORD_HASH)"),
+    deEntorno("autenticacion", autenticacionConfigurada(), "AUTH_SECRET, OWNER_EMAIL y Google"),
     google,
     n8n,
     hestiaIa,

@@ -3,6 +3,7 @@ import type { EstadoCita, SemaforoSla } from "@/lib/citas";
 import type { AvisoId, DocumentoId, EtapaId, RutaId } from "@/lib/diagnostico";
 import type { PASAPORTES, SITUACIONES, SUENOS, TIEMPOS, UBICACIONES } from "@/lib/diagnostico";
 import type { EstadoLead } from "@/lib/expediente";
+import type { Locale } from "@/lib/i18n/locales";
 import type { AgenteId, EstadoDocumento, EstadoPlazo, MotorId, ReglaTemis } from "@/lib/motores";
 import type { EstadoPago, TipoPago } from "@/lib/pagos/repositorio";
 
@@ -27,7 +28,23 @@ export type PasoId = (typeof PASOS)[number];
 // Un único contrato para los seis idiomas: si a un diccionario le falta una
 // clave, `tsc` falla. Así ningún usuario ve un hueco en su idioma.
 export type Diccionario = {
-  marca: { lema: string; agentePresenta: string };
+  marca: { lema: string; agentePresenta: string; direccion: string };
+  radar: {
+    titulo: string;
+    descripcion: string;
+    sede: string;
+    enVivo: string;
+    comprobado: (hora: string) => string;
+    sinSenal: string;
+    hestiaIa: string;
+    hestiaLocal: string;
+    hestiaError: string;
+    baseDatos: string;
+    sinDatos: string;
+    conversaciones: string;
+    contenido: (p: { rutas: number; agentes: number; citas: number; idiomas: number }) => string;
+    zonas: Record<Locale, string>;
+  };
   comun: {
     atras: string;
     continuar: string;

@@ -7,7 +7,7 @@ import { estadoGlobal, NOMBRE_PIEZA } from "@/lib/estado-global";
 import { resumenOperativo, ultimasAuditorias } from "@/lib/repositorio";
 import type { RutaId } from "@/lib/diagnostico";
 
-export const metadata = { title: "Centro de mando" };
+export const metadata = { title: "Dirección", robots: { index: false, follow: false } };
 
 export default async function Mando() {
   const piezas = await comprobarTodo();
@@ -19,7 +19,7 @@ export default async function Mando() {
 
   return (
     <>
-      <Superior titulo="Mando" miga="BUROFAST / Centro de mando" estadoGlobal={global} />
+      <Superior titulo="Mando" miga="BUROFAST / Dirección" estadoGlobal={global} />
       <div className="trabajo">
         <div className="columna">
           {resumen && resumen.leads.demo > 0 && (

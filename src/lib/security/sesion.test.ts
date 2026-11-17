@@ -1,39 +1,36 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { crearTokenSesion, leerTokenSesion, tieneRol } from "@/lib/security/sesion";
-import { hashPassword, verificarPassword } from "@/lib/security/password";
+import { crearTokenDireccion, DURACION_SESION_S, leerTokenDireccion, nuevoIdSesion, tieneRol } from "@/lib/security/sesion";
 
 beforeAll(() => {
-  process.env.AUTH_SECRET = "a".repeat(48);
+  process.env.AUTH_SECRET ??= "secreto-de-pruebas-de-al-menos-32-caracteres";
 });
 
-describe("sesión firmada del centro de mando", () => {
-  it("acepta un token recién emitido", () => {
-    const token = crearTokenSesion("owner@example.com", "owner");
-    expect(leerTokenSesion(token)?.sub).toBe("owner@example.com");
+describe("cookie de la Dirección", () => {
+  it("lleva solo un identificador aleatorio firmado", () => {
+    const sid = nuevoIdSesion();
+    expect(sid.length).toBeGreaterThanOrEqual(43);
+    expect(nuevoIdSesion()).not.toBe(sid);
+    expect(leerTokenDireccion(crearTokenDireccion(sid))?.sid).toBe(sid);
   });
 
-  it("rechaza un token con el rol cambiado a mano", () => {
-    const token = crearTokenSesion("viewer@example.com", "viewer");
-    const [cuerpo, firma] = token.split(".");
-    const manipulado = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(cuerpo, "base64url").toString()), rol: "owner" })).toString("base64url");
-    expect(leerTokenSesion(`${manipulado}.${firma}`)).toBeNull();
+  it("rechaza un token manipulado o con la firma de otro", () => {
+    const [cuerpo, firma] = crearTokenDireccion(nuevoIdSesion()).split(".");
+    const otro = Buffer.from(JSON.stringify({ sid: nuevoIdSesion(), exp: 9_999_999_999 })).toString("base64url");
+    expect(leerTokenDireccion(`${otro}.${firma}`)).toBeNull();
+    expect(leerTokenDireccion(`${cuerpo}.${firma}.extra`)).toBeNull();
+    expect(leerTokenDireccion(`${cuerpo}`)).toBeNull();
+    expect(leerTokenDireccion("x".repeat(500))).toBeNull();
   });
 
-  it("rechaza un token caducado", () => {
-    const token = crearTokenSesion("owner@example.com", "owner", Date.parse("2026-01-01T00:00:00Z"));
-    expect(leerTokenSesion(token, Date.parse("2026-01-01T09:00:00Z"))).toBeNull();
+  it("caduca a las cuatro horas", () => {
+    const inicio = Date.parse("2026-01-01T00:00:00Z");
+    const token = crearTokenDireccion(nuevoIdSesion(), inicio);
+    expect(leerTokenDireccion(token, inicio + (DURACION_SESION_S - 1) * 1000)).not.toBeNull();
+    expect(leerTokenDireccion(token, inicio + DURACION_SESION_S * 1000)).toBeNull();
   });
 
-  it("un viewer no tiene permisos de operator", () => {
-    expect(tieneRol({ sub: "x", rol: "viewer", exp: 0 }, "operator")).toBe(false);
-    expect(tieneRol({ sub: "x", rol: "owner", exp: 0 }, "operator")).toBe(true);
-  });
-});
-
-describe("contraseña", () => {
-  it("verifica la correcta y rechaza otra", async () => {
-    const hash = await hashPassword("una-frase-larga-de-prueba");
-    expect(await verificarPassword("una-frase-larga-de-prueba", hash)).toBe(true);
-    expect(await verificarPassword("otra", hash)).toBe(false);
+  it("los roles se ordenan de menos a más", () => {
+    expect(tieneRol({ sub: "a", rol: "owner", exp: 0 }, "operator")).toBe(true);
+    expect(tieneRol(null, "viewer")).toBe(false);
   });
 });

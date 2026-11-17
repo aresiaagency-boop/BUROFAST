@@ -26,7 +26,7 @@ export function Navegacion() {
         <SimboloBurofast tamano={30} />
         <span>
           <span className="marca-nombre">BUROFAST</span>
-          <span className="marca-lema">Centro de mando</span>
+          <span className="marca-lema">Dirección</span>
         </span>
       </Link>
       <nav aria-label="Módulos">

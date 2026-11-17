@@ -4,6 +4,23 @@ export const en: Diccionario = {
   marca: {
     lema: "From your first NIE to Spanish citizenship",
     agentePresenta: "I'm HESTIA, BUROFAST's artificial intelligence assistant. I'll guide you step by step; every important decision is always reviewed by a registered lawyer.",
+    direccion: "Management",
+  },
+  radar: {
+    titulo: "BUROFAST attention radar",
+    descripcion: "World map with the regions each language serves and the head office in Palma.",
+    sede: "Head office · Palma",
+    enVivo: "Live signals",
+    comprobado: (hora) => `Checked at ${hora}`,
+    sinSenal: "No signal: the platform could not be reached.",
+    hestiaIa: "HESTIA with AI",
+    hestiaLocal: "HESTIA in local mode",
+    hestiaError: "HESTIA: the AI is failing",
+    baseDatos: "Database",
+    sinDatos: "no data",
+    conversaciones: "Conversations with HESTIA in 24 h",
+    contenido: (p) => `${p.rutas} routes · ${p.agentes} agents · ${p.citas} appointment types · ${p.idiomas} languages`,
+    zonas: { es: "Latin America", en: "UK and English-speaking Africa", fr: "French-speaking Africa", pt: "Brazil and Portuguese-speaking Africa", ar: "Maghreb and Middle East", uk: "Ukraine" },
   },
   comun: {
     atras: "Back",

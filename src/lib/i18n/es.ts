@@ -4,6 +4,23 @@ export const es: Diccionario = {
   marca: {
     lema: "Del primer NIE a la nacionalidad",
     agentePresenta: "Soy HESTIA, la asistente de inteligencia artificial de BUROFAST. Te acompaño paso a paso; las decisiones importantes las revisa siempre un abogado colegiado.",
+    direccion: "Dirección",
+  },
+  radar: {
+    titulo: "Radar de atención de BUROFAST",
+    descripcion: "Mapamundi con las zonas que atiende cada idioma y la sede en Palma.",
+    sede: "Sede · Palma",
+    enVivo: "Señales en vivo",
+    comprobado: (hora) => `Comprobado a las ${hora}`,
+    sinSenal: "Sin señal: no se pudo consultar la plataforma.",
+    hestiaIa: "HESTIA con IA",
+    hestiaLocal: "HESTIA en modo local",
+    hestiaError: "HESTIA: la IA está fallando",
+    baseDatos: "Base de datos",
+    sinDatos: "sin datos",
+    conversaciones: "Conversaciones con HESTIA en 24 h",
+    contenido: (p) => `${p.rutas} rutas · ${p.agentes} agentes · ${p.citas} tipos de cita · ${p.idiomas} idiomas`,
+    zonas: { es: "Latinoamérica", en: "Reino Unido y África anglófona", fr: "África francófona", pt: "Brasil y África lusófona", ar: "Magreb y Oriente Medio", uk: "Ucrania" },
   },
   comun: {
     atras: "Atrás",

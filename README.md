@@ -15,7 +15,7 @@ HESTIA (IA) orquesta a cinco agentes, cada uno con un motor determinista:
 Además:
 
 - **Expediente** (`/{idioma}/expediente`): el cliente entra con Google y ve su caso, sus citas y sus pagos. Paga el anticipo (50 %) solo cuando un abogado ha aprobado su ruta.
-- **Centro de mando** (`/mando`): acceso con Google (o contraseña de respaldo), estado real de cada pieza, solicitudes, citas, pagos y métricas de HESTIA.
+- **Dirección** (`/mando`): solo la cuenta de Google de A.R.E.S., con reautenticación, bloqueo por intentos y sesión revocable; estado real de cada pieza, solicitudes, citas, pagos y métricas de HESTIA.
 - **HESTIA en n8n** (`infrastructure/n8n/hestia.workflow.json`): canal WhatsApp y canal app con los motores como herramientas. Sin n8n, la consola responde en modo local y lo dice.
 - **Legal** (`/{idioma}/legal/privacidad|condiciones|aviso-legal`): seis idiomas; los datos del titular y del abogado viven en `src/lib/legal.ts` y se ven como «pendiente» hasta rellenarlos.
 

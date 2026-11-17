@@ -2,7 +2,7 @@ import { z } from "zod";
 import { urlBase } from "@/lib/auth/base";
 import { exigirRol } from "@/lib/autorizacion";
 import { isDatabaseConfigured } from "@/lib/db";
-import { correlationId, error, json, origenPermitido } from "@/lib/http";
+import { correlationId, error, json, origenEstricto } from "@/lib/http";
 import { leadPagablePorId } from "@/lib/pagos/repositorio";
 import { datosLegalesPendientes } from "@/lib/legal";
 import { modoStripe, stripeConfigurado } from "@/lib/pagos/stripe";
@@ -15,7 +15,7 @@ const DURACION_ENLACE_S = 7 * 24 * 60 * 60;
 // expedientes con la ruta ya confirmada por el abogado; caduca en 7 días.
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/leads/[id]/enlace-pago">) {
   const correlation = correlationId(request);
-  if (!origenPermitido(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
+  if (!origenEstricto(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
   const sesion = await exigirRol("operator");
   if (!sesion) return error("SIN_PERMISO", "Crear un enlace de pago requiere rol operator u owner.", { status: 403, correlation });
   const base = urlBase();

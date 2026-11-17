@@ -78,7 +78,7 @@ Plazo de la primera acción: **24 h** en Urgente y **120 h** en Puedo esperar. L
 | `POST /api/v1/pagos/stripe/webhook` | Firma de Stripe | Cambia el estado del pago, una sola vez por evento |
 | `POST /api/v1/mando/leads/:id/estado` | operator | Mueve una solicitud por su ciclo (solo el abogado aprueba) |
 | `POST /api/v1/mando/leads/:id/enlace-pago` | operator | Enlace de pago firmado para un expediente aprobado |
-| `POST /api/v1/mando/leads/:id/ruta` | abogado (`ABOGADOS_EMAILS`) | Corrige respuestas antes de aprobar; ruta, citas y precio los recalcula el servidor |
+| `POST /api/v1/mando/leads/:id/ruta` | Dirección (cuenta de A.R.E.S.) | Corrige respuestas antes de aprobar; ruta, citas y precio los recalcula el servidor |
 | `POST /api/v1/expediente/vincular` | Sesión de cliente | Vincula un expediente a la cuenta con su código de camino |
 | `GET /api/v1/mantenimiento/purgar` | Bearer `CRON_SECRET` (Vercel Cron) | Purga nocturna de lo que la política dice que se borra |
 

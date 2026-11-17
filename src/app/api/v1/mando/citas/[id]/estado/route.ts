@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { exigirRol } from "@/lib/autorizacion";
 import { isDatabaseConfigured } from "@/lib/db";
-import { correlationId, error, json, origenPermitido } from "@/lib/http";
+import { correlationId, error, json, origenEstricto } from "@/lib/http";
 import { auditar, cambiarEstadoCita } from "@/lib/repositorio";
 import { cambioEstadoCitaSchema } from "@/lib/schemas";
 
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/citas/[id]/estado">) {
   const correlation = correlationId(request);
-  if (!origenPermitido(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
+  if (!origenEstricto(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
   const sesion = await exigirRol("operator");
   if (!sesion) return error("SIN_PERMISO", "Cambiar el estado de una cita requiere rol operator u owner.", { status: 403, correlation });
   if (!isDatabaseConfigured()) return error("SIN_BASE_DE_DATOS", "DATABASE_URL no está configurada.", { status: 503, correlation });

@@ -1,8 +1,11 @@
 // Evidencia visual de la superapp: puerta de idiomas, Núcleo, el camino
 // completo, cada motor, HESTIA respondiendo, el expediente y el centro de
-// mando. Guarda una captura por pantalla en artifacts/capturas. Necesita el
-// servidor en marcha (BASE_URL, por defecto http://localhost:3000) y, para el
-// centro de mando, CAPTURAS_EMAIL y CAPTURAS_PASSWORD (acceso de respaldo).
+// la Dirección. Guarda una captura por pantalla en artifacts/capturas. Necesita
+// el servidor en marcha (BASE_URL, por defecto http://localhost:3000). La
+// Dirección solo se abre con Google; para capturarla en local, el script abre
+// una sesión de prueba directamente en la base de datos local (DATABASE_URL y
+// AUTH_SECRET) y se niega a hacerlo contra cualquier servidor que no sea local.
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createRequire } from "node:module";
 
@@ -125,31 +128,47 @@ await arLegal.goto(`${BASE}/ar/legal/condiciones`);
 await arLegal.waitForTimeout(400);
 await foto(arLegal, "19-ar-movil-condiciones");
 
-// 3. Centro de mando (acceso de respaldo con contraseña)
-if (process.env.CAPTURAS_EMAIL && process.env.CAPTURAS_PASSWORD) {
-  const mando = await pagina({ viewport: { width: 1440, height: 900 } });
-  await mando.goto(`${BASE}/mando/acceso`);
-  await mando.waitForTimeout(400);
-  await foto(mando, "20-mando-acceso");
-  await mando.fill("#email", process.env.CAPTURAS_EMAIL);
-  await mando.fill("#password", process.env.CAPTURAS_PASSWORD);
-  await mando.getByRole("button", { name: /Entrar con contraseña/ }).click();
-  await mando.waitForURL(`${BASE}/mando`);
+// 3. Dirección (solo en local: sesión de prueba creada en la base local)
+const local = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE);
+if (local && process.env.DATABASE_URL && process.env.AUTH_SECRET) {
+  const postgres = createRequire(import.meta.url)("postgres");
+  const sql = postgres(process.env.DATABASE_URL, { max: 1 });
+  const huella = (v) => createHash("sha256").update(`burofast:direccion:${v}`).digest("base64url");
+  const sid = randomBytes(32).toString("base64url");
+  const agente = "Mozilla/5.0 (capturas BUROFAST)";
+  await sql`insert into direccion_sesiones (id_hash, sub_hash, ip_hash, agente_hash, expira_en) values (${huella(sid)}, ${huella("capturas")}, ${huella("127.0.0.1")}, ${huella(agente)}, now() + interval '10 minutes')`;
+  const cuerpo = Buffer.from(JSON.stringify({ sid, exp: Math.floor(Date.now() / 1000) + 600 })).toString("base64url");
+  const token = `${cuerpo}.${createHmac("sha256", process.env.AUTH_SECRET.trim()).update(`direccion:${cuerpo}`).digest("base64url")}`;
+
+  const acceso = await pagina({ viewport: { width: 1440, height: 900 } });
+  await acceso.goto(`${BASE}/mando/acceso`);
+  await acceso.waitForTimeout(400);
+  await foto(acceso, "20-direccion-acceso");
+
+  const mando = await pagina({ viewport: { width: 1440, height: 900 }, userAgent: agente });
+  // `next start` corre en modo producción: la cookie es «__Host-» (Chrome la
+  // admite en http://localhost). Con `next dev`, sin prefijo.
+  await mando.context().addCookies([
+    { name: "__Host-burofast.direccion", value: token, domain: new URL(BASE).hostname, path: "/", httpOnly: true, secure: true, sameSite: "Strict" },
+    { name: "burofast.direccion", value: token, domain: new URL(BASE).hostname, path: "/", httpOnly: true, sameSite: "Strict" },
+  ]);
+  await mando.goto(`${BASE}/mando`);
   await mando.waitForTimeout(500);
-  await foto(mando, "21-mando", true);
-  for (const [ruta, nombre] of [["leads", "22-mando-solicitudes"], ["citas", "23-mando-citas"], ["pagos", "24-mando-pagos"], ["hestia", "25-mando-agentes"]]) {
+  await foto(mando, "21-direccion", true);
+  for (const [ruta, nombre] of [["leads", "22-direccion-solicitudes"], ["citas", "23-direccion-citas"], ["pagos", "24-direccion-pagos"], ["hestia", "25-direccion-agentes"]]) {
     await mando.goto(`${BASE}/mando/${ruta}`);
     await mando.waitForTimeout(500);
     await foto(mando, nombre, true);
   }
-  // El formulario del abogado para corregir la ruta, si hay alguna solicitud en revisión.
   await mando.goto(`${BASE}/mando/leads`);
   const corregir = mando.getByRole("button", { name: "Corregir ruta" }).first();
   if (await corregir.count()) {
     await corregir.click();
     await mando.waitForTimeout(300);
-    await foto(mando, "26-mando-corregir-ruta", true);
+    await foto(mando, "26-direccion-corregir-ruta", true);
   }
+  await sql`update direccion_sesiones set revocada_en = now(), motivo_revocacion = 'capturas' where id_hash = ${huella(sid)}`;
+  await sql.end({ timeout: 5 });
 }
 
 await navegador.close();

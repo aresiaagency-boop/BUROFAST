@@ -23,7 +23,10 @@ export function urlRetorno() {
 
 const base64url = (buffer: Buffer) => buffer.toString("base64url");
 
-export function iniciarGoogle(destino: string) {
+// reautenticar (Dirección): max_age obliga a Google a volver a pedir la
+// contraseña si el último inicio de sesión tiene más de cinco minutos, y el
+// id_token trae auth_time para comprobarlo.
+export function iniciarGoogle(destino: string, opciones: { reautenticar?: boolean } = {}) {
   const state = base64url(randomBytes(24));
   const nonce = base64url(randomBytes(24));
   const verificador = base64url(randomBytes(48));
@@ -38,6 +41,7 @@ export function iniciarGoogle(destino: string) {
   url.searchParams.set("code_challenge", desafio);
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("prompt", "select_account");
+  if (opciones.reautenticar) url.searchParams.set("max_age", "300");
   const cookie = sellar({ state, nonce, verificador, destino }, DURACION_ESTADO_S, "oauth-google");
   return { url: url.toString(), cookie, maxAge: DURACION_ESTADO_S };
 }
@@ -48,9 +52,9 @@ export function leerEstadoOauth(cookie: string | undefined) {
   return abrir<EstadoOauth>(cookie, "oauth-google");
 }
 
-export type ClaimsGoogle = { iss?: string; aud?: string | string[]; exp?: number; nonce?: string; email?: string; email_verified?: boolean | string; name?: string; sub?: string };
+export type ClaimsGoogle = { iss?: string; aud?: string | string[]; exp?: number; nonce?: string; email?: string; email_verified?: boolean | string; name?: string; sub?: string; auth_time?: number };
 
-export type IdentidadGoogle = { email: string; nombre: string | null; sub: string };
+export type IdentidadGoogle = { email: string; nombre: string | null; sub: string; verificada: boolean; authTime: number | null };
 
 // Función pura para poder probarla sin red.
 export function validarClaims(claims: ClaimsGoogle, esperado: { clientId: string; nonce: string; ahoraMs?: number }): IdentidadGoogle | null {
@@ -62,7 +66,13 @@ export function validarClaims(claims: ClaimsGoogle, esperado: { clientId: string
   if (!claims.nonce || claims.nonce !== esperado.nonce) return null;
   if (!(claims.email_verified === true || claims.email_verified === "true")) return null;
   if (!claims.email || !claims.sub) return null;
-  return { email: claims.email.trim().toLowerCase(), nombre: claims.name?.trim() || null, sub: claims.sub };
+  return {
+    email: claims.email.trim().toLowerCase(),
+    nombre: claims.name?.trim() || null,
+    sub: claims.sub,
+    verificada: true,
+    authTime: typeof claims.auth_time === "number" ? claims.auth_time : null,
+  };
 }
 
 export function decodificarIdToken(idToken: string): ClaimsGoogle | null {

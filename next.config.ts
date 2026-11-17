@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), geolocation=(), microphone=()" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Content-Security-Policy", value: csp },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        ],
+      },
+      // La Dirección no se indexa ni se guarda en ninguna caché.
+      {
+        source: "/mando/:ruta*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+          { key: "Cache-Control", value: "no-store" },
         ],
       },
     ];

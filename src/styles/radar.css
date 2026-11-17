@@ -1,0 +1,80 @@
+/* Radar de la portada sobre el mapamundi de A.R.E.S.: la imagen se muestra
+   tal cual; encima van el haz, las zonas por idioma y las señales en vivo. */
+.radar { margin: 0; display: grid; gap: 14px; width: min(100%, 540px); justify-self: center; }
+.radar-lienzo { display: block; width: 100%; height: auto; overflow: visible; }
+
+.radar-aro-guion { fill: none; stroke: var(--linea-fuerte); stroke-width: 1.2; stroke-dasharray: 2 10; transform-box: fill-box; transform-origin: center; animation: radar-giro 90s linear infinite; }
+.radar-marca { stroke: rgba(66, 216, 245, 0.32); stroke-width: 1; }
+.radar-marca--mayor { stroke: var(--cian); stroke-width: 1.6; }
+.radar-meridiano { fill: var(--texto-tenue); font: 500 15px var(--fuente-mono); letter-spacing: 0.04em; }
+.radar-borde { fill: none; stroke: var(--cian); stroke-width: 1.6; opacity: 0.75; filter: drop-shadow(0 0 6px rgba(66, 216, 245, 0.6)); }
+
+/* El grupo del haz lleva un disco invisible del tamaño del mapa: así su caja
+   está centrada en el polo y gira sobre él. */
+.radar-barrido { transform-box: fill-box; transform-origin: center; animation-name: radar-giro; animation-timing-function: linear; animation-iteration-count: infinite; mix-blend-mode: screen; }
+.radar-barrido-caja { fill: none; stroke: none; }
+.radar-estela { fill: var(--cian); }
+.radar-haz { stroke: var(--nieve); stroke-width: 2.2; filter: drop-shadow(0 0 6px var(--cian)); }
+
+.radar-arco { fill: none; stroke: rgba(66, 216, 245, 0.42); stroke-width: 1.3; stroke-dasharray: 3 7; animation: radar-flujo 2.4s linear infinite; transition: stroke 0.25s, stroke-width 0.25s, opacity 0.25s; }
+.radar-punto { fill: var(--cian); stroke: var(--nieve); stroke-width: 1; }
+.radar-ping { fill: none; stroke: var(--cian); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; animation-name: radar-ping; animation-timing-function: ease-out; animation-iteration-count: infinite; }
+.radar-guia { stroke: rgba(223, 248, 255, 0.55); stroke-width: 1; }
+.radar-etiqueta text { font: 700 20px var(--fuente-mono); fill: var(--nieve); paint-order: stroke; stroke: rgba(4, 12, 23, 0.88); stroke-width: 5px; stroke-linejoin: round; }
+.radar-cuenta { fill: var(--oro-claro); }
+.radar-sede-rombo { fill: var(--oro); stroke: #fff6dc; stroke-width: 1.2; }
+.radar-sede-onda { fill: none; stroke: var(--oro); stroke-width: 1.6; transform-box: fill-box; transform-origin: center; animation: radar-sede 2.4s ease-out infinite; }
+.radar-sede-texto { font: 700 15px var(--fuente-mono); fill: var(--oro-claro); letter-spacing: 0.08em; paint-order: stroke; stroke: rgba(4, 12, 23, 0.88); stroke-width: 5px; stroke-linejoin: round; }
+.radar [data-idioma] { transition: opacity 0.25s, color 0.25s; }
+
+/* Al señalar un idioma de la portada, el radar ilumina solo sus zonas. */
+.puerta:has(.idioma:is(:hover, :focus-visible)) .radar [data-idioma] { opacity: 0.22; }
+.puerta:has(.idioma[hreflang="es"]:is(:hover, :focus-visible)) .radar [data-idioma="es"],
+.puerta:has(.idioma[hreflang="en"]:is(:hover, :focus-visible)) .radar [data-idioma="en"],
+.puerta:has(.idioma[hreflang="fr"]:is(:hover, :focus-visible)) .radar [data-idioma="fr"],
+.puerta:has(.idioma[hreflang="pt"]:is(:hover, :focus-visible)) .radar [data-idioma="pt"],
+.puerta:has(.idioma[hreflang="ar"]:is(:hover, :focus-visible)) .radar [data-idioma="ar"],
+.puerta:has(.idioma[hreflang="uk"]:is(:hover, :focus-visible)) .radar [data-idioma="uk"] { opacity: 1; color: var(--nieve); }
+.puerta:has(.idioma[hreflang="es"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="es"],
+.puerta:has(.idioma[hreflang="en"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="en"],
+.puerta:has(.idioma[hreflang="fr"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="fr"],
+.puerta:has(.idioma[hreflang="pt"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="pt"],
+.puerta:has(.idioma[hreflang="ar"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="ar"],
+.puerta:has(.idioma[hreflang="uk"]:is(:hover, :focus-visible)) .radar .radar-arco[data-idioma="uk"] { stroke: var(--oro-claro); stroke-width: 2.2; }
+
+.radar-hud { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: var(--radio-s); background: var(--cara); color: var(--texto-suave); font-size: 0.8rem; }
+.radar-hud p { margin: 0; }
+.radar-hud-cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--cian); font: 600 0.7rem var(--fuente-mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.radar-hora { margin-inline-start: auto; color: var(--texto-tenue); font-weight: 500; letter-spacing: 0.04em; text-transform: none; }
+.radar-latido { width: 8px; height: 8px; border-radius: 50%; background: var(--verde-texto); animation: radar-latido 2s ease-out infinite; }
+.radar-hud-aviso { color: var(--ambar-texto); }
+.radar-hud-sistema { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--texto); }
+.radar-indicador::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-inline-end: 6px; border-radius: 50%; background: var(--texto-tenue); vertical-align: 1px; }
+.radar-indicador[data-estado="operativo"]::before { background: var(--verde-texto); box-shadow: 0 0 6px var(--verde-texto); }
+.radar-indicador[data-estado="aviso"]::before { background: var(--ambar-texto); }
+.radar-indicador[data-estado="error"]::before { background: var(--rojo-texto); }
+.radar-hud-titulo { color: var(--texto-tenue); font-size: 0.72rem; }
+.radar-idiomas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; margin: 0; padding: 0; list-style: none; }
+.radar-idiomas li { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 6px; align-items: baseline; }
+.radar-codigo-hud { color: var(--cian); }
+.radar-region { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radar-numero { color: var(--oro-claro); font-variant-numeric: tabular-nums; }
+.radar-hud-contenido { color: var(--texto-tenue); font-size: 0.72rem; }
+
+@keyframes radar-giro { to { transform: rotate(360deg); } }
+@keyframes radar-flujo { to { stroke-dashoffset: -20; } }
+@keyframes radar-ping { 0% { transform: scale(1); opacity: 0.95; } 16% { transform: scale(5.5); opacity: 0; } 100% { transform: scale(5.5); opacity: 0; } }
+@keyframes radar-sede { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes radar-latido { 0% { box-shadow: 0 0 0 0 rgba(60, 199, 156, 0.55); } 100% { box-shadow: 0 0 0 9px rgba(60, 199, 156, 0); } }
+
+@media (max-width: 860px) {
+  /* En móvil, primero se elige idioma; el radar queda debajo. */
+  .puerta-escena > .radar { order: 2; width: min(100%, 400px); }
+}
+@media (max-width: 420px) {
+  .radar-idiomas { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-barrido, .radar-aro-guion, .radar-arco, .radar-sede-onda, .radar-latido { animation: none; }
+  .radar-ping { animation: none; opacity: 0.5; transform: scale(2.4); }
+}

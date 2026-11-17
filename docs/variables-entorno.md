@@ -20,12 +20,9 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 
 | Variable | Tipo | Para qué | Valor / cómo generarla |
 | --- | --- | --- | --- |
-| `OWNER_EMAIL` | Config | Correo del owner del centro de mando | — |
-| `STAFF_EMAILS` | Config | Resto del equipo: `correo:rol, correo:rol` (rol `operator` o `viewer`) | — |
+| `OWNER_EMAIL` | Config | La cuenta de Google de A.R.E.S.: la única que entra en la Dirección. Al primer acceso queda fijada también por su identificador de Google (`direccion_identidad`); para cambiar de cuenta hay que borrar esa fila | — |
 | `GOOGLE_CLIENT_ID` | Config | Cliente OAuth «BUROFAST web» (Google Cloud, proyecto `burofast-514123`) | `…apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Secret | Secreto de ese cliente | Google Auth Platform → Clientes → BUROFAST web |
-| `OWNER_PASSWORD_HASH` | Secret | Respaldo si Google falla | `printf '%s' 'tu-frase-larga' \| npm run -s hash-password` |
-| `ABOGADOS_EMAILS` | Config | Quién puede confirmar una ruta (y abrir el cobro): `correo, correo`. Vacío: solo el owner | — |
 
 ## Cobros (Stripe)
 
@@ -44,7 +41,7 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 | `HESTIA_EVENTOS_TOKEN` | Secret | Bearer de n8n hacia `/api/v1/hestia/eventos`; distinto del de contexto | `openssl rand -hex 24` |
 | `HESTIA_WEBHOOK_SECRET` | Secret | Firma HMAC de eventos, alternativa al token | `openssl rand -hex 24` |
 | `HESTIA_WHATSAPP_NUMERO` | Config | Número de WhatsApp de HESTIA (solo dígitos) | `34600000000` |
-| `N8N_BASE_URL` | Config | Comprobación `/healthz` de n8n en el centro de mando | `https://burofast-n8n.7dklrk.easypanel.host` |
+| `N8N_BASE_URL` | Config | Comprobación `/healthz` de n8n en la Dirección | `https://burofast-n8n.7dklrk.easypanel.host` |
 
 ## Mantenimiento
 
@@ -56,7 +53,6 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 
 | Variable | Para qué |
 | --- | --- |
-| `CAPTURAS_EMAIL`, `CAPTURAS_PASSWORD` | `npm run screenshots` entra al mando con la contraseña de respaldo |
 | `BASE_URL` | Servidor contra el que se hacen las capturas (por defecto `http://localhost:3000`) |
 
 Sin `openssl`: en la consola de cualquier navegador, `[...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, "0")).join("")`.

@@ -48,3 +48,13 @@ export function origenPermitido(request: Request) {
     return false;
   }
 }
+
+// Para la Dirección, más estricto: el navegador TIENE que mandar Origin (o
+// Sec-Fetch-Site) y tiene que ser el nuestro. Una petición sin ninguno de los
+// dos no viene de nuestra interfaz.
+export function origenEstricto(request: Request) {
+  const sitio = request.headers.get("sec-fetch-site");
+  if (sitio && sitio !== "same-origin") return false;
+  if (!request.headers.get("origin") && !sitio) return false;
+  return origenPermitido(request);
+}

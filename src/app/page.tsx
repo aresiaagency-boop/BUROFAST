@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NucleoHestia } from "@/components/holo/NucleoHestia";
+import { RadarMundial } from "@/components/holo/RadarMundial";
 import { SimboloBurofast } from "@/components/Marca";
 import { DICCIONARIOS } from "@/lib/i18n";
 import { LEGALES } from "@/lib/i18n/legal";
@@ -7,7 +7,8 @@ import { direccion, LOCALES, NOMBRE_NATIVO } from "@/lib/i18n/locales";
 import { DOCUMENTOS_LEGALES } from "@/lib/legal";
 
 // Paso 0: el idioma se elige antes que nada. Cada puerta se presenta en su
-// propio idioma, para que cualquiera encuentre la suya.
+// propio idioma, para que cualquiera encuentre la suya; el radar señala de
+// dónde llega la gente que atiende cada idioma.
 export default function Puerta() {
   const es = DICCIONARIOS.es;
   return (
@@ -21,13 +22,11 @@ export default function Puerta() {
             <span className="marca-lema">{es.marca.lema}</span>
           </span>
         </span>
-        <Link className="chip-cristal" href="/mando">Centro de mando</Link>
+        <Link className="chip-cristal" href="/mando" rel="nofollow">{es.marca.direccion}</Link>
       </header>
 
       <main className="puerta-escena entrar">
-        <div className="puerta-nucleo marco-hud">
-          <NucleoHestia tamano={260} etiqueta="HESTIA" estadoInicial="escuchando" />
-        </div>
+        <RadarMundial />
         <div className="puerta-texto">
           <p className="hud-etiqueta">
             <span>HESTIA</span>

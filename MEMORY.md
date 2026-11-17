@@ -24,7 +24,6 @@
 - Stripe Workbench crea el destino con versión de API elegible: se eligió la del SDK (2026-10-28.endive).
 - La cuenta de Stripe es compartida: cada webhook recibe los eventos de todas las apps. BUROFAST marca sus sesiones con `metadata.app = "burofast"` y responde 200 sin tocar la base a lo ajeno.
 - Restricted key de Stripe: basta *Checkout Sessions: Escritura* (crear, leer y listar sesiones).
-- `OWNER_PASSWORD_HASH` usa `:` como separador: con `$`, dotenv lo expandiría.
 - El plugin claude-seo-ai bloquea escribir `.env.example`: las variables están en `docs/variables-entorno.md`.
 - n8n Community no tiene `$vars`: configuración en un nodo Set y secretos en credenciales Header Auth.
 - n8n de EasyPanel = **2.29.9**. Su API `/rest` desde el JS de la página exige la cabecera `browser-id: localStorage['n8n-browserId']` (sin ella, 401 aunque haya sesión). Modelo borrador/publicado: `PATCH /rest/workflows/:id` guarda el borrador (`versionId`); lo publicado es `activeVersionId` y solo cambia con *Publish*.
@@ -68,6 +67,9 @@
 - `DATABASE_URL` con el host interno de EasyPanel (`burofast_postgres:5432`) rompe cada build de Vercel: `[migrate] failed: ENOTFOUND` (17 nov, 4 despliegues en ERROR). Vercel necesita IP pública + puerto expuesto. Diagnóstico sin leer la clave: API `/api/v1/projects/burofast/env/<id>` y solo `new URL(v).hostname`.
 - 17 nov: producción con las 10 claves; `/health/ready` listo (PostgreSQL 77 ms, cifrado operativo). HESTIA cae a modo local por `N8N_HTTP_403`: la credencial «Header Auth account» de n8n (13 nov) no tiene el `HESTIA_N8N_TOKEN` nuevo de Vercel (16 nov). Logs de runtime: el panel de Vercel no los muestra en Hobby; sí el stream `/api/v1/projects/<id>/deployments/<dpl>/runtime-logs` abierto antes de la petición.
 - 17 nov 12:48: **paso 16 cerrado**. Credencial de n8n actualizada por el owner → HESTIA en `modo: ia` en producción, 2–4 s por turno (primer turno en frío ~20 s, límite 28 s: vigilar). Pendiente de decisión: la IA repite «un abogado colegiado revisará tu ruta» (prompt `hestia-app.md`) aunque el responsable legal no está acreditado como abogado.
+- 17 nov: portada con radar sobre el mapamundi que eligió RHC (`public/mapa/mapamundi.jpg`, «tal cual»: no redibujar). Azimutal equidistante polar; calibrado contra Natural Earth: centro (319,319), 316 px = 180°, Greenwich abajo (`src/lib/radar.ts`). Señales reales en `/api/v1/radar` (CDN 30 s + límite por IP).
+- 17 nov: «Centro de mando» → **Dirección**. Solo Google y solo `OWNER_EMAIL`; sin contraseña (borrados `/api/v1/sesion` POST, `password.ts`, `OWNER_PASSWORD_HASH`, `STAFF_EMAILS`, `ABOGADOS_EMAILS`). Barrera: max_age=300 + auth_time ≤ 10 min, `sub` fijado en `direccion_identidad`, sesiones en `direccion_sesiones` (una activa, ligada al user-agent, 4 h / 30 min), cookie `__Host-` Strict con salto final por página propia (meta refresh), bloqueo 5 fallos/IP/h y 20 cuentas ajenas/h global (la basura no cuenta para el global: si no, cualquiera dejaría fuera a RHC). Sin BD no hay Dirección.
+- Probar el bloqueo en local: `TRUSTED_PROXY_HOPS=0` ignora X-Forwarded-For; simular IPs con `x-real-ip`. Playwright solo admite cookies `__Host-` con `domain` + `path`, no con `url`.
 - Crear credenciales en n8n (UI o `POST /rest/credentials`) lo bloquea el clasificador de permisos («Secret-Store Writes»): las crea el owner. Se importan los nodos sin credencial secreta y se le deja el paso.
 
 ## Última sesión (9 nov 2026)

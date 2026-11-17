@@ -21,7 +21,7 @@ Si el número de pruebas baja, las de integración se saltaron: falta la base. N
 
 ```bash
 npx next start -p 3000 &        # con el build del paso 1
-CAPTURAS_EMAIL=… CAPTURAS_PASSWORD=… npm run screenshots
+npm run screenshots   # en local abre la Dirección con una sesión de prueba (DATABASE_URL + AUTH_SECRET)
 ```
 
 Mira las capturas de `artifacts/capturas/` (escritorio, árabe RTL y móvil), no solo el log.

@@ -4,7 +4,7 @@ import { exigirRol } from "@/lib/autorizacion";
 import { NIVELES_CITA } from "@/lib/catalogo";
 import { isDatabaseConfigured } from "@/lib/db";
 import { respuestasSchema } from "@/lib/diagnostico";
-import { correlationId, error, json, origenPermitido } from "@/lib/http";
+import { correlationId, error, json, origenEstricto } from "@/lib/http";
 import { auditar, corregirRuta } from "@/lib/repositorio";
 import { respuestasCoherentes } from "@/lib/schemas";
 
@@ -26,11 +26,11 @@ const MENSAJE: Record<string, string> = {
 // ruta, las citas y el precio los recalcula el servidor (nunca llegan cifras).
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/leads/[id]/ruta">) {
   const correlation = correlationId(request);
-  if (!origenPermitido(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
+  if (!origenEstricto(request)) return error("ORIGEN_NO_PERMITIDO", "La petición no viene de BUROFAST.", { status: 403, correlation });
   const sesion = await exigirRol("operator");
   if (!sesion) return error("SIN_PERMISO", "Corregir una ruta requiere rol operator u owner.", { status: 403, correlation });
   if (!puedeConfirmarRuta(sesion.sub, sesion.rol)) {
-    return error("SOLO_ABOGADO", "Solo un abogado de ABOGADOS_EMAILS (o el owner, si la lista está vacía) puede corregir la ruta.", { status: 403, correlation });
+    return error("SOLO_ABOGADO", "Solo la cuenta de la Dirección puede corregir la ruta.", { status: 403, correlation });
   }
   if (!isDatabaseConfigured()) return error("SIN_BASE_DE_DATOS", "DATABASE_URL no está configurada.", { status: 503, correlation });
 

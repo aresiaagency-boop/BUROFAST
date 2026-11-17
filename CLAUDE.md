@@ -21,7 +21,7 @@ Producción: https://burofast.vercel.app · repo público aresiaagency-boop/BURO
 | Migraciones | `db/migrations/*.sql`, se aplican con `npm run migrate`, en cada build (Vercel) y al arrancar el contenedor |
 | Validación | Zod 4 |
 | Pruebas | vitest 4; capturas con Playwright del sistema (`npm run screenshots`) |
-| Auth | Google OIDC hecho a mano (PKCE + state + nonce) y sesión propia firmada con HMAC (`AUTH_SECRET`); contraseña de respaldo para el owner |
+| Auth | Google OIDC hecho a mano (PKCE + state + nonce) y sesión en servidor (`direccion_sesiones`) con cookie `__Host-` Strict firmada con HMAC (`AUTH_SECRET`). La Dirección (`/mando`) solo admite la cuenta de Google de `OWNER_EMAIL`: sin contraseñas |
 | Pagos | Stripe Checkout (stripe@23, API 2026-10-28.endive), cuenta de ARES compartida con otras apps: solo se procesan sesiones con `metadata.app = "burofast"` |
 | HESTIA | n8n (EasyPanel) + OpenAI gpt-4o-mini; canal WhatsApp (Evolution) y canal app; sin n8n, modo local |
 | Despliegue | Vercel (`lhr1`, sin `output: standalone`); Docker standalone como alternativa |
