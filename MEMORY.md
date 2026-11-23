@@ -13,7 +13,7 @@
 
 ## Hechos verificados
 
-- `npm run check` pasa con PostgreSQL 16 local: 186 pruebas (20 archivos), incluidas persistencia, cobros, vínculo de expediente y límites contra la base, y los evals de diagnóstico (26 casos) y HESTIA (37 casos).
+- `npm run check` pasa con PostgreSQL 16 local: 233 pruebas (25 archivos, 23 nov), incluidas persistencia, cobros, vínculo de expediente y límites contra la base, y los evals de diagnóstico (26 casos) y HESTIA (37 casos).
 - Next 16: `middleware.ts` es `proxy.ts` y corre en Node; `PageProps`, `LayoutProps` y `RouteContext` salen de `npx next typegen` (hay que relanzarlo al crear rutas).
 - Vercel: con `output: "standalone"` la build falla en `onBuildComplete` (`ENOENT .next/next-server.js.nft.json`). `next.config.ts` solo lo activa fuera de Vercel.
 - En Vercel, `x-forwarded-for` lo escribe Vercel con la IP real: `TRUSTED_PROXY_HOPS=1` toma la buena.
@@ -31,6 +31,11 @@
 - El tiempo «en España» no es tiempo de residencia legal; la autorización de 2026 nunca da todavía la nacionalidad. Portugal es UE (fuera de «iberoamericano»).
 - Árabe: `letter-spacing` rompe las uniones de las letras; con `:lang(ar)` se pone a 0 en etiquetas HUD.
 - Francés del producto con «vous»; portugués europeo con «tu»; ucraniano con «ви».
+
+- 23 nov: WhatsApp de HESTIA en producción con IA. Despliegue del flujo sin pegar JSON a mano: el borrador se construye con `scripts/n8n/construir-hestia.py <original>`, se lee del commit en GitHub (raw) desde la pestaña de n8n, se asignan credenciales por nombre y tipo y `PATCH /rest/workflows/:id` + `POST /rest/workflows/:id/activate {versionId}`. Publicar falla si algún nodo no tiene credencial («Missing required credential»).
+- Investigación legal (23 nov): nacionalidad por residencia telemática por profesional habilitado con convenio (Orden JUS/698/2016; gestores, BOE-A-2019-13341); extranjería por Mercurio; tasa 790-026 = 104,05 €; CCSE 85 € (dos intentos), inscripción 2027 desde el 23 nov; DELE no aplica a nacionales de países de habla hispana; antecedentes de España: se autoriza la consulta en la solicitud; antecedentes de Colombia + apostilla: en línea (Cancillería); partida de nacimiento: notaría/Registraduría, en persona o por apoderado. Cita previa: siempre a mano, nunca bots.
+- Bóveda (23 nov, migración 008): documentos binarios AES-256-GCM (`0x01|iv12|tag16|datos`) en `bytea`, tipo por bytes mágicos (PDF/JPG/PNG/WEBP/HEIC), 4 MB, 40 por expediente, consentimiento por expediente (`documentos_consentidos_en`), auditoría al subir/abrir/borrar/revisar, borrado lógico que vacía el contenido. El cliente solo ve y adjunta; la Dirección abre (auditado) y marca válido o rechaza con nota. HESTIA por WhatsApp consulta el expediente de quien escribe con `MNEMOSINE_expediente_WA` → `POST /api/v1/hestia/expediente` (token de contexto; el teléfono sale del mensaje, no de la IA).
+- `leads.situacion` está **cifrada**: cualquier cálculo de ruta o documentos desde la base tiene que descifrarla antes (lo detectó la captura: la bóveda salía vacía).
 
 ## Fallos que encontraron las pruebas y el verificador (ya corregidos)
 
@@ -79,12 +84,17 @@
 - Verificador independiente del radar (17 nov): (M1) el aligerado medía el área tras simplificar y borraba Mallorca y Canarias → Palma caía en el mar; (M2) animar el plasma de zonas enteras costaba ~10× de raster en móvil → plasma vivo solo en tu país y España, halo quieto en táctil, radar en pausa fuera de pantalla; (M3) un arco SVG de 360° con inicio = fin no se pinta → `arcoAro` parte la vuelta en dos; además: etapa del expediente desde el servidor con sesión, nombres de país solo tras montar (CLDR distinto ≠ error de hidratación), reintento del JSON, selector con `aria-describedby`, `RadarAcceso` en su propio archivo.
 - PostgreSQL local tras una pausa larga: `rm -f /tmp/pg/.s.PGSQL.5433* /tmp/pg/data/postmaster.pid; su postgres -c "/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pg/data -l /tmp/pg/log -o '-p 5433 -k /tmp/pg' start"`.
 
-## Última sesión (17 nov 2026)
+- 23 nov: el clasificador de permisos deniega un POST de prueba al webhook de WhatsApp (envía un mensaje real): la prueba de extremo a extremo la hace el owner desde su teléfono. Las salidas de herramienta con base64, query strings o claves se filtran: el flujo original se toma del archivo subido.
+- Capturas: `pkill -f "next start"` no mata `next-server`; si queda vivo, el `next start` nuevo no arranca y se capturan pantallas del build viejo. Matar por PID. El límite de altas por IP es persistente (`limites`): en local, `delete from limites` antes de repetir capturas.
 
-Producción encendida: 10 secretos en Vercel, PostgreSQL por IP pública, HESTIA con IA (n8n) 2–4 s por turno. Radar sobre el mapamundi de RHC en todas las páginas (cristal por idioma, pasaporte y país) y señales reales en la portada. «Centro de mando» → Dirección, solo con la cuenta de Google de A.R.E.S.; un verificador independiente encontró 5 fallos en la barrera y quedaron corregidos (ver «Intentos fallidos», 17 nov).
+## Última sesión (23 nov 2026)
+
+WhatsApp de HESTIA corregido y publicado (adjuntos avisados, agentes `*_WA`, respaldo si falla la IA). Primer expediente real BF-5LEBQP en «En revisión del abogado» (la confirmación es humana; el cobro espera a los datos legales). Bóveda de documentos (sprint 1 de «el cliente solo acepta y adjunta»): subida cifrada desde el expediente, revisión en la Dirección y aviso de lo que falta por WhatsApp.
 
 ## Próximos pasos
 
+0. Owner (23 nov): generar dos tokens (`openssl rand -hex 24`) y pegarlos en Vercel (`HESTIA_CONTEXTO_TOKEN`, `HESTIA_EVENTOS_TOKEN`) y en las credenciales de n8n como `Bearer <token>`; redeploy. Sin el de contexto, HESTIA no ve precios ni expedientes (usa el catálogo público). `HESTIA_WHATSAPP_NUMERO`. Rotar la ruta del webhook de WhatsApp a un UUID en n8n y Evolution. Probar desde su teléfono.
+0b. Roadmap «aceptar y adjuntar»: mandato de representación firmable en pantalla; adjuntos de WhatsApp a la bóveda; HERMES (paquete de presentación de nacionalidad); avisos proactivos por WhatsApp; IRIS (lectura de documentos); paquetes Mercurio.
 1. Owner: confirmar que `OWNER_EMAIL` en Vercel es el Gmail de A.R.E.S. y entrar en Dirección → «Entrar con Google» en producción. El primer acceso correcto fija la cuenta (`direccion_identidad`). Activar la verificación en dos pasos en esa cuenta de Google.
 2. Owner, opcional: cuando la app de Google esté publicada y verificada, activar «Session age claims» (Google Auth Platform → Settings → Advanced). Desde entonces la Dirección exige haber iniciado sesión en Google hace menos de 10 minutos (si no, cerrar sesión en Google y volver a entrar).
 3. Owner: rellenar `src/lib/legal.ts` (titular, NIF, domicilio, correo, registro, abogado, colegio, número). Hasta entonces no hay cobro live. En Google ya están la marca, los enlaces legales y el dominio: falta «Publicar app» para que entren los clientes.

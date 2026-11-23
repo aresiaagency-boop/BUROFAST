@@ -300,3 +300,18 @@
 /* Radar de pagos y de la Dirección: pequeños y centrados. */
 .pago-radar { width: min(190px, 52vw); margin: 0 auto 6px; }
 .rx-acceso { width: 170px; margin: 0 auto; }
+
+/* Bóveda de documentos del expediente: MNEMÓSINE guarda, el cliente solo adjunta. */
+.boveda { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--linea); }
+.boveda h3 { color: var(--agente-mnemosine); }
+.boveda-intro, .boveda-formatos { color: var(--texto-suave); font-size: 0.9rem; }
+.boveda-consentimiento { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; padding: 10px 12px; border: 1px solid var(--linea-fuerte); border-radius: var(--radio-s); background: rgba(169, 139, 255, 0.06); font-size: 0.9rem; }
+.boveda-consentimiento input { margin-top: 3px; accent-color: var(--agente-mnemosine); }
+.boveda-lista { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.boveda-fila { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: var(--radio-s); background: var(--cara); }
+.boveda-cabeza { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; }
+.boveda-documento { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 0.88rem; }
+.boveda-nombre { overflow-wrap: anywhere; color: var(--texto-suave); }
+.boveda-nota { flex-basis: 100%; color: var(--ambar-texto); font-size: 0.84rem; }
+.boveda-fila .boton-cristal { justify-self: start; }
+.boveda-fila input[type="file"]:focus-visible + .boton-cristal { outline: 2px solid var(--cian); outline-offset: 3px; }

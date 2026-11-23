@@ -40,6 +40,7 @@ npx next typegen     # genera PageProps/RouteContext si tsc no los encuentra
 
 - Dominio en castellano (`diagnosticar`, `presupuesto`, `venceSla`); plataforma como la nombra la plataforma.
 - Comentarios en castellano y solo para el *por qué*.
+- Documentos del cliente: solo en la bóveda (`documentos.ts`), cifrados, con consentimiento y cada acceso auditado. Lo que se calcule desde `leads` descifra antes `situacion`.
 - Una regla vive en un sitio: precios en `catalogo.ts`, transiciones en `citas.ts` y `leads.ts`, rutas en `diagnostico.ts`, motores en `motores.ts`, datos legales en `legal.ts`. La interfaz pinta; el servidor decide (el precio se recalcula en el servidor).
 - Ningún texto visible fuera de `src/lib/i18n/*` (los textos legales en `src/lib/i18n/legal/`). Un texto nuevo va a los seis idiomas o `tsc` falla. Francés con «vous», portugués europeo con «tu», ucraniano con «ви».
 - Los componentes cliente reciben por props los textos que no están en el diccionario general (no se importa `LEGALES` en cliente).

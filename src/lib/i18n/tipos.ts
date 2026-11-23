@@ -46,6 +46,25 @@ export type Diccionario = {
     contenido: (p: { rutas: number; agentes: number; citas: number; idiomas: number }) => string;
     zonas: Record<Locale, string>;
   };
+  // Bóveda de documentos del expediente: el cliente adjunta.
+  boveda: {
+    titulo: string;
+    intro: string;
+    consentimiento: string;
+    falta: string;
+    estados: Record<"recibido" | "valido" | "rechazado", string>;
+    adjuntar: string;
+    otroMas: string;
+    otro: string;
+    ver: string;
+    borrar: string;
+    subiendo: string;
+    formatos: string;
+    confirmarBorrar: string;
+    primeroConsiente: string;
+    errores: Record<"tipo" | "tamano" | "limite" | "consentimiento" | "generico", string>;
+    aria: (documento: string) => string;
+  };
   // El radar de extranjería de cada página de la superapp.
   radarExtranjeria: {
     titulo: Record<VarianteRadar, string>;

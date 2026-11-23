@@ -1,7 +1,8 @@
 import type { CitaId, NivelCita } from "@/lib/catalogo";
 import type { EstadoCita } from "@/lib/citas";
 import { db } from "@/lib/db";
-import type { RutaId } from "@/lib/diagnostico";
+import { descifrar } from "@/lib/security/cifrado";
+import type { Respuestas, RutaId } from "@/lib/diagnostico";
 import type { EstadoPago, TipoPago } from "@/lib/pagos/repositorio";
 
 // «Mi expediente»: lo que el cliente ve de lo suyo. Se busca por el hash del
@@ -25,17 +26,38 @@ export type Expediente = {
   totalCentimos: number;
   estado: EstadoLead;
   creadoEn: Date;
+  // Las cinco respuestas del camino: de ellas sale la lista de documentos.
+  respuestas: Partial<Respuestas>;
+  documentosConsentidos: boolean;
   citas: CitaExpediente[];
   pagos: PagoExpediente[];
   pagadoCentimos: number;
 };
 
+function situacionEnClaro(sobre: string | null) {
+  if (!sobre) return null;
+  try {
+    return descifrar(sobre);
+  } catch {
+    return null;
+  }
+}
+
 export async function expedientesDeCliente(emailHash: string): Promise<Expediente[]> {
-  const leads = await db()<Omit<Expediente, "citas" | "pagos" | "pagadoCentimos">[]>`
+  const filas = await db()<(Omit<Expediente, "citas" | "pagos" | "pagadoCentimos" | "respuestas" | "documentosConsentidos"> & {
+    sueno: string; ubicacion: string; situacion: string | null; tiempo: string | null; pasaporte: string; consentido: Date | null;
+  })[]>`
     select id, referencia, locale, ruta_id as "rutaId", producto_id as "productoId", nivel, nivel_cita as "nivelCita",
-           con_guardian as "conGuardian", total_estimado_centimos as "totalCentimos", estado, creado_en as "creadoEn"
+           con_guardian as "conGuardian", total_estimado_centimos as "totalCentimos", estado, creado_en as "creadoEn",
+           sueno, ubicacion, situacion, tiempo, pasaporte, documentos_consentidos_en as consentido
     from leads where email_hash = ${emailHash} and email_verificado_en is not null order by creado_en desc limit 10
   `;
+  const leads = filas.map(({ sueno, ubicacion, situacion, tiempo, pasaporte, consentido, ...lead }) => ({
+    ...lead,
+    // La situación se guarda cifrada (dice si alguien está en situación irregular).
+    respuestas: { sueno, ubicacion, situacion: situacionEnClaro(situacion), tiempo, pasaporte } as Partial<Respuestas>,
+    documentosConsentidos: Boolean(consentido),
+  }));
   if (leads.length === 0) return [];
   const ids = leads.map((l) => l.id);
   const citas = await db()<(CitaExpediente & { leadId: string })[]>`

@@ -139,3 +139,9 @@
   .trabajo { padding: 16px; }
 }
 .campo-mini { padding: 6px 10px; min-height: 34px; background: rgba(4, 12, 23, 0.72); border: 1px solid var(--linea-fuerte); color: var(--texto); font-size: 0.8rem; }
+
+/* Bóveda en la tabla de solicitudes. */
+.documentos-lead { display: grid; gap: 6px; }
+.documento-lead { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; }
+.documento-lead a { color: var(--cian); }
+.documento-lead-acciones { display: inline-flex; gap: 8px; }

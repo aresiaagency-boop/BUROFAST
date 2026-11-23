@@ -76,6 +76,15 @@ describe("flujo n8n de HESTIA", () => {
     expect(ejecutar("").texto.length).toBeGreaterThan(20);
   });
 
+  it("MNEMÓSINE consulta solo el expediente de quien escribe: el teléfono sale del mensaje, no de la IA", () => {
+    const herramienta = porNombre.get("MNEMOSINE_expediente_WA");
+    expect(flujo.connections.MNEMOSINE_expediente_WA.ai_tool[0][0].node).toBe("HESTIA");
+    expect(herramienta?.parameters.url).toBe("https://burofast.vercel.app/api/v1/hestia/expediente");
+    expect(String(herramienta?.parameters.jsonBody)).toContain("$('Code2').first().json.phone");
+    expect(String(herramienta?.parameters.jsonBody)).not.toContain("$fromAI");
+    expect(JSON.stringify(porNombre.get("HESTIA")?.parameters.options)).toContain("MNEMOSINE_expediente_WA");
+  });
+
   it("todas las conexiones apuntan a nodos existentes y los nombres son únicos", () => {
     expect(porNombre.size).toBe(flujo.nodes.length);
     for (const [origen, salidas] of Object.entries(flujo.connections)) {

@@ -3,10 +3,14 @@ import { notFound } from "next/navigation";
 import { PagarAnticipo, SalirCliente, VincularExpediente } from "@/components/superapp/AccionesExpediente";
 import { AceptarCondiciones } from "@/components/legal/TextoLegal";
 import { CabeceraMotor } from "@/components/superapp/CabeceraMotor";
+import { DocumentosExpediente } from "@/components/superapp/DocumentosExpediente";
 import { sesionClienteActual } from "@/lib/auth/cliente";
 import { googleConfigurado } from "@/lib/auth/google";
 import { formatearEuros } from "@/lib/catalogo";
 import { isDatabaseConfigured } from "@/lib/db";
+import type { DocumentoBoveda } from "@/lib/documentos";
+import { documentosDeLeads, documentosRequeridos } from "@/lib/documentos";
+import { cifradoConfigurado } from "@/lib/security/cifrado";
 import { ETAPA_DE_RUTA } from "@/lib/diagnostico";
 import type { EstadoLead, Expediente } from "@/lib/expediente";
 import { expedientesDeCliente } from "@/lib/expediente";
@@ -57,10 +61,13 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
   }
 
   let expedientes: Expediente[] = [];
+  let documentos = new Map<string, DocumentoBoveda[]>();
   let fallo = false;
+  const boveda = isDatabaseConfigured() && cifradoConfigurado();
   if (isDatabaseConfigured()) {
     try {
       expedientes = await expedientesDeCliente(cliente.emailHash);
+      if (boveda) documentos = await documentosDeLeads(expedientes.map((e) => e.id));
     } catch {
       fallo = true;
     }
@@ -116,6 +123,15 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
                     ))}
                   </ul>
                 </>
+              )}
+              {boveda && e.estado !== "descartado" && (
+                <DocumentosExpediente
+                  locale={lang}
+                  referencia={e.referencia}
+                  requeridos={documentosRequeridos(e.respuestas)}
+                  consentido={e.documentosConsentidos}
+                  documentos={(documentos.get(e.id) ?? []).map(({ id, tipo, nombre, bytes, estado, nota }) => ({ id, tipo, nombre, bytes, estado, nota }))}
+                />
               )}
               <h3 style={{ marginTop: 16 }}>{t.expediente.citas}</h3>
               {e.citas.length === 0 ? (

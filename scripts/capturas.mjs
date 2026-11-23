@@ -169,6 +169,46 @@ if (local && process.env.DATABASE_URL && process.env.AUTH_SECRET) {
     await mando.waitForTimeout(300);
     await foto(mando, "26-direccion-corregir-ruta", true);
   }
+  // 4. Bóveda: un cliente con expediente vinculado adjunta un documento y la
+  // Dirección lo ve en su solicitud. El expediente se crea por la API real.
+  if (process.env.DATA_ENCRYPTION_KEY) {
+    const bruta = process.env.DATA_ENCRYPTION_KEY.trim();
+    const claveDatos = /^[0-9a-f]{64}$/i.test(bruta) ? Buffer.from(bruta, "hex") : Buffer.from(bruta, "base64");
+    const hashEstable = (v) => createHmac("sha256", claveDatos).update(v).digest("hex");
+    const email = `capturas-${Date.now()}@ejemplo.test`;
+    const alta = await fetch(`${BASE}/api/v1/leads`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: BASE, "sec-fetch-site": "same-origin" },
+      body: JSON.stringify({
+        locale: "es", nivelCita: null, conGuardian: false, nombre: "Capturas Bóveda", telefono: "+34 600 000 111", email,
+        respuestas: { sueno: "nacionalidad", ubicacion: "espana", situacion: "autorizacion_vigente", tiempo: "2a_5a", pasaporte: "iberoamericano" },
+        consentimientoPrivacidad: true, consentimientoMarketing: false,
+      }),
+    }).then((r) => r.json()).catch(() => null);
+    const referencia = alta?.referencia;
+    if (referencia) {
+      await sql`update leads set email_verificado_en = now() where referencia = ${referencia} and email_hash = ${hashEstable(email)}`;
+      const claveCliente = createHmac("sha256", process.env.AUTH_SECRET.trim()).update("burofast:cliente").digest();
+      const cuerpoCliente = Buffer.from(JSON.stringify({ email, emailHash: hashEstable(email), nombre: "Capturas", exp: Math.floor(Date.now() / 1000) + 600 })).toString("base64url");
+      const fichaCliente = `${cuerpoCliente}.${createHmac("sha256", claveCliente).update(cuerpoCliente).digest("base64url")}`;
+      const cliente = await pagina({ viewport: { width: 1440, height: 900 } });
+      await cliente.context().addCookies([{ name: "burofast.cliente", value: fichaCliente, domain: new URL(BASE).hostname, path: "/", httpOnly: true, sameSite: "Lax" }]);
+      await cliente.goto(`${BASE}/es/expediente`);
+      await cliente.waitForTimeout(600);
+      await foto(cliente, "27-boveda-vacia", true);
+      await cliente.getByRole("checkbox").first().check();
+      // PNG mínimo válido (1×1): la bóveda reconoce el tipo por su contenido.
+      const png = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360f8cf00000301010018dd8db40000000049454e44ae426082", "hex");
+      await cliente.getByLabel(/Pasaporte/).first().setInputFiles({ name: "pasaporte.png", mimeType: "image/png", buffer: png });
+      await cliente.getByText("pasaporte.png").first().waitFor({ timeout: 10_000 });
+      await foto(cliente, "28-boveda-con-documento", true);
+      await mando.goto(`${BASE}/mando/leads`);
+      await mando.waitForTimeout(500);
+      await foto(mando, "29-direccion-documentos", true);
+      await sql`delete from leads where referencia = ${referencia}`;
+    } else errores.push("bóveda: no se pudo crear el expediente de capturas");
+  }
+
   await sql`update direccion_sesiones set revocada_en = now(), motivo_revocacion = 'capturas' where id_hash = ${huella(sid)}`;
   await sql.end({ timeout: 5 });
 }

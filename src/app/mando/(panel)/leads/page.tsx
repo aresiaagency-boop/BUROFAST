@@ -1,9 +1,12 @@
 import { EstadoBadge, fechaHora, Vacio } from "@/components/mando/piezas";
+import { DocumentosLead } from "@/components/mando/DocumentosLead";
 import { LeadAcciones } from "@/components/mando/LeadAcciones";
 import { Superior } from "@/components/mando/Superior";
 import { exigirDireccion } from "@/lib/autorizacion";
 import { formatearEuros, type ProductoId } from "@/lib/catalogo";
 import type { RutaId } from "@/lib/diagnostico";
+import type { DocumentoBoveda } from "@/lib/documentos";
+import { documentosDeLeads, documentosRequeridos } from "@/lib/documentos";
 import { comprobarPostgres } from "@/lib/estado";
 import type { EstadoLead } from "@/lib/expediente";
 import { ESTADOS_LEAD } from "@/lib/expediente";
@@ -25,6 +28,7 @@ export default async function Leads() {
   const postgres = await comprobarPostgres();
   const listo = postgres.estado === "operativo" && cifradoConfigurado();
   const leads = listo ? await listarLeads() : [];
+  const documentos = listo ? await documentosDeLeads(leads.map((l) => l.id)) : new Map<string, DocumentoBoveda[]>();
   if (listo) await auditar({ actorId: sesion.sub, accion: "leads.listar", parametros: { total: leads.length }, resultado: "ok" });
   const t = DICCIONARIOS.es;
   const operador = tieneRol(sesion, "operator");
@@ -42,7 +46,7 @@ export default async function Leads() {
           ) : (
             <div className="tabla-contenedor">
               <table className="tabla">
-                <thead><tr><th>Camino</th><th>Nombre</th><th>WhatsApp</th><th>Idioma</th><th>Ruta</th><th>Citas</th><th>Total · pagado</th><th>Estado</th><th>Recibida</th>{operador && <th>Acciones</th>}</tr></thead>
+                <thead><tr><th>Camino</th><th>Nombre</th><th>WhatsApp</th><th>Idioma</th><th>Ruta</th><th>Citas</th><th>Documentos</th><th>Total · pagado</th><th>Estado</th><th>Recibida</th>{operador && <th>Acciones</th>}</tr></thead>
                 <tbody>
                   {leads.map((l) => {
                     const estado = esEstado(l.estado) ? l.estado : "nuevo";
@@ -54,6 +58,14 @@ export default async function Leads() {
                         <td className="mono">{l.locale.toUpperCase()}</td>
                         <td>{t.rutas[l.rutaId as RutaId]?.nombre ?? l.rutaId}<br /><span className="metrica-fuente">{t.productos[l.productoId as ProductoId] ?? l.productoId} · {l.nivel}</span></td>
                         <td>{l.nivelCita ? <span className={`etiqueta ${l.nivelCita === "urgente" ? "urgente" : "espera"}`}>{l.nivelCita === "urgente" ? "Urgente" : "Puedo esperar"}</span> : "—"}</td>
+                        <td style={{ minWidth: 220 }}>
+                          {(() => {
+                            const suyos = documentos.get(l.id) ?? [];
+                            const etiqueta = (tipo: string) => (tipo === "otro" ? "Otro" : t.documentos[tipo as keyof typeof t.documentos] ?? tipo);
+                            const faltan = documentosRequeridos(l.respuestas).filter((d) => !suyos.some((x) => x.tipo === d && x.estado !== "rechazado")).map(etiqueta);
+                            return <DocumentosLead operador={operador} faltan={faltan} documentos={suyos.map((d) => ({ id: d.id, etiqueta: etiqueta(d.tipo), nombre: d.nombre, estado: d.estado, nota: d.nota, origen: d.origen }))} />;
+                          })()}
+                        </td>
                         <td className="mono">{formatearEuros(l.totalCentimos, "es-ES")}<br /><span className="metrica-fuente">{formatearEuros(l.pagadoCentimos, "es-ES")} cobrado</span></td>
                         <td><EstadoBadge tono={TONO[estado]} texto={t.expediente.estados[estado]} /></td>
                         <td className="mono">{fechaHora.format(l.creadoEn)}</td>

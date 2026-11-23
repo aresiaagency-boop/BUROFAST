@@ -441,6 +441,20 @@ for h in herramientas:
     copia["position"] = [h["position"][0] + 3600, 288]
     herramientas_wa.append(copia)
 
+# Expediente de quien escribe. El teléfono sale del mensaje de WhatsApp, no de
+# la IA: así HESTIA no puede consultar el expediente de otra persona.
+expediente_wa = herramienta(
+    "MNEMOSINE_expediente", "mnemosine",
+    "MNEMÓSINE. Estado del expediente de la persona que te escribe: su código BF, su ruta, en qué punto está y qué documentos faltan o se rechazaron. No necesita datos. Úsala cuando pregunte por su expediente o sus documentos.",
+    "={ \"telefono\": {{ JSON.stringify($('Code2').first().json.phone) }} }",
+    0,
+)
+expediente_wa["parameters"]["url"] = f"{API_BUROFAST}/api/v1/hestia/expediente"
+expediente_wa["name"] = "MNEMOSINE_expediente_WA"
+expediente_wa["id"] = nid(expediente_wa["name"])
+expediente_wa["position"] = [4960, 288]
+herramientas_wa.append(expediente_wa)
+
 for nuevo in (webhook_app, entrada_app, hestia_app, modelo_app, memoria_app, *herramientas, *herramientas_wa, salida_app, responder_app):
     nodos[nuevo["name"]] = nuevo
 conexiones.update({
