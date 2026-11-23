@@ -501,7 +501,7 @@
             {
               "id": "a4699713-d4a3-404b-96ab-394c9a1751ac",
               "name": "message.number",
-              "value": "={{ $('Webhook').item.json.body.data.key.remoteJid }}",
+              "value": "={{ String($('Webhook').item.json.body.data.key.remoteJid || '').endsWith('@lid') ? ($('Webhook').item.json.body.data.key.remoteJidAlt || $('Webhook').item.json.body.data.key.senderPn || $('Webhook').item.json.body.data.key.remoteJid) : $('Webhook').item.json.body.data.key.remoteJid }}",
               "type": "string"
             },
             {

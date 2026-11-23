@@ -136,6 +136,16 @@ imagen = {
 merge = nodos["Merge1"]
 merge["parameters"] = {"numberInputs": 3}
 
+# 5b. WhatsApp ya identifica a muchos contactos con un «@lid» (identificador
+# anónimo) en vez del número; el número real viene en remoteJidAlt. Sin esto,
+# HESTIA responde a un destino que no es un teléfono, la memoria y el
+# expediente se buscan por un número falso y la persona no recibe nada.
+CLAVE = "$('Webhook').item.json.body.data.key"
+for a in nodos["Edit Fields6"]["parameters"]["assignments"]["assignments"]:
+    if a["name"] == "message.number":
+        a["value"] = ("={{ String(" + CLAVE + ".remoteJid || '').endsWith('@lid') ? (" + CLAVE + ".remoteJidAlt || "
+                      + CLAVE + ".senderPn || " + CLAVE + ".remoteJid) : " + CLAVE + ".remoteJid }}")
+
 # 6. Teléfono internacional, sin el atajo argentino del original.
 nodos["Code2"]["parameters"]["jsCode"] = (
     "const jid = $('Edit Fields6').first().json.message.number || '';\n"

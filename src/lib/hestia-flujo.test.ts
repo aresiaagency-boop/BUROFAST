@@ -114,6 +114,14 @@ describe("flujo n8n de HESTIA", () => {
     expect(nodo("IRIS · OpenAI")?.onError).toBe("continueRegularOutput");
   });
 
+  it("con «@lid» responde al número real (remoteJidAlt), no al identificador anónimo", () => {
+    const numero = (porNombre.get("Edit Fields6")?.parameters as { assignments: { assignments: { name: string; value: string }[] } }).assignments.assignments.find((a) => a.name === "message.number")?.value ?? "";
+    const evaluar = (key: Record<string, string>) => new Function("$", `return ${numero.replace(/^=\{\{|\}\}$/g, "")};`)(() => ({ item: { json: { body: { data: { key } } } } }));
+    expect(evaluar({ remoteJid: "123456789012345@lid", remoteJidAlt: "34600111222@s.whatsapp.net" })).toBe("34600111222@s.whatsapp.net");
+    expect(evaluar({ remoteJid: "34600111222@s.whatsapp.net" })).toBe("34600111222@s.whatsapp.net");
+    expect(evaluar({ remoteJid: "123456789012345@lid" })).toBe("123456789012345@lid");
+  });
+
   it("todas las conexiones apuntan a nodos existentes y los nombres son únicos", () => {
     expect(porNombre.size).toBe(flujo.nodes.length);
     for (const [origen, salidas] of Object.entries(flujo.connections)) {
