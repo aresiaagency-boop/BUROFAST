@@ -4,9 +4,9 @@ import { LeadAcciones } from "@/components/mando/LeadAcciones";
 import { Superior } from "@/components/mando/Superior";
 import { exigirDireccion } from "@/lib/autorizacion";
 import { formatearEuros, type ProductoId } from "@/lib/catalogo";
-import type { RutaId } from "@/lib/diagnostico";
+import type { DocumentoId, RutaId } from "@/lib/diagnostico";
 import type { DocumentoBoveda } from "@/lib/documentos";
-import { documentosDeLeads, documentosRequeridos } from "@/lib/documentos";
+import { declaracionesDeLeads, documentosDeLeads, documentosRequeridos, planDocumental, progresoDocumental } from "@/lib/documentos";
 import { comprobarPostgres } from "@/lib/estado";
 import type { EstadoLead } from "@/lib/expediente";
 import { ESTADOS_LEAD } from "@/lib/expediente";
@@ -28,7 +28,9 @@ export default async function Leads() {
   const postgres = await comprobarPostgres();
   const listo = postgres.estado === "operativo" && cifradoConfigurado();
   const leads = listo ? await listarLeads() : [];
-  const documentos = listo ? await documentosDeLeads(leads.map((l) => l.id)) : new Map<string, DocumentoBoveda[]>();
+  const [documentos, declaraciones] = listo
+    ? await Promise.all([documentosDeLeads(leads.map((l) => l.id)), declaracionesDeLeads(leads.map((l) => l.id))])
+    : [new Map<string, DocumentoBoveda[]>(), new Map<string, Partial<Record<DocumentoId, boolean>>>()];
   if (listo) await auditar({ actorId: sesion.sub, accion: "leads.listar", parametros: { total: leads.length }, resultado: "ok" });
   const t = DICCIONARIOS.es;
   const operador = tieneRol(sesion, "operator");
@@ -62,8 +64,25 @@ export default async function Leads() {
                           {(() => {
                             const suyos = documentos.get(l.id) ?? [];
                             const etiqueta = (tipo: string) => (tipo === "otro" ? "Otro" : t.documentos[tipo as keyof typeof t.documentos] ?? tipo);
-                            const faltan = documentosRequeridos(l.respuestas).filter((d) => !suyos.some((x) => x.tipo === d && x.estado !== "rechazado")).map(etiqueta);
-                            return <DocumentosLead operador={operador} faltan={faltan} documentos={suyos.map((d) => ({ id: d.id, etiqueta: etiqueta(d.tipo), nombre: d.nombre, estado: d.estado, nota: d.nota, origen: d.origen }))} />;
+                            const requeridos = documentosRequeridos(l.respuestas);
+                            const dice = declaraciones.get(l.id) ?? {};
+                            const faltan = requeridos
+                              .filter((d) => !suyos.some((x) => x.tipo === d && x.estado !== "rechazado"))
+                              .map((d) => `${etiqueta(d)}${dice[d] === true ? " (dice que lo tiene)" : dice[d] === false ? " (aún no lo tiene)" : ""}`);
+                            const progreso = progresoDocumental(requeridos, suyos);
+                            const irisDe = (d: DocumentoBoveda) => (d.revisadoPor === "iris" && d.revisionCodigo ? [d.revisionCodigo, d.lectura?.observacion].filter(Boolean).join(" · ") : null);
+                            return (
+                              <DocumentosLead
+                                operador={operador}
+                                faltan={faltan}
+                                resumen={requeridos.length ? `${progreso.verdes.length}/${progreso.total} en verde${progreso.completo ? " · completa" : ""}` : null}
+                                documentos={suyos.map((d) => {
+                                  const cita = d.tipo !== "otro" ? planDocumental(l.respuestas).citaQueLoGestiona[d.tipo] : undefined;
+                                  const cubre = cita ? `Al validarlo (con los demás diplomas que pida la ruta), «${t.citas[cita].nombre}» sale del presupuesto si aún no está aprobado.` : null;
+                                  return { id: d.id, etiqueta: etiqueta(d.tipo), nombre: d.nombre, estado: d.estado, nota: d.nota, origen: d.origen, iris: irisDe(d), cubre };
+                                })}
+                              />
+                            );
                           })()}
                         </td>
                         <td className="mono">{formatearEuros(l.totalCentimos, "es-ES")}<br /><span className="metrica-fuente">{formatearEuros(l.pagadoCentimos, "es-ES")} cobrado</span></td>

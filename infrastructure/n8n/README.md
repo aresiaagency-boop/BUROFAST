@@ -71,3 +71,12 @@ En el n8n de EasyPanel (2.29.9, 9 nov 2026), flujo `LzDIhpysxeGsOAsH`:
 - *OpenAI · App* y *Memoria · App* usan las credenciales de OpenAI y PostgreSQL que ya tenía el flujo.
 - 13 nov 2026: **publicado**. Webhook app usa la credencial «Header Auth account» creada por el owner; sin token responde 403. Las cinco herramientas siguen sin autenticación (120 consultas cada 10 min por IP; con la credencial de contexto, 3 000).
 - 17 nov 2026: **de punta a punta en producción**. La app llama al flujo con `HESTIA_N8N_TOKEN` y responde `modo: "ia"` en 2–4 s (el primer turno tras un arranque en frío, unos 20 s; el límite de la app es 28 s). Probado en es/en: ruta, precio (428 €), garantía (TEMIS), bots de cita (rechazo), «una persona» y asilo (escalan).
+
+## IRIS · comprobación de documentos (flujo aparte)
+
+`iris.workflow.json` sale del mismo `construir-hestia.py`. Es un flujo PROPIO porque recibe documentos de identidad: no guarda ninguna ejecución (`saveDataSuccessExecution` y `saveDataErrorExecution` en `none`, sin progreso ni pruebas manuales). Si alguien activa el historial en este flujo, los documentos quedarían en la base de n8n sin cifrar.
+
+- Webhook `POST /webhook/burofast-iris`, misma credencial Header Auth que el canal app (`HESTIA_N8N_TOKEN`).
+- «IRIS · OpenAI» usa la credencial de OpenAI de HESTIA. Esquema JSON estricto, temperatura 0.
+- BUROFAST no le manda el nombre de la persona: IRIS devuelve el titular que lee y el servidor lo compara sin guardarlo.
+- Si OpenAI falla, responde `ok:false` y el documento lo revisa una persona.

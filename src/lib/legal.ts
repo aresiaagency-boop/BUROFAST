@@ -20,7 +20,7 @@ export const DATOS_LEGALES: Record<ClaveLegal, string | null> = {
   colegiado: null,
 };
 
-export const LEGAL_ACTUALIZADO = "2026-11-13";
+export const LEGAL_ACTUALIZADO = "2026-11-23";
 
 export const DOCUMENTOS_LEGALES = ["privacidad", "condiciones", "aviso-legal"] as const;
 export type DocumentoLegalId = (typeof DOCUMENTOS_LEGALES)[number];

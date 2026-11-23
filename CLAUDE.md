@@ -41,6 +41,7 @@ npx next typegen     # genera PageProps/RouteContext si tsc no los encuentra
 - Dominio en castellano (`diagnosticar`, `presupuesto`, `venceSla`); plataforma como la nombra la plataforma.
 - Comentarios en castellano y solo para el *por qué*.
 - Documentos del cliente: solo en la bóveda (`documentos.ts`), cifrados, con consentimiento y cada acceso auditado. Lo que se calcule desde `leads` descifra antes `situacion`.
+- IRIS (IA) solo describe un documento; el verde lo decide `iris.ts` con reglas fijas (`decidirRevision`, casos en `eval/iris.jsonl`). Nunca rechaza: el ámbar lo mira una persona. Antecedentes penales nunca van a IRIS. El verde deja seguir; el precio solo cambia cuando el abogado valida (`CITA_SE_CUBRE_CON` + `replanificarPorDocumentos`: solo toca las citas cubiertas y ajusta por diferencia, antes de aprobar y sin pagos).
 - Una regla vive en un sitio: precios en `catalogo.ts`, transiciones en `citas.ts` y `leads.ts`, rutas en `diagnostico.ts`, motores en `motores.ts`, datos legales en `legal.ts`. La interfaz pinta; el servidor decide (el precio se recalcula en el servidor).
 - Ningún texto visible fuera de `src/lib/i18n/*` (los textos legales en `src/lib/i18n/legal/`). Un texto nuevo va a los seis idiomas o `tsc` falla. Francés con «vous», portugués europeo con «tu», ucraniano con «ви».
 - Los componentes cliente reciben por props los textos que no están en el diccionario general (no se importa `LEGALES` en cliente).
@@ -50,7 +51,7 @@ npx next typegen     # genera PageProps/RouteContext si tsc no los encuentra
 
 - `AGENTS.md` (lo reescribe `next dev`).
 - Cualquier `.env*`. Las variables se documentan en `docs/variables-entorno.md`.
-- `infrastructure/n8n/hestia.workflow.json` a mano: se regenera con `scripts/n8n/construir-hestia.py`. Nunca con `pinData`.
+- `infrastructure/n8n/hestia.workflow.json` e `iris.workflow.json` a mano: se regeneran con `scripts/n8n/construir-hestia.py`. Nunca con `pinData`. IRIS va en su propio flujo sin historial de ejecuciones (los documentos no se quedan en n8n).
 - `public/mapa/mapamundi.jpg`: el mapamundi de A.R.E.S., tal cual. Todo el radar se dibuja encima, sobre su plano.
 - `public/mapa/paises.<hash>.json` y `src/lib/radar-paises.ts` a mano: se regeneran con `scripts/mapa/generar-paises.mjs` (zonas de idioma y grupos de pasaporte viven en ese script; la calibración, en `src/lib/mapa-calibracion.json`).
 

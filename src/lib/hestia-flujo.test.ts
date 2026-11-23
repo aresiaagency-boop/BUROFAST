@@ -14,7 +14,8 @@ import { interpretarRespuestaN8n } from "@/lib/hestia/orquestador";
 type Nodo = { name: string; type: string; parameters: Record<string, unknown>; credentials?: Record<string, unknown>; onError?: string };
 const ruta = fileURLToPath(new URL("../../infrastructure/n8n/hestia.workflow.json", import.meta.url));
 const texto = readFileSync(ruta, "utf8");
-const flujo = JSON.parse(texto) as { nodes: Nodo[]; pinData: object; connections: Record<string, Record<string, { node: string }[][]>> };
+type Flujo = { nodes: Nodo[]; pinData: object; settings?: Record<string, unknown>; connections: Record<string, Record<string, { node: string }[][]>> };
+const flujo = JSON.parse(texto) as Flujo;
 const porNombre = new Map(flujo.nodes.map((n) => [n.name, n]));
 
 describe("flujo n8n de HESTIA", () => {
@@ -86,6 +87,31 @@ describe("flujo n8n de HESTIA", () => {
     expect(String(herramienta?.parameters.jsonBody)).toContain("$('Code2').first().json.phone");
     expect(String(herramienta?.parameters.jsonBody)).not.toContain("$fromAI");
     expect(JSON.stringify(porNombre.get("HESTIA")?.parameters.options)).toContain("MNEMOSINE_expediente_WA");
+  });
+
+  it("IRIS vive en un flujo aparte que no guarda ejecuciones: un pasaporte no se queda en n8n", () => {
+    const iris = JSON.parse(readFileSync(fileURLToPath(new URL("../../infrastructure/n8n/iris.workflow.json", import.meta.url)), "utf8")) as Flujo;
+    expect(iris.settings).toMatchObject({ saveDataSuccessExecution: "none", saveDataErrorExecution: "none", saveManualExecutions: false, saveExecutionProgress: false });
+    expect(flujo.nodes.some((n) => n.name.includes("IRIS"))).toBe(false);
+    const nodo = (nombre: string) => iris.nodes.find((n) => n.name === nombre);
+    expect(nodo("Webhook IRIS")?.parameters).toMatchObject({ path: "burofast-iris", authentication: "headerAuth", responseMode: "responseNode" });
+    expect(iris.connections["Webhook IRIS"].main[0][0].node).toBe("Preparar IRIS");
+    expect(iris.connections["IRIS · OpenAI"].main[0][0].node).toBe("Salida IRIS");
+    expect(iris.connections["Salida IRIS"].main[0][0].node).toBe("Responder a IRIS");
+    const preparar = new Function("$input", String(nodo("Preparar IRIS")?.parameters.jsCode));
+    const cuerpo = (mime: string) => (preparar({ first: () => ({ json: { body: { mime, base64: "QUJD", tipoEsperado: "ccse", titular: "Ignorar esto", catalogo: {} } } }) }) as { json: { cuerpo: { temperature: number; response_format: { json_schema: { strict: boolean; schema: { required: string[] } } }; messages: { role: string; content: unknown }[] } } }[])[0].json.cuerpo;
+    const pdf = cuerpo("application/pdf");
+    expect(pdf.temperature).toBe(0);
+    expect(pdf.response_format.json_schema.strict).toBe(true);
+    expect(pdf.response_format.json_schema.schema.required).toContain("titularDocumento");
+    expect(JSON.stringify(pdf.messages[1].content)).toContain("data:application/pdf;base64,QUJD");
+    // Nada que escriba el cliente (su nombre) entra en el mensaje para la IA.
+    expect(JSON.stringify(pdf.messages[1].content)).not.toContain("Ignorar esto");
+    expect(JSON.stringify(cuerpo("image/jpeg").messages[1].content)).toContain("image_url");
+    expect(String(pdf.messages[0].content)).toContain("Nunca copias números de documento");
+    const salida = new Function("$input", String(nodo("Salida IRIS")?.parameters.jsCode));
+    expect(salida({ first: () => ({ json: { error: { message: "timeout" } } }) })).toEqual([{ json: { ok: false } }]);
+    expect(nodo("IRIS · OpenAI")?.onError).toBe("continueRegularOutput");
   });
 
   it("todas las conexiones apuntan a nodos existentes y los nombres son únicos", () => {

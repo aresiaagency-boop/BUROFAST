@@ -102,11 +102,38 @@ export const DOCUMENTOS = [
   "vinculo_familiar",
   "informe_vivienda",
   "certificado_nacimiento",
-  "ccse_dele",
+  "ccse",
+  "dele_a2",
   "plan_negocio",
   "resolucion_regularizacion",
 ] as const;
 export type DocumentoId = (typeof DOCUMENTOS)[number];
+
+// Citas que BUROFAST ya no necesita gestionar cuando la persona aporta los
+// documentos que esa cita sirve para conseguir: con el diploma CCSE (y el DELE
+// si su ruta lo pide) no hay que inscribirla al examen; con el padrón, no hay
+// que empadronarla. Solo cuentan documentos VALIDADOS por el abogado: un verde
+// de IRIS deja seguir el proceso, pero no cambia el precio.
+export const CITA_SE_CUBRE_CON: Partial<Record<CitaId, readonly DocumentoId[]>> = {
+  examenes_ccse_dele: ["ccse", "dele_a2"],
+  empadronamiento: ["padron", "padron_historico"],
+};
+
+// Una cita queda cubierta si la ruta pide alguno de sus documentos y la
+// persona ha aportado todos los que la ruta pide de esa lista.
+export function citasCubiertas(aportados: readonly DocumentoId[], documentosRuta: readonly DocumentoId[]): CitaId[] {
+  return (Object.entries(CITA_SE_CUBRE_CON) as [CitaId, readonly DocumentoId[]][])
+    .filter(([, documentos]) => {
+      const pedidos = documentos.filter((d) => documentosRuta.includes(d));
+      return pedidos.length > 0 && pedidos.every((d) => aportados.includes(d));
+    })
+    .map(([cita]) => cita);
+}
+
+export function citaQueCubre(documento: DocumentoId): CitaId | null {
+  const par = (Object.entries(CITA_SE_CUBRE_CON) as [CitaId, readonly DocumentoId[]][]).find(([, documentos]) => documentos.includes(documento));
+  return par ? par[0] : null;
+}
 
 // Etapa del Camino del residente a la que lleva cada ruta. La usa la interfaz
 // para marcar «la siguiente etapa» sin repetir la lógica del diagnóstico.
@@ -267,7 +294,9 @@ function nacionalidad(pasaporte: Respuestas["pasaporte"]): Ruta {
     "nacionalidad",
     "nacionalidad",
     ["examenes_ccse_dele", "jura_nacionalidad"],
-    ["pasaporte", "certificado_nacimiento", "antecedentes_origen", "padron", "ccse_dele"],
+    // El DELE A2 no se pide a quien es de un país de habla hispana. El grupo
+    // «iberoamericano» incluye Brasil o Portugal: ahí el DELE lo añade el abogado.
+    ["pasaporte", "certificado_nacimiento", "antecedentes_origen", "padron", "ccse", ...(pasaporte === "iberoamericano" ? [] : (["dele_a2"] as const))],
     [pasaporte === "iberoamericano" ? "iberoamericano_dos_anos" : "requisito_general_diez_anos", "casos_especiales_nacionalidad"],
     null,
   );

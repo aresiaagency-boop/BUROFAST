@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { exigirRol } from "@/lib/autorizacion";
 import { isDatabaseConfigured } from "@/lib/db";
-import { ESTADOS_DOCUMENTO_BOVEDA, leerDocumento, revisarDocumento } from "@/lib/documentos";
+import { DECISIONES_EQUIPO, leerDocumento, revisarDocumento } from "@/lib/documentos";
 import { correlationId, error, json, origenEstricto } from "@/lib/http";
-import { auditar } from "@/lib/repositorio";
+import { formatearEuros } from "@/lib/catalogo";
+import { citaQueCubre } from "@/lib/diagnostico";
+import { DICCIONARIOS } from "@/lib/i18n";
+import { auditar, replanificarPorDocumentos } from "@/lib/repositorio";
 
 // La Dirección abre y revisa los documentos de cualquier expediente. Cada
 // apertura queda auditada: un documento de identidad no se mira sin rastro.
@@ -29,7 +32,7 @@ export async function GET(request: Request, ctx: RouteContext<"/api/v1/mando/doc
   });
 }
 
-const revisionSchema = z.object({ estado: z.enum(ESTADOS_DOCUMENTO_BOVEDA), nota: z.string().trim().max(300).nullable().optional() });
+const revisionSchema = z.object({ estado: z.enum(DECISIONES_EQUIPO), nota: z.string().trim().max(300).nullable().optional() });
 
 export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/documentos/[id]">) {
   const correlation = correlationId(request);
@@ -39,8 +42,24 @@ export async function POST(request: Request, ctx: RouteContext<"/api/v1/mando/do
   const { id } = await ctx.params;
   const revision = revisionSchema.safeParse(await request.json().catch(() => null));
   if (!z.uuid().safeParse(id).success || !revision.success || !isDatabaseConfigured()) return error("ENTRADA_INVALIDA", "Revisión no válida.", { status: 400, correlation });
-  const ok = await revisarDocumento(id, revision.data.estado, revision.data.nota ?? null);
-  await auditar({ actorId: sesion.sub, accion: "documento.revisar", parametros: { documento: id, estado: revision.data.estado }, resultado: ok ? "ok" : "rechazado", correlationId: correlation });
-  if (!ok) return error("NO_ENCONTRADO", "Documento no encontrado.", { status: 404, correlation });
-  return json({ ok: true }, { correlation });
+  const revisado = await revisarDocumento(id, revision.data.estado, revision.data.nota ?? null);
+  const leadId = revisado?.leadId ?? null;
+  const tipo = revisado && revisado.tipo !== "otro" ? revisado.tipo : null;
+  await auditar({ actorId: sesion.sub, accion: "documento.revisar", objetivoId: leadId, parametros: { documento: id, estado: revision.data.estado }, resultado: leadId ? "ok" : "rechazado", correlationId: correlation });
+  if (!leadId) return error("NO_ENCONTRADO", "Documento no encontrado.", { status: 404, correlation });
+  // Validar o rechazar un documento que cubre una cita rehace el plan (antes de
+  // aprobar). Si ya no se puede, el equipo lo ve y lo ajusta a mano.
+  const plan = await replanificarPorDocumentos(leadId);
+  if (plan.ok && plan.cambiado) {
+    await auditar({ actorId: sesion.sub, accion: "lead.replanificar_documentos", objetivoId: leadId, parametros: plan, resultado: "ok", correlationId: correlation });
+  }
+  const cita = tipo ? citaQueCubre(tipo) : null;
+  let aviso: string | null = null;
+  if (plan.ok && plan.cambiado) {
+    aviso = `Presupuesto ajustado: ${formatearEuros(plan.antesCentimos, "es-ES")} → ${formatearEuros(plan.totalCentimos, "es-ES")}.`;
+  } else if (!plan.ok && cita) {
+    aviso = `La cita «${DICCIONARIOS.es.citas[cita].nombre}» no se ha ajustado sola (${plan.motivo}): revisa el presupuesto a mano.`;
+    await auditar({ actorId: sesion.sub, accion: "lead.replanificar_documentos", objetivoId: leadId, parametros: { documento: id, motivo: plan.motivo }, resultado: "rechazado", correlationId: correlation });
+  }
+  return json({ ok: true, aviso }, { correlation });
 }

@@ -1,12 +1,13 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { CitaId, NivelCita } from "@/lib/catalogo";
-import { CITAS, presupuesto } from "@/lib/catalogo";
+import { CITAS, NIVELES_CITA, presupuesto } from "@/lib/catalogo";
 import type { EstadoCita } from "@/lib/citas";
 import { puedeTransicionar, venceGarantiaUrgente, venceSla } from "@/lib/citas";
 import type { NivelCita as Nivel } from "@/lib/catalogo";
 import type { TransactionSql } from "postgres";
 import { db, toDatabaseJson } from "@/lib/db";
-import { diagnosticar } from "@/lib/diagnostico";
+import type { DocumentoId } from "@/lib/diagnostico";
+import { CITA_SE_CUBRE_CON, citasCubiertas, diagnosticar, respuestasSchema } from "@/lib/diagnostico";
 import type { SolicitudLead } from "@/lib/schemas";
 import { cifrar, descifrar, enmascararTelefono, hashEstable } from "@/lib/security/cifrado";
 
@@ -17,16 +18,20 @@ export function nuevaReferencia() {
   return `BF-${[...bytes].map((b) => ALFABETO[b % ALFABETO.length]).join("")}`;
 }
 
-// Ruta, citas cobrables y precio a partir de las respuestas. Lo usan el alta y
-// la corrección del abogado: el precio siempre se calcula aquí, en el servidor.
-export function planDe(respuestas: SolicitudLead["respuestas"], nivelPedido: SolicitudLead["nivelCita"], guardianPedido: boolean) {
+// Ruta, citas cobrables y precio a partir de las respuestas. Lo usan el alta,
+// la corrección del abogado y los documentos aportados en verde: el precio
+// siempre se calcula aquí, en el servidor. Una cita que un documento aportado
+// hace innecesaria no se gestiona ni se cobra.
+export function planDe(respuestas: SolicitudLead["respuestas"], nivelPedido: SolicitudLead["nivelCita"], guardianPedido: boolean, aportados: readonly DocumentoId[] = []) {
   const ruta = diagnosticar(respuestas);
-  const citasCobrables = ruta.citas.filter((cita) => CITAS[cita].gestionable);
+  const cubiertas = citasCubiertas(aportados, ruta.documentos).filter((cita) => ruta.citas.includes(cita));
+  const citas = ruta.citas.filter((cita) => !cubiertas.includes(cita));
+  const citasCobrables = citas.filter((cita) => CITAS[cita].gestionable);
   const nivelCita = citasCobrables.length > 0 ? nivelPedido : null;
   // Guardián no se vende en protección internacional (gratuita) ni dos veces.
   const conGuardian = guardianPedido && ruta.nivel !== "N3" && ruta.producto !== "guardian";
-  const importe = presupuesto({ producto: ruta.producto, citas: ruta.citas, nivelCita, conGuardian });
-  return { ruta, citasCobrables, nivelCita, conGuardian, importe };
+  const importe = presupuesto({ producto: ruta.producto, citas, nivelCita, conGuardian });
+  return { ruta, citasCobrables, citasCubiertas: cubiertas, nivelCita, conGuardian, importe };
 }
 
 async function crearCitas(tx: TransactionSql, leadId: string, citasCobrables: CitaId[], nivelCita: NivelCita, ahora: Date) {
@@ -55,13 +60,13 @@ export async function crearLead(solicitud: SolicitudLead) {
     const [fila] = await tx<{ id: string }[]>`
       insert into leads (
         referencia, origen, locale, sueno, ubicacion, situacion, tiempo, pasaporte,
-        ruta_id, producto_id, nivel, nivel_cita, con_guardian, total_estimado_centimos,
+        ruta_id, producto_id, nivel, nivel_cita, nivel_cita_pedido, con_guardian, total_estimado_centimos,
         nombre_cifrado, telefono_cifrado, telefono_hash, email_cifrado, email_hash,
         consentimiento_privacidad_en, consentimiento_marketing
       ) values (
         ${referencia}, 'funnel', ${solicitud.locale}, ${solicitud.respuestas.sueno}, ${solicitud.respuestas.ubicacion},
         ${solicitud.respuestas.situacion ? cifrar(solicitud.respuestas.situacion) : null}, ${solicitud.respuestas.tiempo}, ${solicitud.respuestas.pasaporte},
-        ${ruta.id}, ${ruta.producto}, ${ruta.nivel}, ${nivelCita}, ${conGuardian}, ${importe.total},
+        ${ruta.id}, ${ruta.producto}, ${ruta.nivel}, ${nivelCita}, ${solicitud.nivelCita}, ${conGuardian}, ${importe.total},
         ${cifrar(solicitud.nombre)}, ${cifrar(telefono)}, ${hashEstable(telefono)},
         ${email ? cifrar(email) : null}, ${email ? hashEstable(email) : null},
         ${ahora}, ${solicitud.consentimientoMarketing}
@@ -126,33 +131,94 @@ export type FilaLead = {
 
 // El abogado corrige la ruta durante la revisión: nuevas respuestas, nuevo
 // plan y nuevo precio, recalculados aquí. Solo antes de aprobar, sin pagos y
-// sin citas que el equipo ya haya empezado a gestionar.
+// sin citas que el equipo ya haya empezado a gestionar. Las citas que cubren
+// documentos ya validados no vuelven al plan.
 export type ResultadoCorreccion =
   | { ok: true; rutaId: string; totalCentimos: number }
   | { ok: false; motivo: "LEAD_NO_EXISTE" | "ESTADO_NO_PERMITE" | "TIENE_PAGOS" | "CITAS_EN_CURSO" };
 
+const ESTADOS_REPLANIFICABLES = ["nuevo", "contactado", "revision_abogado"];
+
+async function documentosValidados(tx: TransactionSql, leadId: string) {
+  return (await tx<{ tipo: DocumentoId }[]>`
+    select distinct tipo from documentos where lead_id = ${leadId} and borrado_en is null and estado = 'valido'
+  `).map((d) => d.tipo);
+}
+
 export async function corregirRuta(leadId: string, entrada: { respuestas: SolicitudLead["respuestas"]; nivelCita: SolicitudLead["nivelCita"]; conGuardian: boolean }): Promise<ResultadoCorreccion> {
-  const { ruta, citasCobrables, nivelCita, conGuardian, importe } = planDe(entrada.respuestas, entrada.nivelCita, entrada.conGuardian);
   return db().begin(async (tx): Promise<ResultadoCorreccion> => {
     const [lead] = await tx<{ estado: string }[]>`select estado from leads where id = ${leadId} for update`;
     if (!lead) return { ok: false, motivo: "LEAD_NO_EXISTE" };
-    if (!["nuevo", "contactado", "revision_abogado"].includes(lead.estado)) return { ok: false, motivo: "ESTADO_NO_PERMITE" };
+    if (!ESTADOS_REPLANIFICABLES.includes(lead.estado)) return { ok: false, motivo: "ESTADO_NO_PERMITE" };
     const [{ pagos }] = await tx<{ pagos: number }[]>`select count(*)::int as pagos from pagos where lead_id = ${leadId}`;
     if (pagos > 0) return { ok: false, motivo: "TIENE_PAGOS" };
     const [{ avanzadas }] = await tx<{ avanzadas: number }[]>`select count(*)::int as avanzadas from citas where lead_id = ${leadId} and estado not in ('requerida', 'en_espera')`;
     if (avanzadas > 0) return { ok: false, motivo: "CITAS_EN_CURSO" };
+    const { ruta, citasCobrables, nivelCita, conGuardian, importe } = planDe(entrada.respuestas, entrada.nivelCita, entrada.conGuardian, await documentosValidados(tx, leadId));
     const r = entrada.respuestas;
     await tx`
       update leads set
         sueno = ${r.sueno}, ubicacion = ${r.ubicacion}, situacion = ${r.situacion ? cifrar(r.situacion) : null},
         tiempo = ${r.tiempo}, pasaporte = ${r.pasaporte},
         ruta_id = ${ruta.id}, producto_id = ${ruta.producto}, nivel = ${ruta.nivel},
-        nivel_cita = ${nivelCita}, con_guardian = ${conGuardian}, total_estimado_centimos = ${importe.total}
+        nivel_cita = ${nivelCita}, nivel_cita_pedido = ${entrada.nivelCita}, con_guardian = ${conGuardian}, total_estimado_centimos = ${importe.total}
       where id = ${leadId}
     `;
     await tx`delete from citas where lead_id = ${leadId}`;
     if (nivelCita) await crearCitas(tx, leadId, citasCobrables, nivelCita, new Date());
     return { ok: true, rutaId: ruta.id, totalCentimos: importe.total };
+  });
+}
+
+// Un documento validado por el abogado que cubre una cita la quita del plan; si
+// esa validación se retira (rechazo o borrado), la cita vuelve. Solo cambian
+// esas citas (las demás conservan sus plazos y su historial) y el precio se
+// ajusta por diferencia, sin recalcular ruta ni tarifas con las reglas de hoy.
+// Solo antes de aprobar y sin pagos.
+export type ResultadoDocumentos =
+  | { ok: true; cambiado: false }
+  | { ok: true; cambiado: true; antesCentimos: number; totalCentimos: number; quitadas: CitaId[]; restituidas: CitaId[] }
+  | { ok: false; motivo: "LEAD_NO_EXISTE" | "ESTADO_NO_PERMITE" | "TIENE_PAGOS" | "CITAS_EN_CURSO" | "RUTA_CAMBIADA" };
+
+export async function replanificarPorDocumentos(leadId: string): Promise<ResultadoDocumentos> {
+  return db().begin(async (tx): Promise<ResultadoDocumentos> => {
+    const [lead] = await tx<{
+      estado: string; total: number; rutaId: string; sueno: string; ubicacion: string; situacion: string | null; tiempo: string | null; pasaporte: string;
+      nivelPedido: string | null; nivelCita: string | null;
+    }[]>`
+      select estado, total_estimado_centimos as total, ruta_id as "rutaId", sueno, ubicacion, situacion, tiempo, pasaporte,
+             nivel_cita_pedido as "nivelPedido", nivel_cita as "nivelCita"
+      from leads where id = ${leadId} for update
+    `;
+    if (!lead) return { ok: false, motivo: "LEAD_NO_EXISTE" };
+    const nivelGuardado = lead.nivelPedido ?? lead.nivelCita;
+    const nivel = nivelGuardado === "urgente" || nivelGuardado === "puede_esperar" ? (nivelGuardado as Nivel) : null;
+    // Sin gestión de citas contratada no hay citas ni precio de citas que tocar.
+    if (!nivel) return { ok: true, cambiado: false };
+    const respuestas = respuestasSchema.safeParse({
+      sueno: lead.sueno, ubicacion: lead.ubicacion, situacion: lead.situacion ? descifrar(lead.situacion) : null, tiempo: lead.tiempo, pasaporte: lead.pasaporte,
+    });
+    if (!respuestas.success) return { ok: false, motivo: "RUTA_CAMBIADA" };
+    const ruta = diagnosticar(respuestas.data);
+    const cubiertas = citasCubiertas(await documentosValidados(tx, leadId), ruta.documentos).filter((c) => ruta.citas.includes(c));
+    const actuales = await tx<{ tipo: CitaId; estado: string }[]>`select tipo, estado from citas where lead_id = ${leadId}`;
+    const quitar = actuales.filter((c) => cubiertas.includes(c.tipo));
+    const restituir = ruta.citas.filter((c) => CITA_SE_CUBRE_CON[c] && !cubiertas.includes(c) && CITAS[c].gestionable && !actuales.some((a) => a.tipo === c));
+    if (quitar.length === 0 && restituir.length === 0) return { ok: true, cambiado: false };
+    // Con el ajuste por diferencia, la ruta guardada tiene que ser la de hoy; si no, lo decide el abogado con «Corregir ruta».
+    if (ruta.id !== lead.rutaId) return { ok: false, motivo: "RUTA_CAMBIADA" };
+    if (!ESTADOS_REPLANIFICABLES.includes(lead.estado)) return { ok: false, motivo: "ESTADO_NO_PERMITE" };
+    const [{ pagos }] = await tx<{ pagos: number }[]>`select count(*)::int as pagos from pagos where lead_id = ${leadId}`;
+    if (pagos > 0) return { ok: false, motivo: "TIENE_PAGOS" };
+    if (quitar.some((c) => !["requerida", "en_espera"].includes(c.estado))) return { ok: false, motivo: "CITAS_EN_CURSO" };
+
+    const precio = NIVELES_CITA[nivel].precioCentimos;
+    const total = lead.total - quitar.length * precio + restituir.length * precio;
+    const quedan = actuales.length - quitar.length + restituir.length;
+    if (quitar.length) await tx`delete from citas where lead_id = ${leadId} and tipo = any(${quitar.map((c) => c.tipo)})`;
+    if (restituir.length) await crearCitas(tx, leadId, restituir, nivel, new Date());
+    await tx`update leads set total_estimado_centimos = ${total}, nivel_cita = ${quedan > 0 ? nivel : null} where id = ${leadId}`;
+    return { ok: true, cambiado: true, antesCentimos: lead.total, totalCentimos: total, quitadas: quitar.map((c) => c.tipo), restituidas: restituir };
   });
 }
 

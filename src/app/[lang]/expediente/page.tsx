@@ -9,8 +9,9 @@ import { googleConfigurado } from "@/lib/auth/google";
 import { formatearEuros } from "@/lib/catalogo";
 import { isDatabaseConfigured } from "@/lib/db";
 import type { DocumentoBoveda } from "@/lib/documentos";
-import { documentosDeLeads, documentosRequeridos } from "@/lib/documentos";
+import { declaracionesDeLeads, documentosDeLeads, planDocumental, progresoDocumental } from "@/lib/documentos";
 import { cifradoConfigurado } from "@/lib/security/cifrado";
+import type { DocumentoId } from "@/lib/diagnostico";
 import { ETAPA_DE_RUTA } from "@/lib/diagnostico";
 import type { EstadoLead, Expediente } from "@/lib/expediente";
 import { expedientesDeCliente } from "@/lib/expediente";
@@ -62,12 +63,13 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
 
   let expedientes: Expediente[] = [];
   let documentos = new Map<string, DocumentoBoveda[]>();
+  let declaraciones = new Map<string, Partial<Record<DocumentoId, boolean>>>();
   let fallo = false;
   const boveda = isDatabaseConfigured() && cifradoConfigurado();
   if (isDatabaseConfigured()) {
     try {
       expedientes = await expedientesDeCliente(cliente.emailHash);
-      if (boveda) documentos = await documentosDeLeads(expedientes.map((e) => e.id));
+      if (boveda) [documentos, declaraciones] = await Promise.all([documentosDeLeads(expedientes.map((e) => e.id)), declaracionesDeLeads(expedientes.map((e) => e.id))]);
     } catch {
       fallo = true;
     }
@@ -124,15 +126,26 @@ export default async function MiExpediente({ params, searchParams }: PageProps<"
                   </ul>
                 </>
               )}
-              {boveda && e.estado !== "descartado" && (
-                <DocumentosExpediente
-                  locale={lang}
-                  referencia={e.referencia}
-                  requeridos={documentosRequeridos(e.respuestas)}
-                  consentido={e.documentosConsentidos}
-                  documentos={(documentos.get(e.id) ?? []).map(({ id, tipo, nombre, bytes, estado, nota }) => ({ id, tipo, nombre, bytes, estado, nota }))}
-                />
-              )}
+              {boveda && e.estado !== "descartado" && (() => {
+                const plan = planDocumental(e.respuestas);
+                const suyos = documentos.get(e.id) ?? [];
+                const progreso = progresoDocumental(plan.requeridos, suyos);
+                return (
+                  <DocumentosExpediente
+                    locale={lang}
+                    referencia={e.referencia}
+                    requeridos={plan.requeridos}
+                    citaQueLoGestiona={plan.citaQueLoGestiona}
+                    consentido={e.documentosConsentidos}
+                    consentidoIa={e.documentosIaConsentidos}
+                    citasActivas={e.citas.map((c) => c.tipo)}
+                    declaraciones={declaraciones.get(e.id) ?? {}}
+                    progreso={{ verdes: progreso.verdes.length, total: progreso.total, completo: progreso.completo }}
+                    // Al navegador solo lo que pinta: nada de lo que leyó IRIS.
+                    documentos={suyos.map(({ id, tipo, nombre, bytes, estado, nota, revisionCodigo }) => ({ id, tipo, nombre, bytes, estado, nota, revisionCodigo }))}
+                  />
+                );
+              })()}
               <h3 style={{ marginTop: 16 }}>{t.expediente.citas}</h3>
               {e.citas.length === 0 ? (
                 <p>{t.expediente.sinCitas}</p>

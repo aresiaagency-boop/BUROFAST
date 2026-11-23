@@ -1,3 +1,5 @@
+import type { EstadoDocumentoBoveda } from "@/lib/documentos";
+import type { CodigoRevision } from "@/lib/iris";
 import type { Autoridad, CitaId, NivelCita, ProductoId } from "@/lib/catalogo";
 import type { EstadoCita, SemaforoSla } from "@/lib/citas";
 import type { AvisoId, DocumentoId, EtapaId, RutaId } from "@/lib/diagnostico";
@@ -51,8 +53,9 @@ export type Diccionario = {
     titulo: string;
     intro: string;
     consentimiento: string;
+    consentimientoIa: string;
     falta: string;
-    estados: Record<"recibido" | "valido" | "rechazado", string>;
+    estados: Record<EstadoDocumentoBoveda, string>;
     adjuntar: string;
     otroMas: string;
     otro: string;
@@ -64,6 +67,18 @@ export type Diccionario = {
     primeroConsiente: string;
     errores: Record<"tipo" | "tamano" | "limite" | "consentimiento" | "generico", string>;
     aria: (documento: string) => string;
+    pregunta: string;
+    si: string;
+    no: string;
+    loTienes: string;
+    loConseguimos: string;
+    citaGestiona: (cita: string) => string;
+    comprobando: string;
+    progreso: (verdes: number, total: number) => string;
+    completo: string;
+    citaYaNo: (cita: string) => string;
+    citaAlValidar: (cita: string) => string;
+    revision: Record<CodigoRevision, string>;
   };
   // El radar de extranjería de cada página de la superapp.
   radarExtranjeria: {

@@ -36,6 +36,7 @@ Tipo **Config**: se puede leer después de guardar. Tipo **Secret**: no se vuelv
 | Variable | Tipo | Para qué | Valor / cómo generarla |
 | --- | --- | --- | --- |
 | `HESTIA_N8N_URL` | Config | URL de producción del nodo **Webhook app** del flujo | `https://burofast-n8n.7dklrk.easypanel.host/webhook/burofast-hestia-app` |
+| `IRIS_N8N_URL` | Config, opcional | Webhook **Webhook IRIS** (comprobación de documentos). Si falta, se usa `HESTIA_N8N_URL` con la ruta `burofast-iris`, con el mismo `HESTIA_N8N_TOKEN` | `https://burofast-n8n.7dklrk.easypanel.host/webhook/burofast-iris` |
 | `HESTIA_N8N_TOKEN` | Secret | Bearer que el backend manda a n8n (el mismo valor va en la credencial `BUROFAST · app → HESTIA`) | `openssl rand -hex 32` |
 | `HESTIA_CONTEXTO_TOKEN` | Secret | Bearer de n8n hacia `/api/v1/hestia/contexto` y `/api/v1/motores/*` (solo lectura) | `openssl rand -hex 24` |
 | `HESTIA_EVENTOS_TOKEN` | Secret | Bearer de n8n hacia `/api/v1/hestia/eventos`; distinto del de contexto | `openssl rand -hex 24` |

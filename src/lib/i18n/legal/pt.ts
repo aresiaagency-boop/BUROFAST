@@ -43,6 +43,7 @@ export const pt: TextosLegales = {
           titulo: "Inteligência artificial e decisões automatizadas",
           parrafos: [
             "A HESTIA é uma inteligência artificial e di-lo logo no início. Os motores calculam uma orientação (rota, marcações, documentos e prazos) a partir das tuas respostas.",
+            "Se aceitares a verificação de documentos, a IRIS, uma inteligência artificial (modelo da OpenAI), lê cada documento que anexas para descrever o que é, se se lê, se está em teu nome e as suas datas. Não copia números de documentos e nunca recebe registos criminais. Com essa leitura, regras fixas deixam-no a verde ou pedem que uma pessoa o veja; nunca se rejeita um documento sem uma pessoa, e um advogado revê-os todos antes de apresentar o teu processo.",
             "Nenhuma decisão que te afete é tomada só de forma automática: um advogado inscrito na Ordem revê a tua rota antes de te cobrar o que quer que seja, e podes pedir para falar com uma pessoa a qualquer momento.",
           ],
         },

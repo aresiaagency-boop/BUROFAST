@@ -23,6 +23,7 @@ RAIZ = Path(__file__).resolve().parents[2]
 origen = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 prompt = (RAIZ / "infrastructure/n8n/prompts/hestia-system.md").read_text(encoding="utf-8")
 prompt_app = (RAIZ / "infrastructure/n8n/prompts/hestia-app.md").read_text(encoding="utf-8")
+prompt_iris = (RAIZ / "infrastructure/n8n/prompts/iris-system.md").read_text(encoding="utf-8")
 # Producción. Si cambia el dominio, se cambia aquí y se regenera.
 API_BUROFAST = "https://burofast.vercel.app"
 
@@ -461,6 +462,82 @@ expediente_wa["id"] = nid(expediente_wa["name"])
 expediente_wa["position"] = [4960, 288]
 herramientas_wa.append(expediente_wa)
 
+# IRIS: comprobación de documentos, en un flujo APARTE que no guarda
+# ejecuciones (un pasaporte no puede quedarse en el historial de n8n). BUROFAST
+# manda el documento; IRIS describe lo que ve con un esquema JSON estricto y el
+# servidor decide el verde. Misma credencial que el canal app; el modelo, la
+# credencial de OpenAI de HESTIA.
+CRED_OPENAI = {"openAiApi": {"id": "REEMPLAZAR_AL_IMPORTAR", "name": "OpenAi account"}}
+ESQUEMA_IRIS = {
+    "type": "object", "additionalProperties": False,
+    "required": ["tipoDetectado", "esElPedido", "confianza", "legible", "titularDocumento", "fechaEmision", "fechaCaducidad", "resultadoApto", "observacion"],
+    "properties": {
+        "tipoDetectado": {"type": "string"},
+        "esElPedido": {"type": "boolean"},
+        "confianza": {"type": "number"},
+        "legible": {"type": "boolean"},
+        "titularDocumento": {"type": ["string", "null"]},
+        "fechaEmision": {"type": ["string", "null"]},
+        "fechaCaducidad": {"type": ["string", "null"]},
+        "resultadoApto": {"type": ["boolean", "null"]},
+        "observacion": {"type": ["string", "null"]},
+    },
+}
+webhook_iris = {
+    "parameters": {"httpMethod": "POST", "path": "burofast-iris", "authentication": "headerAuth", "responseMode": "responseNode", "options": {}},
+    "type": "n8n-nodes-base.webhook", "typeVersion": 2, "position": [-176, 1700],
+    "id": nid("Webhook IRIS"), "name": "Webhook IRIS", "webhookId": nid("webhook-iris"), "credentials": CRED_APP,
+}
+preparar_iris = {
+    "parameters": {"jsCode": (
+        "const b = $input.first().json.body || {};\n"
+        "const mime = String(b.mime || '');\n"
+        "const datos = 'data:' + mime + ';base64,' + String(b.base64 || '');\n"
+        "// PDF como archivo; fotos como imagen. Otro tipo no llega: lo filtra BUROFAST.\n"
+        "const parte = mime === 'application/pdf'\n"
+        "  ? { type: 'file', file: { filename: 'documento.pdf', file_data: datos } }\n"
+        "  : { type: 'image_url', image_url: { url: datos, detail: 'high' } };\n"
+        "const peticion = { tipoEsperado: String(b.tipoEsperado || '').slice(0, 40), catalogo: b.catalogo || {} };\n"
+        "return [{ json: { cuerpo: {\n"
+        "  model: 'gpt-4o-mini', temperature: 0,\n"
+        "  response_format: { type: 'json_schema', json_schema: { name: 'lectura_iris', strict: true, schema: " + json.dumps(ESQUEMA_IRIS) + " } },\n"
+        "  messages: [\n"
+        "    { role: 'system', content: " + json.dumps(prompt_iris) + " },\n"
+        "    { role: 'user', content: [ { type: 'text', text: JSON.stringify(peticion) }, parte ] },\n"
+        "  ],\n"
+        "} } }];"
+    )},
+    "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [48, 1700], "id": nid("Preparar IRIS"), "name": "Preparar IRIS",
+}
+openai_iris = {
+    "parameters": {
+        "method": "POST", "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType", "nodeCredentialType": "openAiApi",
+        "sendBody": True, "specifyBody": "json", "jsonBody": "={{ JSON.stringify($json.cuerpo) }}",
+        "options": {"timeout": 22000},
+    },
+    "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [272, 1700],
+    "id": nid("IRIS · OpenAI"), "name": "IRIS · OpenAI", "credentials": CRED_OPENAI,
+    # Si OpenAI falla, BUROFAST recibe ok:false y el documento lo mira una persona.
+    "onError": "continueRegularOutput",
+}
+salida_iris = {
+    "parameters": {"jsCode": (
+        "try {\n"
+        "  const contenido = $input.first().json.choices[0].message.content;\n"
+        "  return [{ json: { ok: true, lectura: JSON.parse(contenido) } }];\n"
+        "} catch (e) {\n"
+        "  return [{ json: { ok: false } }];\n"
+        "}"
+    )},
+    "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [496, 1700], "id": nid("Salida IRIS"), "name": "Salida IRIS",
+}
+responder_iris = {
+    "parameters": {"respondWith": "firstIncomingItem", "options": {}},
+    "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1.1, "position": [720, 1700],
+    "id": nid("Responder a IRIS"), "name": "Responder a IRIS",
+}
+
 for nuevo in (webhook_app, entrada_app, hestia_app, modelo_app, memoria_app, *herramientas, *herramientas_wa, salida_app, responder_app):
     nodos[nuevo["name"]] = nuevo
 conexiones.update({
@@ -487,3 +564,23 @@ flujo = {
 destino = RAIZ / "infrastructure/n8n/hestia.workflow.json"
 destino.write_text(json.dumps(flujo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(f"{destino} · {len(flujo['nodes'])} nodos")
+
+flujo_iris = {
+    "name": "IRIS · BUROFAST (documentos)",
+    "nodes": [webhook_iris, preparar_iris, openai_iris, salida_iris, responder_iris],
+    "pinData": {},
+    "connections": {
+        "Webhook IRIS": {"main": [[{"node": "Preparar IRIS", "type": "main", "index": 0}]]},
+        "Preparar IRIS": {"main": [[{"node": "IRIS · OpenAI", "type": "main", "index": 0}]]},
+        "IRIS · OpenAI": {"main": [[{"node": "Salida IRIS", "type": "main", "index": 0}]]},
+        "Salida IRIS": {"main": [[{"node": "Responder a IRIS", "type": "main", "index": 0}]]},
+    },
+    "active": False,
+    # Ni éxitos, ni errores, ni progreso, ni pruebas manuales: nada del documento queda en n8n.
+    "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "none", "saveDataErrorExecution": "none", "saveManualExecutions": False, "saveExecutionProgress": False},
+    "meta": {"templateCredsSetupCompleted": False},
+    "tags": [],
+}
+destino_iris = RAIZ / "infrastructure/n8n/iris.workflow.json"
+destino_iris.write_text(json.dumps(flujo_iris, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+print(f"{destino_iris} · {len(flujo_iris['nodes'])} nodos")

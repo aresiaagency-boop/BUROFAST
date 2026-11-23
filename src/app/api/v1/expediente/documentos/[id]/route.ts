@@ -3,7 +3,7 @@ import { sesionClienteActual } from "@/lib/auth/cliente";
 import { isDatabaseConfigured } from "@/lib/db";
 import { borrarDocumento, leadDelCliente, leerDocumento } from "@/lib/documentos";
 import { correlationId, error, json, origenEstricto } from "@/lib/http";
-import { auditar } from "@/lib/repositorio";
+import { auditar, replanificarPorDocumentos } from "@/lib/repositorio";
 
 const idSchema = z.uuid();
 const referenciaSchema = z.string().trim().toUpperCase().regex(/^BF-[A-Z0-9]{6}$/);
@@ -44,5 +44,11 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v1
   const borrado = await borrarDocumento(id, ctx.lead.id);
   await auditar({ actorId: `cliente:${ctx.cliente.emailHash.slice(0, 16)}`, accion: "documento.borrar", objetivoId: ctx.lead.id, resultado: borrado ? "ok" : "rechazado", correlationId: correlation });
   if (!borrado) return error("NO_ENCONTRADO", "Documento no encontrado.", { status: 404, correlation });
+  // Si era un documento validado que cubría una cita, la cita vuelve al plan
+  // (solo antes de aprobar). Cualquier cambio de precio queda auditado.
+  const plan = await replanificarPorDocumentos(ctx.lead.id);
+  if (plan.ok && plan.cambiado) {
+    await auditar({ actorId: `cliente:${ctx.cliente.emailHash.slice(0, 16)}`, accion: "lead.replanificar_documentos", objetivoId: ctx.lead.id, parametros: plan, resultado: "ok", correlationId: correlation });
+  }
   return json({ ok: true }, { correlation });
 }

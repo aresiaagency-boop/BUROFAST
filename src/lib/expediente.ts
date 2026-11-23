@@ -29,6 +29,7 @@ export type Expediente = {
   // Las cinco respuestas del camino: de ellas sale la lista de documentos.
   respuestas: Partial<Respuestas>;
   documentosConsentidos: boolean;
+  documentosIaConsentidos: boolean;
   citas: CitaExpediente[];
   pagos: PagoExpediente[];
   pagadoCentimos: number;
@@ -44,19 +45,22 @@ function situacionEnClaro(sobre: string | null) {
 }
 
 export async function expedientesDeCliente(emailHash: string): Promise<Expediente[]> {
-  const filas = await db()<(Omit<Expediente, "citas" | "pagos" | "pagadoCentimos" | "respuestas" | "documentosConsentidos"> & {
-    sueno: string; ubicacion: string; situacion: string | null; tiempo: string | null; pasaporte: string; consentido: Date | null;
+  const filas = await db()<(Omit<Expediente, "citas" | "pagos" | "pagadoCentimos" | "respuestas" | "documentosConsentidos" | "documentosIaConsentidos"> & {
+    sueno: string; ubicacion: string; situacion: string | null; tiempo: string | null; pasaporte: string; consentido: Date | null; consentidoIa: Date | null;
   })[]>`
     select id, referencia, locale, ruta_id as "rutaId", producto_id as "productoId", nivel, nivel_cita as "nivelCita",
            con_guardian as "conGuardian", total_estimado_centimos as "totalCentimos", estado, creado_en as "creadoEn",
-           sueno, ubicacion, situacion, tiempo, pasaporte, documentos_consentidos_en as consentido
+           sueno, ubicacion, situacion, tiempo, pasaporte, documentos_consentidos_en as consentido,
+           documentos_ia_consentidos_en as "consentidoIa"
     from leads where email_hash = ${emailHash} and email_verificado_en is not null order by creado_en desc limit 10
   `;
-  const leads = filas.map(({ sueno, ubicacion, situacion, tiempo, pasaporte, consentido, ...lead }) => ({
+  const leads = filas.map(({ sueno, ubicacion, situacion, tiempo, pasaporte, consentido, consentidoIa, ...lead }) => ({
     ...lead,
     // La situación se guarda cifrada (dice si alguien está en situación irregular).
     respuestas: { sueno, ubicacion, situacion: situacionEnClaro(situacion), tiempo, pasaporte } as Partial<Respuestas>,
     documentosConsentidos: Boolean(consentido),
+    // Comprobación con IRIS: consentimiento aparte y opcional.
+    documentosIaConsentidos: Boolean(consentidoIa),
   }));
   if (leads.length === 0) return [];
   const ids = leads.map((l) => l.id);

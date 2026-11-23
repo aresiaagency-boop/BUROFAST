@@ -1,6 +1,6 @@
 import { db, isDatabaseConfigured } from "@/lib/db";
 import { ETAPA_DE_RUTA, type RutaId } from "@/lib/diagnostico";
-import { documentosDeLeads, documentosRequeridos } from "@/lib/documentos";
+import { documentosDeLeads, documentosRequeridos, progresoDocumental } from "@/lib/documentos";
 import { correlationId, error, json } from "@/lib/http";
 import { DICCIONARIOS } from "@/lib/i18n";
 import { telefonoSchema } from "@/lib/schemas";
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       expedientes: leads.map((l) => {
         const suyos = documentos.get(l.id) ?? [];
         const validos = new Set(suyos.filter((d) => d.estado !== "rechazado").map((d) => d.tipo));
+        const requeridos = documentosRequeridos({ ...l.respuestas, situacion: situacionEnClaro(l.respuestas.situacion) });
+        const progreso = progresoDocumental(requeridos, suyos);
         return {
           referencia: l.referencia,
           ruta: t.rutas[l.rutaId]?.nombre ?? l.rutaId,
@@ -56,8 +58,16 @@ export async function POST(request: Request) {
           // Sin vincular con Google no puede adjuntar: primero entra en su expediente.
           vinculadoConGoogle: l.vinculado,
           enlaceExpediente: `${base}/${l.locale}/expediente`,
-          documentosQueFaltan: documentosRequeridos({ ...l.respuestas, situacion: situacionEnClaro(l.respuestas.situacion) }).filter((d) => !validos.has(d)).map(nombreDoc),
-          documentosRecibidos: suyos.map((d) => ({ documento: nombreDoc(d.tipo), estado: t.boveda.estados[d.estado], nota: d.nota })),
+          documentosQueFaltan: requeridos.filter((d) => !validos.has(d)).map(nombreDoc),
+          documentosEnVerde: `${progreso.verdes.length} de ${progreso.total}`,
+          documentacionCompleta: progreso.completo,
+          documentosRecibidos: suyos.map((d) => ({
+            documento: nombreDoc(d.tipo),
+            estado: t.boveda.estados[d.estado],
+            // Lo que dijo IRIS solo mientras no haya decidido una persona.
+            comprobacion: d.revisadoPor === "iris" && d.revisionCodigo ? t.boveda.revision[d.revisionCodigo] : null,
+            nota: d.nota,
+          })),
         };
       }),
     },

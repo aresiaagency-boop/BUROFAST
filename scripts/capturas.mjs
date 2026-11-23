@@ -6,6 +6,7 @@
 // una sesión de prueba directamente en la base de datos local (DATABASE_URL y
 // AUTH_SECRET) y se niega a hacerlo contra cualquier servidor que no sea local.
 import { createHmac, randomBytes } from "node:crypto";
+import { createServer } from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createRequire } from "node:module";
 
@@ -169,9 +170,26 @@ if (local && process.env.DATABASE_URL && process.env.AUTH_SECRET) {
     await mando.waitForTimeout(300);
     await foto(mando, "26-direccion-corregir-ruta", true);
   }
-  // 4. Bóveda: un cliente con expediente vinculado adjunta un documento y la
-  // Dirección lo ve en su solicitud. El expediente se crea por la API real.
+  // 4. Bóveda: un cliente de nacionalidad responde «¿ya lo tienes?», adjunta y
+  // ve el verde; la Dirección lo ve en su solicitud. El expediente se crea por
+  // la API real. IRIS se simula en local: arranca el servidor con
+  // IRIS_N8N_URL=http://127.0.0.1:4010/ y HESTIA_N8N_TOKEN=capturas para ver
+  // verde y ámbar; sin eso, los documentos quedan «recibidos».
   if (process.env.DATA_ENCRYPTION_KEY) {
+    const lecturas = {
+      ccse: { fechaEmision: "2025-06-12", fechaCaducidad: null, resultadoApto: true },
+      pasaporte: { fechaEmision: "2022-03-01", fechaCaducidad: "2032-03-01", resultadoApto: null },
+      padron: { fechaEmision: "2026-05-02", fechaCaducidad: null, resultadoApto: null },
+    };
+    const irisFalsa = createServer((req, res) => {
+      let cuerpo = "";
+      req.on("data", (trozo) => (cuerpo += trozo));
+      req.on("end", () => {
+        const { tipoEsperado } = JSON.parse(cuerpo || "{}");
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ ok: true, lectura: { tipoDetectado: tipoEsperado, esElPedido: true, confianza: 0.96, legible: true, titularDocumento: "CAPTURAS BOVEDA", observacion: null, ...lecturas[tipoEsperado] } }));
+      });
+    }).listen(4010, "127.0.0.1");
     const bruta = process.env.DATA_ENCRYPTION_KEY.trim();
     const claveDatos = /^[0-9a-f]{64}$/i.test(bruta) ? Buffer.from(bruta, "hex") : Buffer.from(bruta, "base64");
     const hashEstable = (v) => createHmac("sha256", claveDatos).update(v).digest("hex");
@@ -180,7 +198,7 @@ if (local && process.env.DATABASE_URL && process.env.AUTH_SECRET) {
       method: "POST",
       headers: { "content-type": "application/json", origin: BASE, "sec-fetch-site": "same-origin" },
       body: JSON.stringify({
-        locale: "es", nivelCita: null, conGuardian: false, nombre: "Capturas Bóveda", telefono: "+34 600 000 111", email,
+        locale: "es", nivelCita: "puede_esperar", conGuardian: false, nombre: "Capturas Bóveda", telefono: "+34 600 000 111", email,
         respuestas: { sueno: "nacionalidad", ubicacion: "espana", situacion: "autorizacion_vigente", tiempo: "2a_5a", pasaporte: "iberoamericano" },
         consentimientoPrivacidad: true, consentimientoMarketing: false,
       }),
@@ -195,18 +213,36 @@ if (local && process.env.DATABASE_URL && process.env.AUTH_SECRET) {
       await cliente.context().addCookies([{ name: "burofast.cliente", value: fichaCliente, domain: new URL(BASE).hostname, path: "/", httpOnly: true, sameSite: "Lax" }]);
       await cliente.goto(`${BASE}/es/expediente`);
       await cliente.waitForTimeout(600);
-      await foto(cliente, "27-boveda-vacia", true);
-      await cliente.getByRole("checkbox").first().check();
+      await foto(cliente, "27-boveda-pregunta", true);
+      // Los dos «acepto»: guardar y comprobar con IRIS.
+      for (const casilla of await cliente.getByRole("checkbox").all()) await casilla.check();
       // PNG mínimo válido (1×1): la bóveda reconoce el tipo por su contenido.
       const png = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360f8cf00000301010018dd8db40000000049454e44ae426082", "hex");
-      await cliente.getByLabel(/Pasaporte/).first().setInputFiles({ name: "pasaporte.png", mimeType: "image/png", buffer: png });
-      await cliente.getByText("pasaporte.png").first().waitFor({ timeout: 10_000 });
-      await foto(cliente, "28-boveda-con-documento", true);
+      const fila = (nombre) => cliente.locator(".boveda-fila").filter({ has: cliente.locator("strong", { hasText: nombre }) });
+      for (const [nombre, archivo] of [["Pasaporte", "pasaporte.png"], ["Certificado de empadronamiento", "padron.png"], ["Diploma CCSE", "ccse.png"]]) {
+        await fila(nombre).getByRole("button", { name: "Sí, ya lo tengo" }).click();
+        await fila(nombre).locator('input[type="file"]').waitFor({ state: "attached", timeout: 10_000 });
+        await fila(nombre).locator('input[type="file"]').setInputFiles({ name: archivo, mimeType: "image/png", buffer: png });
+        await cliente.getByText(archivo).first().waitFor({ timeout: 15_000 });
+      }
+      await cliente.getByText(/Cuando el abogado lo confirme/).waitFor({ timeout: 10_000 });
+      await fila("Certificado de nacimiento").getByRole("button", { name: "Todavía no" }).click();
+      await cliente.waitForTimeout(800);
+      await foto(cliente, "28-boveda-verde-y-ambar", true);
       await mando.goto(`${BASE}/mando/leads`);
       await mando.waitForTimeout(500);
       await foto(mando, "29-direccion-documentos", true);
+      // El abogado valida el CCSE: la cita del examen sale del presupuesto.
+      const filaLead = mando.locator("tr").filter({ hasText: referencia });
+      await filaLead.locator(".documento-lead").filter({ hasText: "Diploma CCSE" }).getByRole("button", { name: "Válido" }).click();
+      await mando.getByText(/Presupuesto ajustado/).waitFor({ timeout: 10_000 });
+      await filaLead.screenshot({ path: `${SALIDA}/30-direccion-ccse-validado.png` });
+      await cliente.reload();
+      await cliente.waitForTimeout(800);
+      await foto(cliente, "31-boveda-ccse-validado", true);
       await sql`delete from leads where referencia = ${referencia}`;
     } else errores.push("bóveda: no se pudo crear el expediente de capturas");
+    irisFalsa.close();
   }
 
   await sql`update direccion_sesiones set revocada_en = now(), motivo_revocacion = 'capturas' where id_hash = ${huella(sid)}`;

@@ -63,9 +63,19 @@ export const META_DOCUMENTO: Record<DocumentoId, { extranjero: boolean; reciente
   vinculo_familiar: { extranjero: true, reciente: false },
   informe_vivienda: { extranjero: false, reciente: true },
   certificado_nacimiento: { extranjero: true, reciente: false },
-  ccse_dele: { extranjero: false, reciente: false },
+  ccse: { extranjero: false, reciente: false },
+  dele_a2: { extranjero: false, reciente: false },
   plan_negocio: { extranjero: false, reciente: false },
   resolucion_regularizacion: { extranjero: false, reciente: false },
+};
+
+// Días que un documento sirve desde que se expide, para la comprobación
+// automática. Los «recientes», 90: el plazo más corto que suele pedirse; si se
+// pasa, no se rechaza, lo mira una persona. El diploma CCSE vale cuatro años;
+// el DELE no caduca.
+export const VIGENCIA_DIAS: Partial<Record<DocumentoId, number>> = {
+  ...Object.fromEntries((Object.keys(META_DOCUMENTO) as DocumentoId[]).filter((id) => META_DOCUMENTO[id].reciente).map((id) => [id, 90])),
+  ccse: 4 * 365 + 1,
 };
 
 export const ESTADOS_DOCUMENTO = ["tengo", "pidiendo", "falta"] as const;

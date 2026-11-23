@@ -1110,7 +1110,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"documentos\": {{ JSON.stringify(String($fromAI('documentos', 'Ids de documento separados por comas. Valores posibles: pasaporte, padron, padron_historico, antecedentes_origen, antecedentes_espana, tie_actual, contrato_u_oferta, medios_economicos, matricula, seguro_medico, vinculo_familiar, informe_vivienda, certificado_nacimiento, ccse_dele, plan_negocio, resolucion_regularizacion.', 'string') || '').split(',').map((v) => v.trim()).filter(Boolean)) }} }",
+        "jsonBody": "={ \"documentos\": {{ JSON.stringify(String($fromAI('documentos', 'Ids de documento separados por comas. Valores posibles: pasaporte, padron, padron_historico, antecedentes_origen, antecedentes_espana, tie_actual, contrato_u_oferta, medios_economicos, matricula, seguro_medico, vinculo_familiar, informe_vivienda, certificado_nacimiento, ccse, dele_a2, plan_negocio, resolucion_regularizacion.', 'string') || '').split(',').map((v) => v.trim()).filter(Boolean)) }} }",
         "options": {
           "timeout": 8000
         }
@@ -1255,7 +1255,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"documentos\": {{ JSON.stringify(String($fromAI('documentos', 'Ids de documento separados por comas. Valores posibles: pasaporte, padron, padron_historico, antecedentes_origen, antecedentes_espana, tie_actual, contrato_u_oferta, medios_economicos, matricula, seguro_medico, vinculo_familiar, informe_vivienda, certificado_nacimiento, ccse_dele, plan_negocio, resolucion_regularizacion.', 'string') || '').split(',').map((v) => v.trim()).filter(Boolean)) }} }",
+        "jsonBody": "={ \"documentos\": {{ JSON.stringify(String($fromAI('documentos', 'Ids de documento separados por comas. Valores posibles: pasaporte, padron, padron_historico, antecedentes_origen, antecedentes_espana, tie_actual, contrato_u_oferta, medios_economicos, matricula, seguro_medico, vinculo_familiar, informe_vivienda, certificado_nacimiento, ccse, dele_a2, plan_negocio, resolucion_regularizacion.', 'string') || '').split(',').map((v) => v.trim()).filter(Boolean)) }} }",
         "options": {
           "timeout": 8000
         }
