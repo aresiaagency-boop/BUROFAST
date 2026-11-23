@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { conversar } from "@/lib/hestia/orquestador";
+import { conversar, limpiar } from "@/lib/hestia/orquestador";
 
 const entrada = (mensaje: string) => ({
   locale: "es" as const,
@@ -39,5 +39,13 @@ describe("HESTIA con n8n", () => {
   it("si n8n falla responde el modo local, y lo dice", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("caído", { status: 502 })));
     expect(await conversar(entrada("quiero una persona"))).toMatchObject({ modo: "local", escalar: true, agente: "HESTIA" });
+  });
+});
+
+describe("texto de HESTIA para la app", () => {
+  it("quita marcas internas (también mal formadas), negrita y enlaces markdown — caso real del 23 nov", () => {
+    const bruto = "Necesitas:\n\n- **Pasaporte en vigor**\n- **Certificado de empadronamiento** (reciente)\n\nMás aquí: [Documentos](https://burofast.vercel.app/es/documentos).\n\n[[MNEMOSINE]] [[CRONOS]]";
+    expect(limpiar(bruto)).toBe("Necesitas:\n\n- Pasaporte en vigor\n- Certificado de empadronamiento (reciente)\n\nMás aquí: Documentos: https://burofast.vercel.app/es/documentos.");
+    expect(limpiar("Hola [[ESCALAR]] [[AGENTE:TEMIS]]")).toBe("Hola");
   });
 });

@@ -62,10 +62,18 @@ export function interpretarRespuestaN8n(cuerpo: unknown): RespuestaHestia {
   return { texto: limpiar(textoBruto), agente, motor, escalar: Boolean(datos.escalar) || textoBruto.includes("[[ESCALAR]]") };
 }
 
-function limpiar(texto: string) {
-  // La respuesta se pinta como texto, nunca como HTML; aun así se quitan
-  // marcas internas y se acota la longitud.
-  return texto.replace(/\[\[ESCALAR\]\]/g, "").replace(/\u0000/g, "").trim().slice(0, 4000);
+export function limpiar(texto: string) {
+  // La respuesta se pinta como texto, nunca como HTML: fuera cualquier marca
+  // interna [[…]] (también las mal formadas, como «[[MNEMOSINE]]»), la negrita
+  // markdown y los enlaces markdown, que se quedan en «texto: url».
+  return texto
+    .replace(/\[\[[^\]]{0,60}\]\]/g, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, "$1: $2")
+    .replace(/\u0000/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim()
+    .slice(0, 4000);
 }
 
 export function construirContexto(entrada: EntradaConversacion) {

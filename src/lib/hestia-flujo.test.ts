@@ -74,6 +74,9 @@ describe("flujo n8n de HESTIA", () => {
     expect(ejecutar("Hola.\n[[ESCALAR]]")).toEqual({ texto: "Hola.", escalar: true });
     expect(ejecutar("")).toMatchObject({ escalar: true });
     expect(ejecutar("").texto.length).toBeGreaterThan(20);
+    // Caso real (23 nov): marcas mal formadas y markdown no llegan a WhatsApp.
+    expect(ejecutar("Necesitas el **pasaporte**. Mira [Documentos](https://burofast.vercel.app/es/documentos)\n\n[[MNEMOSINE]] [[CRONOS]]").texto)
+      .toBe("Necesitas el *pasaporte*. Mira Documentos: https://burofast.vercel.app/es/documentos");
   });
 
   it("MNEMÓSINE consulta solo el expediente de quien escribe: el teléfono sale del mensaje, no de la IA", () => {
@@ -170,6 +173,8 @@ describe("flujo n8n de HESTIA", () => {
         escalar: false,
       });
       expect(ejecutar("Te atiende una persona, sin coste.\n[[AGENTE:HESTIA]] [[ESCALAR]]")).toMatchObject({ escalar: true, motor: null });
+      // Caso real (23 nov): la IA escribió las marcas sin prefijo.
+      expect(ejecutar("Necesitas el pasaporte.\n\n[[MNEMOSINE]] [[CRONOS]]")).toMatchObject({ respuesta: "Necesitas el pasaporte.", agente: "MNEMOSINE" });
       // Sin texto, el backend rechaza la respuesta y contesta en modo local.
       expect(ejecutar("")).toMatchObject({ respuesta: null, agente: "HESTIA" });
     });

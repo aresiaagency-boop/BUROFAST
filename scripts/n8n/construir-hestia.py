@@ -186,7 +186,12 @@ preparar = {
     "parameters": {"jsCode": (
         "const salida = String($input.first().json.output || '');\n"
         "const escalar = salida.includes('[[ESCALAR]]') || !salida.trim();\n"
-        "const limpio = salida.replace(/\\[\\[(ESCALAR|AGENTE:[^\\]]*|MOTOR:[^\\]]*)\\]\\]/g, '').trim();\n"
+        "// Cualquier marca [[…]] es interna; WhatsApp usa *negrita*, no **negrita**,\n"
+        "// y no pinta enlaces markdown.\n"
+        "const limpio = salida.replace(/\\[\\[[^\\]]{0,60}\\]\\]/g, '')\n"
+        "  .replace(/\\*\\*([^*]+)\\*\\*/g, '*$1*')\n"
+        "  .replace(/\\[([^\\]]+)\\]\\((https?:[^)\\s]+)\\)/g, '$1: $2')\n"
+        "  .replace(/[ \\t]+\\n/g, '\\n').trim();\n"
         "// Sin respuesta de la IA, un aviso honesto y una persona del equipo sigue.\n"
         "const texto = limpio || 'Gracias por escribirnos. Ahora mismo no puedo responder bien; una persona del equipo de BUROFAST te contesta en cuanto pueda.';\n"
         "return [{ json: { texto, escalar } }];"
@@ -415,11 +420,12 @@ herramientas = [
 salida_app = {
     "parameters": {"jsCode": (
         "const bruto = String($input.first().json.output || '');\n"
-        "const agente = ((bruto.match(/\\[\\[AGENTE:([^\\]]+)\\]\\]/i) || [])[1] || 'HESTIA')\n"
-        "  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toUpperCase();\n"
+        "// También vale la marca sin prefijo ([[MNEMOSINE]]): la IA a veces la escribe así.\n"
+        "const plano = bruto.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n"
+        "const agente = ((plano.match(/\\[\\[(?:AGENTE:)?\\s*(HESTIA|ARIADNA|CRONOS|MNEMOSINE|ARGOS|TEMIS)\\s*\\]\\]/i) || [])[1] || 'HESTIA').toUpperCase();\n"
         "const motor = ((bruto.match(/\\[\\[MOTOR:([^\\]]+)\\]\\]/i) || [])[1] || '').trim().toLowerCase() || null;\n"
         "const escalar = bruto.includes('[[ESCALAR]]');\n"
-        "const respuesta = bruto.replace(/\\[\\[(AGENTE|MOTOR):[^\\]]*\\]\\]/gi, '').replace(/\\[\\[ESCALAR\\]\\]/g, '').trim();\n"
+        "const respuesta = bruto.replace(/\\[\\[[^\\]]{0,60}\\]\\]/g, '').trim();\n"
         "// Sin texto, el backend no lo acepta y responde en modo local.\n"
         "return [{ json: { respuesta: respuesta || null, agente, motor, escalar } }];"
     )},
