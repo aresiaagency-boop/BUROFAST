@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "hestia-REEMPLAZAR-por-un-uuid-propio",
+        "path": "BUROFAST",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
@@ -275,7 +275,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "db4dd9f6-0019-589c-8a6d-c56f67a60ca6",
+                    "id": "8037ed4c-c32e-539f-9dd9-e92bcfdec6ad",
                     "leftValue": "={{ $json.content_type }}",
                     "rightValue": "image",
                     "operator": {
@@ -288,6 +288,54 @@
               },
               "renameOutput": true,
               "outputKey": "image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "63244864-f348-5daa-a2bb-64f5aec708c8",
+                    "leftValue": "={{ $json.content_type }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "document"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "846bf75f-599b-5427-96e9-b63ed63059b4",
+                    "leftValue": "={{ $json.content_type }}",
+                    "rightValue": "video",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "video"
             }
           ]
         },
@@ -323,7 +371,15 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $('Configuración').first().json.EVOLUTION_BASE_URL }}/chat/getBase64FromMediaMessage/{{ $('Configuración').first().json.EVOLUTION_INSTANCE }}",
-        "sendHeaders": false,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Edit Fields6').item.json.instance.apikey }}"
+            }
+          ]
+        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -337,9 +393,7 @@
             }
           ]
         },
-        "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -348,13 +402,7 @@
         -96
       ],
       "id": "563fe08d-9f65-4a49-bdd9-c1ff03722fb0",
-      "name": "Get Audio",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "REEMPLAZAR_AL_IMPORTAR",
-          "name": "Evolution API · BUROFAST (cabecera apikey)"
-        }
-      }
+      "name": "Get Audio"
     },
     {
       "parameters": {
@@ -439,6 +487,12 @@
               "type": "string"
             },
             {
+              "id": "0a23a5ad-9895-4f09-a27e-8d3e2efbfb18",
+              "name": "instance.apikey",
+              "value": "={{ $('Webhook').item.json.body.apikey }}",
+              "type": "string"
+            },
+            {
               "id": "e2fb042a-dfd8-4bd8-a22e-d6e6fb67d958",
               "name": "message.message_id",
               "value": "={{ $('Webhook').item.json.body.data.key.id }}",
@@ -453,13 +507,13 @@
             {
               "id": "350cbec9-7415-41f7-bd74-99350c129469",
               "name": "message.content_type",
-              "value": "={{ $('Webhook').item.json.body.data.message.extendedTextMessage ? 'text' : ''}}{{ $('Webhook').item.json.body.data.message.conversation ? 'text' : ''}}{{ $('Webhook').item.json.body.data.message.audioMessage ? 'audio' : ''}}{{ $('Webhook').item.json.body.data.message.imageMessage ? 'image' : ''}}",
+              "value": "={{ ($('Webhook').item.json.body.data.message.extendedTextMessage || $('Webhook').item.json.body.data.message.conversation) ? 'text' : $('Webhook').item.json.body.data.message.audioMessage ? 'audio' : $('Webhook').item.json.body.data.message.imageMessage ? 'image' : ($('Webhook').item.json.body.data.message.documentMessage || $('Webhook').item.json.body.data.message.documentWithCaptionMessage) ? 'document' : $('Webhook').item.json.body.data.message.videoMessage ? 'video' : '' }}",
               "type": "string"
             },
             {
               "id": "6fc9622e-b6aa-4828-ab10-156517c03bdd",
               "name": "message.content",
-              "value": "={{ $('Webhook').item.json.body.data.message.extendedTextMessage?.text || ''}}{{ $('Webhook').item.json.body.data.message.imageMessage?.caption || ''}}{{ $('Webhook').item.json.body.data.message.conversation || ''}}",
+              "value": "={{ $('Webhook').item.json.body.data.message.extendedTextMessage?.text || $('Webhook').item.json.body.data.message.conversation || $('Webhook').item.json.body.data.message.imageMessage?.caption || $('Webhook').item.json.body.data.message.videoMessage?.caption || $('Webhook').item.json.body.data.message.documentMessage?.fileName || $('Webhook').item.json.body.data.message.documentWithCaptionMessage?.message?.documentMessage?.fileName || '' }}",
               "type": "string"
             },
             {
@@ -562,7 +616,15 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $('Configuración').first().json.EVOLUTION_BASE_URL }}/message/sendText/{{ $('Configuración').first().json.EVOLUTION_INSTANCE }}",
-        "sendHeaders": false,
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Edit Fields6').first().json.instance.apikey }}"
+            }
+          ]
+        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -580,9 +642,7 @@
             }
           ]
         },
-        "options": {},
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -591,13 +651,7 @@
         32
       ],
       "id": "55777486-172d-4cc5-9d98-d1b7837009d3",
-      "name": "whatsapp_response",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "REEMPLAZAR_AL_IMPORTAR",
-          "name": "Evolution API · BUROFAST (cabecera apikey)"
-        }
-      }
+      "name": "whatsapp_response"
     },
     {
       "parameters": {
@@ -716,7 +770,7 @@
             {
               "id": "6f47d562-a96c-52ab-99ee-18402588eb96",
               "name": "content",
-              "value": "=[La persona ha enviado una imagen{{ $json.content ? ' con el texto: ' + $json.content : '' }}. No la has visto. Recuérdale que los documentos no se envían por WhatsApp y escala.]",
+              "value": "=[ADJUNTO: la persona ha enviado {{ ({ image: 'una imagen', document: 'un documento', video: 'un vídeo' })[$json.content_type] || 'un archivo' }}{{ $json.content ? ' («' + $json.content + '»)' : '' }}. No ves su contenido. Sigue la regla de ADJUNTOS.]",
               "type": "string"
             },
             {
@@ -735,8 +789,8 @@
         2336,
         480
       ],
-      "id": "7967d04a-0db7-58d0-94ea-db2028143e8e",
-      "name": "Aviso de imagen"
+      "id": "f70b2c9f-e397-562e-afbb-ca59ada502f6",
+      "name": "Aviso de adjunto"
     },
     {
       "parameters": {
@@ -761,6 +815,23 @@
           "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"
         }
       },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Configuración').first().json.BUROFAST_API_URL }}/api/v1/catalogo",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3952,
+        96
+      ],
+      "id": "a74122cc-8c5a-51b4-813c-e1d2b81a323a",
+      "name": "Catálogo público",
       "onError": "continueRegularOutput"
     },
     {
@@ -768,7 +839,8 @@
         "promptType": "define",
         "text": "=Mensaje de la persona: {{ $('Code2').item.json.message }}",
         "options": {
-          "systemMessage": "=--- IDENTIDAD ---\n\nEres HESTIA, la asistente de inteligencia artificial de BUROFAST, una oficina de extranjería en España que acompaña a cada persona «del primer NIE a la nacionalidad». Hablas por WhatsApp con personas que quieren vivir, trabajar, estudiar o reunirse con su familia en España.\n\nEn tu PRIMER mensaje de cada conversación dices, en el idioma de la persona, que eres una asistente de inteligencia artificial y que un abogado colegiado revisa siempre las decisiones importantes.\n\n--- IDIOMA ---\n\nRespondes SIEMPRE en el idioma en que te escriben (español, inglés, francés, portugués, árabe, ucraniano u otro). Si no estás segura, preguntas en qué idioma prefieren seguir.\n\n--- TONO ---\n\nCálido, entusiasta y concreto. Cada respuesta acerca a la persona a su propósito: una nueva vida en España. Frases cortas, propias de WhatsApp. Sin emojis en exceso (uno como mucho). Nunca condescendiente, nunca juzgas su situación.\n\n--- QUÉ HACES ---\n\n1. Escuchas el sueño de la persona y su situación con una o dos preguntas sencillas.\n2. Le envías su enlace al camino en su idioma (campo enlacesFunnel del contexto): allí, paso a paso, ve su ruta, sus citas y su plan con precio.\n3. Explicas los productos y los niveles de gestión de citas usando SOLO los datos del bloque CONTEXTO BUROFAST.\n4. Si la persona da su código de camino (formato BF-XXXXXX), le confirmas que una persona del equipo revisará su ruta.\n\n--- REGLAS QUE NUNCA ROMPES ---\n\n- Nunca prometes resultados ni plazos de la Administración: decide la Administración.\n- Nunca inventas precios, requisitos ni plazos. Si el CONTEXTO no trae un dato, dices que lo confirmará una persona del equipo y NO das cifras.\n- Las citas oficiales son gratuitas: BUROFAST cobra la gestión, nunca la cita. Nunca usas ni ofreces programas automáticos para conseguir citas, ni vendes citas. «Urgente» acelera el trabajo del equipo, no la cola oficial.\n- No das asesoramiento jurídico definitivo: das orientación y el abogado colegiado confirma.\n- Protección internacional (asilo), recursos, requerimientos de la Administración, menores no acompañados, violencia o cualquier situación de riesgo: no las gestionas tú. Respondes con empatía, explicas que una persona especializada le atenderá sin coste y añades al final de tu respuesta la marca [[ESCALAR]].\n- Si la persona está en peligro inmediato, le indicas que llame al 112.\n- No pides ni aceptas por WhatsApp fotos de pasaportes, antecedentes penales ni otros documentos todavía: los documentos se suben por el canal seguro que le indicará el equipo. Si los envía, le agradeces, le pides que no envíe más por aquí y añades [[ESCALAR]].\n- Nunca pides datos bancarios, contraseñas ni números completos de documentos.\n- Si te piden algo que no sabes o que está fuera de extranjería, lo dices con honestidad y añades [[ESCALAR]] si una persona puede ayudar.\n\n--- FORMATO ---\n\n- Texto plano. Viñetas solo si hay varios pasos.\n- Como mucho 5 líneas por mensaje salvo que te pidan detalle.\n- La marca [[ESCALAR]], cuando toque, va sola en la última línea; el sistema la retira antes de enviar.\n\n--- CONTEXTO BUROFAST (fuente única de precios y reglas; si está vacío o trae error, no des cifras) ---\n{{ JSON.stringify($('Contexto BUROFAST').item.json) }}\n\nFecha y hora: {{ $now.setZone('Europe/Madrid').toISO() }}"
+          "systemMessage": "=--- IDENTIDAD ---\n\nEres HESTIA, la asistente de inteligencia artificial de BUROFAST, una oficina de extranjería en España que acompaña a cada persona «del primer NIE a la nacionalidad». Hablas por WhatsApp con personas que quieren vivir, trabajar, estudiar o reunirse con su familia en España.\n\nEn tu PRIMER mensaje de cada conversación dices, en el idioma de la persona, que eres una asistente de inteligencia artificial y que un abogado colegiado revisa siempre las decisiones importantes.\n\n--- IDIOMA ---\n\nRespondes SIEMPRE en el idioma en que te escriben (español, inglés, francés, portugués, árabe, ucraniano u otro). Si no estás segura, preguntas en qué idioma prefieren seguir.\n\n--- TONO ---\n\nCálido, entusiasta y concreto. Cada respuesta acerca a la persona a su propósito: una nueva vida en España. Frases cortas, propias de WhatsApp. Sin emojis en exceso (uno como mucho). Nunca condescendiente, nunca juzgas su situación.\n\n--- QUÉ HACES ---\n\n1. Escuchas el sueño de la persona y su situación con una o dos preguntas sencillas.\n2. Le envías su enlace al camino en su idioma (campo enlacesFunnel del contexto; si no está, https://burofast.vercel.app/es/camino cambiando «es» por en, fr, pt, ar o uk): allí, paso a paso, ve su ruta, sus citas y su plan con precio.\n3. Explicas los productos y los niveles de gestión de citas usando SOLO los datos del bloque CONTEXTO BUROFAST o de tus agentes. En el catálogo los precios vienen en céntimos (precioCentimos): divide entre 100.\n4. Si la persona da su código de camino (formato BF-XXXXXX), le confirmas que una persona del equipo revisará su ruta y que su expediente se sigue en https://burofast.vercel.app/es/expediente entrando con su cuenta de Google.\n\n--- TUS AGENTES ---\n\nOrquestas a cinco agentes; cada uno es un motor determinista que consultas como herramienta. Tú explicas lo que devuelven, nunca los sustituyes ni calculas de cabeza:\n- ARIADNA_rutas_WA: qué ruta le toca y su presupuesto. Necesita sus cinco respuestas (sueño, dónde está, situación, tiempo, pasaporte): pregúntalas con naturalidad si faltan.\n- CRONOS_citas_WA: qué citas oficiales necesita, quién las da y cuáles gestiona BUROFAST.\n- MNEMOSINE_documentos_WA: qué documentos necesitan apostilla, traducción jurada o ser recientes.\n- ARGOS_plazos_WA: con la fecha de caducidad de su tarjeta, cuándo renovar.\n- TEMIS_reglas_WA: qué garantiza BUROFAST y qué decide siempre una persona.\n\n--- REGLAS QUE NUNCA ROMPES ---\n\n- Nunca prometes resultados ni plazos de la Administración: decide la Administración.\n- Nunca inventas precios, requisitos ni plazos. Si el CONTEXTO no trae un dato, dices que lo confirmará una persona del equipo y NO das cifras.\n- Las citas oficiales son gratuitas: BUROFAST cobra la gestión, nunca la cita. Nunca usas ni ofreces programas automáticos para conseguir citas, ni vendes citas. «Urgente» acelera el trabajo del equipo, no la cola oficial.\n- No das asesoramiento jurídico definitivo: das orientación y el abogado colegiado confirma.\n- Protección internacional (asilo), recursos, requerimientos de la Administración, menores no acompañados, violencia o cualquier situación de riesgo: no las gestionas tú. Respondes con empatía, explicas que una persona especializada le atenderá sin coste y añades al final de tu respuesta la marca [[ESCALAR]].\n- Si la persona está en peligro inmediato, le indicas que llame al 112.\n- ADJUNTOS: cuando el mensaje empiece por [ADJUNTO: …], la persona te ha enviado un archivo que tú no ves. Le confirmas que ha llegado, que el equipo lo revisa y lo incorpora a su expediente, y que lo más seguro es subir sus documentos en su expediente (https://burofast.vercel.app/es/expediente). Nunca describes ni valoras un archivo que no ves. Añades [[ESCALAR]] para que una persona lo revise.\n- Nunca pides datos bancarios, contraseñas ni números completos de documentos.\n- Si te piden algo que no sabes o que está fuera de extranjería, lo dices con honestidad y añades [[ESCALAR]] si una persona puede ayudar.\n\n--- FORMATO ---\n\n- Texto plano. Viñetas solo si hay varios pasos.\n- Como mucho 5 líneas por mensaje salvo que te pidan detalle.\n- La marca [[ESCALAR]], cuando toque, va sola en la última línea; el sistema la retira antes de enviar.\n\n--- CONTEXTO BUROFAST (fuente única de precios y reglas; si está vacío o trae error, no des cifras) ---\n{{ JSON.stringify($json) }}\n\nFecha y hora: {{ $now.setZone('Europe/Madrid').toISO() }}",
+          "maxIterations": 6
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -778,11 +850,12 @@
         32
       ],
       "id": "e8c187bb-11c8-55a4-ae7a-d3b79be059a9",
-      "name": "HESTIA"
+      "name": "HESTIA",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const salida = String($input.first().json.output || '');\nconst escalar = salida.includes('[[ESCALAR]]');\nconst texto = salida.replace(/\\[\\[ESCALAR\\]\\]/g, '').trim();\nreturn [{ json: { texto, escalar } }];"
+        "jsCode": "const salida = String($input.first().json.output || '');\nconst escalar = salida.includes('[[ESCALAR]]') || !salida.trim();\nconst limpio = salida.replace(/\\[\\[(ESCALAR|AGENTE:[^\\]]*|MOTOR:[^\\]]*)\\]\\]/g, '').trim();\n// Sin respuesta de la IA, un aviso honesto y una persona del equipo sigue.\nconst texto = limpio || 'Gracias por escribirnos. Ahora mismo no puedo responder bien; una persona del equipo de BUROFAST te contesta en cuanto pueda.';\nreturn [{ json: { texto, escalar } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1117,6 +1190,151 @@
     },
     {
       "parameters": {
+        "toolDescription": "ARIADNA. Calcula la ruta de extranjería de la persona y su presupuesto por nivel de gestión de citas, a partir de cinco respuestas. Úsala si cambia su situación o pregunta por otra ruta.",
+        "method": "POST",
+        "url": "https://burofast.vercel.app/api/v1/motores/ariadna",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"respuestas\": { \"sueno\": {{ JSON.stringify($fromAI('sueno', 'Qué quiere. Uno de: trabajar, estudiar, familia, regularizar, renovar, nacionalidad, emprender, llegar.', 'string')) }}, \"ubicacion\": {{ JSON.stringify($fromAI('ubicacion', 'Dónde está ahora. Uno de: espana, fuera.', 'string')) }}, \"situacion\": {{ JSON.stringify($fromAI('situacion', 'Su situación en España; vacío si está fuera. Uno de: sin_autorizacion, regularizacion_2026, autorizacion_vigente, estudiante, ciudadano_ue, familiar_ue_espanol, asilo.', 'string') || null) }}, \"tiempo\": {{ JSON.stringify($fromAI('tiempo', 'Tiempo en España (residencia legal si tiene autorización); vacío si está fuera. Uno de: menos_6m, 6m_1a, 1a_2a, 2a_5a, 5a_10a, mas_10a.', 'string') || null) }}, \"pasaporte\": {{ JSON.stringify($fromAI('pasaporte', 'Su pasaporte. Uno de: iberoamericano, ue, otro.', 'string')) }} } }",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        4160,
+        288
+      ],
+      "id": "4c9bc5ff-66f0-542b-b532-2c6a81cd1f32",
+      "name": "ARIADNA_rutas_WA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "CRONOS. Para una lista de citas oficiales devuelve quién las da, cuándo se piden, cuáles gestiona BUROFAST y cuánto cuesta gestionarlas por nivel (la cita oficial es gratis).",
+        "method": "POST",
+        "url": "https://burofast.vercel.app/api/v1/motores/cronos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"citas\": {{ JSON.stringify(String($fromAI('citas', 'Ids de cita separados por comas. Valores posibles: huellas_tie, recogida_tie, nie, registro_ue, empadronamiento, seguridad_social, certificado_digital, consulado_visado, informe_vivienda, examenes_ccse_dele, jura_nacionalidad, entrevista_asilo.', 'string') || '').split(',').map((v) => v.trim()).filter(Boolean)) }} }",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        4320,
+        288
+      ],
+      "id": "ae180efe-4ab8-54d7-9a76-009bfe22e2dc",
+      "name": "CRONOS_citas_WA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "MNEMÓSINE. Para una lista de documentos dice cuáles necesitan legalización o apostilla y traducción jurada, y cuáles deben ser recientes.",
+        "method": "POST",
+        "url": "https://burofast.vercel.app/api/v1/motores/mnemosine",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"documentos\": {{ JSON.stringify(String($fromAI('documentos', 'Ids de documento separados por comas. Valores posibles: pasaporte, padron, padron_historico, antecedentes_origen, antecedentes_espana, tie_actual, contrato_u_oferta, medios_economicos, matricula, seguro_medico, vinculo_familiar, informe_vivienda, certificado_nacimiento, ccse_dele, plan_negocio, resolucion_regularizacion.', 'string') || '').split(',').map((v) => v.trim()).filter(Boolean)) }} }",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        4480,
+        288
+      ],
+      "id": "82b28b9a-1bbe-5f08-9a99-f56a799bb3b0",
+      "name": "MNEMOSINE_documentos_WA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "ARGOS. Con la fecha de caducidad de una tarjeta de residencia calcula cuándo se abre y se cierra el plazo de renovación y en qué punto está hoy.",
+        "method": "POST",
+        "url": "https://burofast.vercel.app/api/v1/motores/argos",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"caducidad\": {{ JSON.stringify($fromAI('caducidad', 'Fecha de caducidad de la tarjeta, formato AAAA-MM-DD.', 'string')) }} }",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        4640,
+        288
+      ],
+      "id": "63a88352-68ce-5b0d-b2c5-249ca6bc0a37",
+      "name": "ARGOS_plazos_WA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "TEMIS. Devuelve las garantías y límites de BUROFAST: qué prometemos, qué no y qué decide siempre una persona.",
+        "method": "POST",
+        "url": "https://burofast.vercel.app/api/v1/motores/temis",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        4800,
+        288
+      ],
+      "id": "20805ddd-b1e0-588e-843b-ebd7fb804dc4",
+      "name": "TEMIS_reglas_WA",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR_AL_IMPORTAR",
+          "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
         "jsCode": "const bruto = String($input.first().json.output || '');\nconst agente = ((bruto.match(/\\[\\[AGENTE:([^\\]]+)\\]\\]/i) || [])[1] || 'HESTIA')\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toUpperCase();\nconst motor = ((bruto.match(/\\[\\[MOTOR:([^\\]]+)\\]\\]/i) || [])[1] || '').trim().toLowerCase() || null;\nconst escalar = bruto.includes('[[ESCALAR]]');\nconst respuesta = bruto.replace(/\\[\\[(AGENTE|MOTOR):[^\\]]*\\]\\]/gi, '').replace(/\\[\\[ESCALAR\\]\\]/g, '').trim();\n// Sin texto, el backend no lo acepta y responde en modo local.\nreturn [{ json: { respuesta: respuesta || null, agente, motor, escalar } }];"
       },
       "type": "n8n-nodes-base.code",
@@ -1299,7 +1517,21 @@
         ],
         [
           {
-            "node": "Aviso de imagen",
+            "node": "Aviso de adjunto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso de adjunto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso de adjunto",
             "type": "main",
             "index": 0
           }
@@ -1361,7 +1593,7 @@
         ]
       ]
     },
-    "Aviso de imagen": {
+    "Aviso de adjunto": {
       "main": [
         [
           {
@@ -1417,6 +1649,24 @@
       ]
     },
     "Contexto BUROFAST": {
+      "main": [
+        [
+          {
+            "node": "HESTIA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Catálogo público",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catálogo público": {
       "main": [
         [
           {
@@ -1586,6 +1836,61 @@
         [
           {
             "node": "HESTIA · App",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARIADNA_rutas_WA": {
+      "ai_tool": [
+        [
+          {
+            "node": "HESTIA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRONOS_citas_WA": {
+      "ai_tool": [
+        [
+          {
+            "node": "HESTIA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MNEMOSINE_documentos_WA": {
+      "ai_tool": [
+        [
+          {
+            "node": "HESTIA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARGOS_plazos_WA": {
+      "ai_tool": [
+        [
+          {
+            "node": "HESTIA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TEMIS_reglas_WA": {
+      "ai_tool": [
+        [
+          {
+            "node": "HESTIA",
             "type": "ai_tool",
             "index": 0
           }

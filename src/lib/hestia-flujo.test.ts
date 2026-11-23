@@ -29,24 +29,51 @@ describe("flujo n8n de HESTIA", () => {
     expect(texto.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")).not.toMatch(/\d{11,}/);
     // Las API keys de Evolution tienen forma de UUID en mayúsculas.
     expect(texto).not.toMatch(/[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}/);
-    expect(texto).not.toMatch(/body\.apikey|calendarId|locationId/);
+    expect(texto).not.toMatch(/calendarId|locationId/);
+    // La clave de Evolution solo se lee del cuerpo en un sitio, nunca se escribe en el flujo.
+    expect(texto.match(/body\.apikey/g)).toHaveLength(1);
   });
 
   it("no depende de $vars, que n8n Community no tiene", () => {
     expect(texto).not.toContain("$vars");
   });
 
-  it("la ruta del webhook de WhatsApp se personaliza en cada despliegue", () => {
-    expect(String(porNombre.get("Webhook")?.parameters.path)).toContain("REEMPLAZAR");
+  it("la ruta del webhook de WhatsApp no es la pública del flujo original", () => {
+    expect(String(porNombre.get("Webhook")?.parameters.path)).not.toMatch(/^f1ec2445/);
   });
 
-  it("la URL de Evolution nunca sale del cuerpo del webhook", () => {
+  it("la URL y la instancia de Evolution nunca salen del cuerpo del webhook", () => {
     expect(texto).not.toMatch(/body\.server_url/);
     for (const nombre of ["Get Audio", "whatsapp_response"]) {
-      const nodo = porNombre.get(nombre);
-      expect(String(nodo?.parameters.url)).toContain("$('Configuración').first().json.EVOLUTION_BASE_URL");
-      expect(nodo?.credentials).toBeDefined();
+      const url = String(porNombre.get(nombre)?.parameters.url);
+      expect(url).toContain("$('Configuración').first().json.EVOLUTION_BASE_URL");
+      expect(url).toContain("$('Configuración').first().json.EVOLUTION_INSTANCE");
     }
+    // Solo entran mensajes de personas: ni los propios, ni grupos, ni otra instancia.
+    const filtro = JSON.stringify(porNombre.get("Solo mensajes entrantes")?.parameters);
+    for (const condicion of ["messages.upsert", "fromMe", "@g.us", "EVOLUTION_INSTANCE"]) expect(filtro).toContain(condicion);
+  });
+
+  it("los adjuntos (imagen, documento, vídeo) llegan a HESTIA como aviso, no se pierden", () => {
+    const tipos = (porNombre.get("Switch3")?.parameters as { rules: { values: { outputKey: string }[] } }).rules.values.map((v) => v.outputKey);
+    expect(tipos).toEqual(["audio", "text", "image", "document", "video"]);
+    for (const salida of flujo.connections.Switch3.main.slice(2)) expect(salida[0].node).toBe("Aviso de adjunto");
+    expect(JSON.stringify(porNombre.get("Edit Fields6")?.parameters)).toContain("documentMessage");
+  });
+
+  it("HESTIA por WhatsApp consulta a los cinco agentes y nunca se queda sin respuesta", () => {
+    for (const nombre of ["ARIADNA_rutas_WA", "CRONOS_citas_WA", "MNEMOSINE_documentos_WA", "ARGOS_plazos_WA", "TEMIS_reglas_WA"]) {
+      expect(flujo.connections[nombre].ai_tool[0][0].node).toBe("HESTIA");
+      expect(String(porNombre.get("HESTIA")?.parameters.options && JSON.stringify(porNombre.get("HESTIA")?.parameters.options))).toContain(nombre);
+    }
+    // Sin credencial de contexto, el catálogo público da los precios.
+    expect(flujo.connections["Contexto BUROFAST"].main[1][0].node).toBe("Catálogo público");
+    expect(flujo.connections["Catálogo público"].main[0][0].node).toBe("HESTIA");
+    const preparar = new Function("$input", String(porNombre.get("Preparar respuesta")?.parameters.jsCode));
+    const ejecutar = (output: string) => (preparar({ first: () => ({ json: { output } }) }) as { json: { texto: string; escalar: boolean } }[])[0].json;
+    expect(ejecutar("Hola.\n[[ESCALAR]]")).toEqual({ texto: "Hola.", escalar: true });
+    expect(ejecutar("")).toMatchObject({ escalar: true });
+    expect(ejecutar("").texto.length).toBeGreaterThan(20);
   });
 
   it("todas las conexiones apuntan a nodos existentes y los nombres son únicos", () => {
@@ -62,7 +89,8 @@ describe("flujo n8n de HESTIA", () => {
     const prompt = String((hestia?.parameters.options as { systemMessage: string }).systemMessage);
     expect(prompt).toContain("Eres HESTIA");
     expect(prompt).toContain("inteligencia artificial");
-    expect(prompt).toContain("$('Contexto BUROFAST')");
+    expect(prompt).toContain("CONTEXTO BUROFAST");
+    expect(prompt).toContain("{{ JSON.stringify($json) }}");
     expect(prompt).toContain("nunca la cita");
   });
 

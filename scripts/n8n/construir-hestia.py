@@ -1,10 +1,12 @@
 """Construye infrastructure/n8n/hestia.workflow.json: HESTIA con dos canales.
 
 1. WhatsApp, a partir del flujo original AgenteWhatsapp.json. Cambios: sin
-   pinData ni claves del cuerpo del webhook, URL de Evolution fija (no la que
-   diga el cuerpo), agrupación de mensajes sin el desfase de 3 h, teléfonos de
-   cualquier país, imágenes, contexto vivo de BUROFAST en el prompt y eventos
-   autenticados con credencial hacia /api/v1/hestia/eventos.
+   pinData, URL e instancia de Evolution fijas (no las que diga el cuerpo),
+   solo mensajes entrantes de personas, agrupación sin el desfase de 3 h,
+   teléfonos de cualquier país, adjuntos (imagen, documento, vídeo) avisados a
+   HESTIA, contexto vivo de BUROFAST (con el catálogo público de respaldo), los
+   cinco motores como herramientas y eventos autenticados hacia
+   /api/v1/hestia/eventos.
 2. App: la consola de la superapp. Webhook con credencial, HESTIA con memoria
    por sesión y los cinco motores como herramientas (ARIADNA, CRONOS,
    MNEMÓSINE, ARGOS, TEMIS), y respuesta JSON con agente, motor y escalado.
@@ -28,7 +30,6 @@ nodos = {n["name"]: copy.deepcopy(n) for n in origen["nodes"]}
 def nid(nombre):  # ids estables para que reimportar no duplique nodos
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"burofast-hestia/{nombre}"))
 
-CRED_EVOLUTION = {"httpHeaderAuth": {"id": "REEMPLAZAR_AL_IMPORTAR", "name": "Evolution API · BUROFAST (cabecera apikey)"}}
 CRED_CONTEXTO = {"httpHeaderAuth": {"id": "REEMPLAZAR_AL_IMPORTAR", "name": "BUROFAST · HESTIA contexto (Authorization: Bearer)"}}
 CRED_EVENTOS = {"httpHeaderAuth": {"id": "REEMPLAZAR_AL_IMPORTAR", "name": "BUROFAST · HESTIA eventos (Authorization: Bearer)"}}
 
@@ -37,10 +38,13 @@ CRED_EVENTOS = {"httpHeaderAuth": {"id": "REEMPLAZAR_AL_IMPORTAR", "name": "BURO
 def cfg(clave):
     return "$('Configuración').first().json." + clave
 
-# 1. Webhook con ruta propia por despliegue: la del flujo original está
-#    publicada y cualquiera podría llamarla.
+# 1. Ruta del webhook: la que tiene configurada Evolution. Es adivinable; lo
+#    que limita el daño de un webhook falso es que URL e instancia de Evolution
+#    salen de Configuración y la clave del cuerpo solo sirve si es la buena.
+#    Pendiente: rotarla a un uuid y cambiarla a la vez en Evolution.
+WEBHOOK_WHATSAPP = "BUROFAST"
 webhook = nodos["Webhook"]
-webhook["parameters"]["path"] = "hestia-REEMPLAZAR-por-un-uuid-propio"
+webhook["parameters"]["path"] = WEBHOOK_WHATSAPP
 webhook["webhookId"] = nid("webhook-hestia")
 
 configuracion = {
@@ -71,14 +75,32 @@ filtro = {
 }
 
 # 3. Edit Fields6: la URL y la instancia de Evolution salen del nodo Configuración, NUNCA del
-#    cuerpo (un webhook falso podría desviar la llamada con nuestra clave).
+#    cuerpo (un webhook falso podría mandar a n8n a llamar a otro servidor). La
+#    clave sí viene en el cuerpo: Evolution la manda en cada evento y un cuerpo
+#    falso solo trae una clave que nuestra Evolution rechaza.
+#    Tipos: texto, audio, imagen, documento y vídeo (antes los adjuntos se perdían).
 campos = nodos["Edit Fields6"]
-asignaciones = [a for a in campos["parameters"]["assignments"]["assignments"] if a["name"] not in ("instance.apikey", "calendarId", "locationId")]
+asignaciones = [a for a in campos["parameters"]["assignments"]["assignments"] if a["name"] not in ("calendarId", "locationId")]
+M = "$('Webhook').item.json.body.data.message"
 for a in asignaciones:
     if a["name"] == "instance.server_url":
         a["value"] = "={{ " + cfg("EVOLUTION_BASE_URL") + " }}"
     if a["name"] == "instance.instance":
         a["value"] = "={{ " + cfg("EVOLUTION_INSTANCE") + " }}"
+    if a["name"] == "message.content_type":
+        a["value"] = (
+            "={{ (" + M + ".extendedTextMessage || " + M + ".conversation) ? 'text'"
+            " : " + M + ".audioMessage ? 'audio'"
+            " : " + M + ".imageMessage ? 'image'"
+            " : (" + M + ".documentMessage || " + M + ".documentWithCaptionMessage) ? 'document'"
+            " : " + M + ".videoMessage ? 'video' : '' }}"
+        )
+    if a["name"] == "message.content":
+        a["value"] = (
+            "={{ " + M + ".extendedTextMessage?.text || " + M + ".conversation || " + M + ".imageMessage?.caption"
+            " || " + M + ".videoMessage?.caption || " + M + ".documentMessage?.fileName"
+            " || " + M + ".documentWithCaptionMessage?.message?.documentMessage?.fileName || '' }}"
+        )
 campos["parameters"]["assignments"]["assignments"] = asignaciones
 campos["position"] = [176, 112]
 
@@ -90,22 +112,25 @@ regla["leftValue"] = "={{ DateTime.fromISO(JSON.parse($json.messages.last()).tim
 regla["rightValue"] = "={{ $now.toISO() }}"
 nodos["Wait1"]["parameters"]["amount"] = 2
 
-# 5. Imágenes: antes se perdían. HESTIA recibe un aviso, no la imagen.
+# 5. Adjuntos (imagen, documento, vídeo): antes se perdían. HESTIA recibe un
+#    aviso con el tipo y el nombre o el pie, nunca el contenido.
 switch3 = nodos["Switch3"]
-switch3["parameters"]["rules"]["values"].append({
-    "conditions": {
-        "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
-        "conditions": [{"id": nid("c-imagen"), "leftValue": "={{ $json.content_type }}", "rightValue": "image", "operator": {"type": "string", "operation": "equals"}}],
-        "combinator": "and",
-    },
-    "renameOutput": True, "outputKey": "image",
-})
+for tipo in ("image", "document", "video"):
+    switch3["parameters"]["rules"]["values"].append({
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+            "conditions": [{"id": nid("c-" + tipo), "leftValue": "={{ $json.content_type }}", "rightValue": tipo, "operator": {"type": "string", "operation": "equals"}}],
+            "combinator": "and",
+        },
+        "renameOutput": True, "outputKey": tipo,
+    })
+TIPO_ADJUNTO = "{{ ({ image: 'una imagen', document: 'un documento', video: 'un vídeo' })[$json.content_type] || 'un archivo' }}"
 imagen = {
     "parameters": {"assignments": {"assignments": [
-        {"id": nid("img-content"), "name": "content", "value": "=[La persona ha enviado una imagen{{ $json.content ? ' con el texto: ' + $json.content : '' }}. No la has visto. Recuérdale que los documentos no se envían por WhatsApp y escala.]", "type": "string"},
+        {"id": nid("img-content"), "name": "content", "value": "=[ADJUNTO: la persona ha enviado " + TIPO_ADJUNTO + "{{ $json.content ? ' («' + $json.content + '»)' : '' }}. No ves su contenido. Sigue la regla de ADJUNTOS.]", "type": "string"},
         {"id": nid("img-ts"), "name": "timestampt", "value": "={{ $('JSON Parser1').item.json.timestampt }}", "type": "string"},
     ]}, "options": {}},
-    "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [2336, 480], "id": nid("Aviso de imagen"), "name": "Aviso de imagen",
+    "type": "n8n-nodes-base.set", "typeVersion": 3.4, "position": [2336, 480], "id": nid("Aviso de adjunto"), "name": "Aviso de adjunto",
 }
 merge = nodos["Merge1"]
 merge["parameters"] = {"numberInputs": 3}
@@ -122,6 +147,8 @@ nodos["Code2"]["parameters"]["jsCode"] = (
 )
 
 # 7. Contexto vivo de BUROFAST (precios, reglas de citas, enlaces al funnel).
+#    Si la credencial falta o falla, el catálogo público da los mismos precios:
+#    HESTIA nunca se queda sin cifras ni enlaces por un token.
 contexto = {
     "parameters": {
         "url": "={{ " + cfg("BUROFAST_API_URL") + " }}/api/v1/hestia/contexto",
@@ -130,7 +157,13 @@ contexto = {
     },
     "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [3952, -160],
     "id": nid("Contexto BUROFAST"), "name": "Contexto BUROFAST", "credentials": CRED_CONTEXTO,
-    # Si BUROFAST no responde, HESTIA sigue atendiendo pero sin dar precios.
+    "onError": "continueErrorOutput",
+}
+catalogo = {
+    "parameters": {"url": "={{ " + cfg("BUROFAST_API_URL") + " }}/api/v1/catalogo", "options": {"timeout": 5000}},
+    "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [3952, 96],
+    "id": nid("Catálogo público"), "name": "Catálogo público",
+    # Si tampoco responde, HESTIA atiende sin dar cifras (lo dice su prompt).
     "onError": "continueRegularOutput",
 }
 
@@ -139,18 +172,23 @@ agente["name"] = "HESTIA"
 agente["id"] = nid("HESTIA")
 agente["position"] = [4176, 32]
 agente["parameters"]["text"] = "=Mensaje de la persona: {{ $('Code2').item.json.message }}"
+agente["parameters"]["options"]["maxIterations"] = 6
+# Si la IA falla, la persona no se queda sin respuesta: «Preparar respuesta» manda un aviso.
+agente["onError"] = "continueRegularOutput"
 agente["parameters"]["options"]["systemMessage"] = (
     "=" + prompt
     + "\n--- CONTEXTO BUROFAST (fuente única de precios y reglas; si está vacío o trae error, no des cifras) ---\n"
-    + "{{ JSON.stringify($('Contexto BUROFAST').item.json) }}\n\nFecha y hora: {{ $now.setZone('Europe/Madrid').toISO() }}"
+    + "{{ JSON.stringify($json) }}\n\nFecha y hora: {{ $now.setZone('Europe/Madrid').toISO() }}"
 )
 
 # 8. Retirar la marca [[ESCALAR]] antes de enviar y preparar los eventos.
 preparar = {
     "parameters": {"jsCode": (
         "const salida = String($input.first().json.output || '');\n"
-        "const escalar = salida.includes('[[ESCALAR]]');\n"
-        "const texto = salida.replace(/\\[\\[ESCALAR\\]\\]/g, '').trim();\n"
+        "const escalar = salida.includes('[[ESCALAR]]') || !salida.trim();\n"
+        "const limpio = salida.replace(/\\[\\[(ESCALAR|AGENTE:[^\\]]*|MOTOR:[^\\]]*)\\]\\]/g, '').trim();\n"
+        "// Sin respuesta de la IA, un aviso honesto y una persona del equipo sigue.\n"
+        "const texto = limpio || 'Gracias por escribirnos. Ahora mismo no puedo responder bien; una persona del equipo de BUROFAST te contesta en cuanto pueda.';\n"
         "return [{ json: { texto, escalar } }];"
     )},
     "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [4464, 32], "id": nid("Preparar respuesta"), "name": "Preparar respuesta",
@@ -159,22 +197,12 @@ preparar = {
 respuesta = nodos["whatsapp_response"]
 respuesta["position"] = [4704, 32]
 respuesta["parameters"]["url"] = "={{ " + cfg("EVOLUTION_BASE_URL") + " }}/message/sendText/{{ " + cfg("EVOLUTION_INSTANCE") + " }}"
-respuesta["parameters"]["sendHeaders"] = False
-respuesta["parameters"].pop("headerParameters", None)
-respuesta["parameters"]["authentication"] = "genericCredentialType"
-respuesta["parameters"]["genericAuthType"] = "httpHeaderAuth"
-respuesta["credentials"] = CRED_EVOLUTION
 for p in respuesta["parameters"]["bodyParameters"]["parameters"]:
     if p["name"] == "text":
         p["value"] = "={{ $('Preparar respuesta').item.json.texto }}"
 
 audio = nodos["Get Audio"]
 audio["parameters"]["url"] = "={{ " + cfg("EVOLUTION_BASE_URL") + " }}/chat/getBase64FromMediaMessage/{{ " + cfg("EVOLUTION_INSTANCE") + " }}"
-audio["parameters"]["sendHeaders"] = False
-audio["parameters"].pop("headerParameters", None)
-audio["parameters"]["authentication"] = "genericCredentialType"
-audio["parameters"]["genericAuthType"] = "httpHeaderAuth"
-audio["credentials"] = CRED_EVOLUTION
 
 # 9. Eventos firmados hacia BUROFAST: entrante, respuesta y, si toca, escalado.
 eventos = {
@@ -210,7 +238,7 @@ enviar_evento = {
 
 nodos["Postgres Chat Memory"]["parameters"]["sessionKey"] = "={{ $('Code2').item.json.phone }}"
 del nodos["AI Agent"]
-for nuevo in (configuracion, filtro, imagen, contexto, agente, preparar, eventos, enviar_evento):
+for nuevo in (configuracion, filtro, imagen, contexto, catalogo, agente, preparar, eventos, enviar_evento):
     nodos[nuevo["name"]] = nuevo
 
 c = origen["connections"]
@@ -226,18 +254,20 @@ conexiones = {
     "Redis3": c["Redis3"],
     "Split Out1": c["Split Out1"],
     "JSON Parser1": c["JSON Parser1"],
-    "Switch3": {"main": c["Switch3"]["main"] + [[{"node": "Aviso de imagen", "type": "main", "index": 0}]]},
+    "Switch3": {"main": c["Switch3"]["main"] + [[{"node": "Aviso de adjunto", "type": "main", "index": 0}]] * 3},
     "Get Audio": c["Get Audio"],
     "Convert to File1": c["Convert to File1"],
     "Transcribe a recording1": c["Transcribe a recording1"],
     "Edit Fields5": c["Edit Fields5"],
     "Edit Fields7": c["Edit Fields7"],
-    "Aviso de imagen": {"main": [[{"node": "Merge1", "type": "main", "index": 2}]]},
+    "Aviso de adjunto": {"main": [[{"node": "Merge1", "type": "main", "index": 2}]]},
     "Merge1": c["Merge1"],
     "Sort1": c["Sort1"],
     "Aggregate2": c["Aggregate2"],
     "Code2": {"main": [[{"node": "Contexto BUROFAST", "type": "main", "index": 0}]]},
-    "Contexto BUROFAST": {"main": [[{"node": "HESTIA", "type": "main", "index": 0}]]},
+    # Salida 0: contexto bueno. Salida 1 (error o sin credencial): catálogo público.
+    "Contexto BUROFAST": {"main": [[{"node": "HESTIA", "type": "main", "index": 0}], [{"node": "Catálogo público", "type": "main", "index": 0}]]},
+    "Catálogo público": {"main": [[{"node": "HESTIA", "type": "main", "index": 0}]]},
     "OpenAI Chat Model": {"ai_languageModel": [[{"node": "HESTIA", "type": "ai_languageModel", "index": 0}]]},
     "Postgres Chat Memory": {"ai_memory": [[{"node": "HESTIA", "type": "ai_memory", "index": 0}]]},
     "HESTIA": {"main": [[{"node": "Preparar respuesta", "type": "main", "index": 0}]]},
@@ -401,7 +431,17 @@ responder_app = {
     "id": nid("Responder a la app"), "name": "Responder a la app",
 }
 
-for nuevo in (webhook_app, entrada_app, hestia_app, modelo_app, memoria_app, *herramientas, salida_app, responder_app):
+# Las mismas cinco herramientas para HESTIA por WhatsApp (un nodo de
+# herramienta solo cuelga de un agente).
+herramientas_wa = []
+for h in herramientas:
+    copia = copy.deepcopy(h)
+    copia["name"] = h["name"] + "_WA"
+    copia["id"] = nid(copia["name"])
+    copia["position"] = [h["position"][0] + 3600, 288]
+    herramientas_wa.append(copia)
+
+for nuevo in (webhook_app, entrada_app, hestia_app, modelo_app, memoria_app, *herramientas, *herramientas_wa, salida_app, responder_app):
     nodos[nuevo["name"]] = nuevo
 conexiones.update({
     "Webhook app": {"main": [[{"node": "Entrada app", "type": "main", "index": 0}]]},
@@ -409,6 +449,7 @@ conexiones.update({
     "OpenAI · App": {"ai_languageModel": [[{"node": "HESTIA · App", "type": "ai_languageModel", "index": 0}]]},
     "Memoria · App": {"ai_memory": [[{"node": "HESTIA · App", "type": "ai_memory", "index": 0}]]},
     **{h["name"]: {"ai_tool": [[{"node": "HESTIA · App", "type": "ai_tool", "index": 0}]]} for h in herramientas},
+    **{h["name"]: {"ai_tool": [[{"node": "HESTIA", "type": "ai_tool", "index": 0}]]} for h in herramientas_wa},
     "HESTIA · App": {"main": [[{"node": "Salida app", "type": "main", "index": 0}]]},
     "Salida app": {"main": [[{"node": "Responder a la app", "type": "main", "index": 0}]]},
 })
